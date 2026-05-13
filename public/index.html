@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Kilo Baseball</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Chart.js for velocity graph -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Main app logic -->
+    <script defer src="script.js"></script>
+</head>
+
+<body>
+<div id="app">
+
+    <!-- Launch Screen -->
+    <div id="launch-screen" class="screen active">
+        <h1>KILO BASEBALL Tagging</h1>
+
+        <div class="launch-buttons">
+            <button class="launch-btn" onclick="startSession('Pitching')">PITCHING</button>
+            <button class="launch-btn" onclick="startSession('Hitting')">HITTING</button>
+            <button onclick="window.location.href='dashboard.html'">View Sessions</button>
+        </div>
+    </div>
+
+    <!-- Tagging Screen -->
+    <div id="tagging-screen" class="screen">
+
+        <!-- Header -->
+        <header>
+            <input id="pitcherName" placeholder="Pitcher Name">
+            <button id="finishBtn" onclick="finishSession()">FINISH</button>
+        </header>
+
+        <div id="layout">
+
+            <!-- Main Tagging Area -->
+            <main>
+
+                <div id="strike-zone" onclick="handleTap(event)">
+                    <div id="strike-rect"></div>
+
+                    <!-- Pitch list (thumbnails + info) -->
+                    <div id="pitchList"></div>
+
+                    <!-- Tap marker -->
+                    <div id="tap-marker"></div>
+
+                    <!-- Hint -->
+                    <div id="tap-hint">TAP TO TAG PITCH</div>
+                </div>
+
+                <!-- Bottom Stats Bar -->
+                <div id="stats-footer">
+
+                    <div class="stat">
+                        <label>COUNT</label>
+                        <span id="countStat">0-0</span>
+                    </div>
+
+                    <div class="stat">
+                        <label>OUTS</label>
+                        <span id="outsStat">0</span>
+                    </div>
+
+                    <div class="stat">
+                        <label>T-BALLS</label>
+                        <span id="tballsStat">0</span>
+                    </div>
+
+                    <div class="stat">
+                        <label>T-STRIKES</label>
+                        <span id="tstrikesStat">0</span>
+                    </div>
+
+                    <div class="stat">
+                        <label>TOTAL</label>
+                        <span id="totalStat">0</span>
+                    </div>
+
+                </div>
+            </main>
+
+            <!-- Right HUD -->
+            <aside>
+
+                <!-- Live video (WebRTC) -->
+                <video id="liveVideo" autoplay playsinline muted></video>
+
+                <!-- MJPEG Stream -->
+                <div class="hud-card">
+                    <img id="mjpeg" src="" alt="Live Stream">
+                </div>
+
+                <!-- Velocity -->
+                <div class="hud-card velocity">
+                    <span id="velocityVal">--</span>
+                    <small>MPH</small>
+                </div>
+
+                <!-- NDI Status -->
+                <div class="hud-card ndi">
+                    <span id="ndiStatus">NDI?</span>
+                </div>
+
+                <!-- Camera Status -->
+                <div class="hud-card status">
+                    <span id="videoStatus">Waiting for stream...</span>
+                </div>
+
+                <!-- Camera Controls -->
+                <button id="startCameraBtn" onclick="startCamera()">Start Camera</button>
+                <button id="recordBtn" onclick="toggleRecord()">●</button>
+
+            </aside>
+        </div>
+    </div>
+
+    <!-- Velocity Chart -->
+    <canvas id="velocityChart"></canvas>
+
+    <!-- Pitcher Dropdown -->
+    <select id="pitcherSelect"></select>
+
+    <!-- Modal -->
+    <div id="modal-backdrop">
+        <div id="modal">
+            <h3 id="modal-title"></h3>
+            <div id="modal-buttons"></div>
+            <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

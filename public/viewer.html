@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Session Viewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Chart.js for velocity graph -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+  <h1>Session Viewer</h1>
+
+  <!-- Header -->
+  <div id="viewerHeader"></div>
+
+  <!-- Pitch List -->
+  <div id="viewerPitchList"></div>
+
+  <!-- Velocity Graph -->
+  <h2>Velocity Graph</h2>
+  <canvas id="viewerVelocityChart"></canvas>
+
+  <!-- Heatmap -->
+  <h2>Heatmap</h2>
+  <canvas id="viewerHeatmap"></canvas>
+
+  <!-- Viewer Logic -->
+  <script src="viewer.js"></script>
+
+</body>
+</html>
