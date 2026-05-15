@@ -451,6 +451,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
+    <div id="statusBar" style="padding:10px; background:#eee; font-weight:bold;">
+    Camera: ❌ | Tagger: ❌
+  </div>
   <div class="app">
     <div class="main">
       <div class="left">
@@ -613,7 +616,12 @@
       </div>
     </div>
   </div>
- 
+ <button id="connectRadarBtn">Connect Pocket Radar</button>
+
+<div style="font-size: 24px; margin-top: 10px;">
+  Velocity: <span id="velocityDisplay">--</span> MPH
+</div>
+
   <script>
     const strikezoneArea = document.getElementById('strikezoneArea');
     const strikezoneGrid = document.getElementById('strikezoneGrid');
@@ -1028,5 +1036,60 @@ session.pitcher = document.getElementById('pitcherSelect').value;
       });
     } catch (_) {}
   </script>
+  <script>
+let radarScan = null;
+
+async function connectPocketRadar() {
+  try {
+    radarScan = await navigator.bluetooth.requestLEScan({
+      filters: [{ manufacturerData: { 0xFFFF: {} } }],
+      keepRepeatedDevices: true
+    });
+
+    navigator.bluetooth.addEventListener("advertisementreceived", event => {
+      const data = event.manufacturerData.get(0xFFFF);
+      if (!data) return;
+
+      const speed = data.getUint8(2); // MPH
+      updateVelocity(speed);
+    });
+
+    console.log("Pocket Radar scanning started");
+
+  } catch (err) {
+    console.error("Radar connection error:", err);
+    alert("Unable to connect. Use Safari on iPhone/iPad.");
+  }
+}
+
+function updateVelocity(speed) {
+  const el = document.getElementById("velocityDisplay");
+  if (el) el.textContent = speed;
+
+  if (window.socket) {
+    window.socket.send(JSON.stringify({
+      type: "velocity",
+      value: speed
+    }));
+  }
+}
+
+document.getElementById("connectRadarBtn").onclick = connectPocketRadar;
+
+// Listen for velocity from the other device
+if (window.socket) {
+  window.socket.addEventListener("message", event => {
+    const msg = JSON.parse(event.data);
+
+    if (msg.type === "velocity") {
+      const el = document.getElementById("velocityDisplay");
+      if (el) el.textContent = msg.value;
+    }
+  });
+}
+</script>
+
+  <script src="/ws.js"></script>
+  
 </body>
 </html>

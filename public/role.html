@@ -1,40 +1,37 @@
 <!DOCTYPE html>
 <html>
-<body style="background:black; color:white; text-align:center;">
+<head>
+  <title>Select Role</title>
+</head>
+<body>
+  <div id="statusBar" style="padding:10px; background:#eee; font-weight:bold;">
+    Camera: ❌ | Tagger: ❌
+  </div>
 
-<h2>Select Device Role</h2>
+  <h1>Select Role</h1>
 
-<button onclick="setRole('camera')" 
-        style="padding:15px; margin:10px; width:80%; max-width:300px;">
-    Use this device as CAMERA
-</button>
+  <button id="taggerBtn">Tagger</button>
+  <button id="cameraBtn">Camera</button>
 
-<button onclick="setRole('tagger')" 
-        style="padding:15px; margin:10px; width:80%; max-width:300px;">
-    Use this device as TAGGER
-</button>
+  <script src="/ws.js"></script>
 
-<script>
-async function setRole(role) {
-    const res = await fetch("/setRole", {
+  <script>
+    async function setRole(role) {
+      const res = await fetch("/setRole", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role })
-    });
+      });
 
-    const data = await res.json();
+      const data = await res.json();
+      if (!data.success) return alert("Error setting role");
 
-    if (data.success) {
-        if (role === "camera") {
-            window.location.href = "/camera.html";
-        } else {
-            window.location.href = "/tagging.html";
-        }
-    } else {
-        alert("Error setting role");
+      if (role === "tagger") window.location.href = "/tagging.html";
+      if (role === "camera") window.location.href = "/pitcher-dashboard.html";
     }
-}
-</script>
 
+    document.getElementById("taggerBtn").onclick = () => setRole("tagger");
+    document.getElementById("cameraBtn").onclick = () => setRole("camera");
+  </script>
 </body>
 </html>

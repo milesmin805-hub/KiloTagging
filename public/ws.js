@@ -1,13 +1,26 @@
-const ws = new WebSocket("wss://" + window.location.host);
+(function () {
+  const code = localStorage.getItem("sessionCode");
+  if (!code) return;
 
-ws.onopen = () => {
-    console.log("WebSocket connected");
-};
+  const socket = new WebSocket(
+    (location.protocol === "https:" ? "wss://" : "ws://") + location.host
+  );
 
-ws.onmessage = (msg) => {
-    const data = JSON.parse(msg.data);
+  socket.addEventListener("open", () => {
+    socket.send(JSON.stringify({ type: "joinSession", code }));
+  });
 
-    if (data.type === "frame" && window.onFrameReceived) {
-        window.onFrameReceived(data.frame);
+  socket.addEventListener("message", (event) => {
+    const msg = JSON.parse(event.data);
+
+    if (msg.type === "sessionUpdate") {
+      const { camera, tagger } = msg.session;
+      const bar = document.getElementById("statusBar");
+      if (bar) {
+        bar.textContent = `Camera: ${camera === "connected" ? "✔️" : "❌"} | Tagger: ${
+          tagger === "connected" ? "✔️" : "❌"
+        }`;
+      }
     }
-};
+  });
+})();

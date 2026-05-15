@@ -1,34 +1,36 @@
 <!DOCTYPE html>
 <html>
-<body style="background:black; color:white; text-align:center;">
+<head>
+  <title>Login</title>
+</head>
+<body>
+  <h1>Enter Session Code</h1>
 
-<h2>Sign In</h2>
+  <input id="codeInput" placeholder="Enter code" />
+  <button id="loginBtn">Join</button>
 
-<input id="code" placeholder="Enter your code" 
-       style="padding:10px; width:80%; max-width:300px;">
+  <p id="msg" style="color:red;"></p>
 
-<button onclick="login()" 
-        style="padding:10px 20px; margin-top:15px;">Sign In</button>
+  <script>
+    document.getElementById("loginBtn").onclick = async () => {
+      const code = document.getElementById("codeInput").value.trim();
+      if (!code) return;
 
-<script>
-async function login() {
-    const code = document.getElementById("code").value;
-
-    const res = await fetch("/login", {
+      const res = await fetch("/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code })
-    });
+      });
 
-    const data = await res.json();
+      const data = await res.json();
+      if (!data.success) {
+        document.getElementById("msg").textContent = "Login failed";
+        return;
+      }
 
-    if (data.success) {
-        window.location.href = "/role.html";
-    } else {
-        alert("Invalid code");
-    }
-}
-</script>
-
+      localStorage.setItem("sessionCode", code);
+      window.location.href = "/role.html";
+    };
+  </script>
 </body>
 </html>
