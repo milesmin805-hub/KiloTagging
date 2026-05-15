@@ -146,11 +146,8 @@ app.get("/api/sessions/:file/summary.pdf", (req, res) => {
     });
 });
 
-// ------------------------------
-// Fallback to index.html
-// ------------------------------
-app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "index.html"));
+app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/public/login.html');
 });
 
 // ------------------------------
