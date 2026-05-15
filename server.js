@@ -11,6 +11,8 @@ const app = express();
 const server = http.createServer(app);
 const { initWebSocket, broadcastSessionUpdate } = require("./ws-server");
 
+const PORT = process.env.PORT || 3000;
+
 // Shared in-memory session store
 const sessions = {}; 
 
