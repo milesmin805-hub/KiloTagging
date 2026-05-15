@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tagging</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --bg: #05060a;
+      --panel: #10121a;
+      --accent: #1f8fff;
+      --accent-soft: #1f8fff22;
+      --text: #f5f5f7;
+      --muted: #9ca3af;
+      --danger: #f97373;
+      --success: #4ade80;
+      --border: #ffffff;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    }
+    body {
+      background: radial-gradient(circle at top, #111827 0, #020617 55%);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .app {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .main {
+      flex: 1;
+      display: flex;
+      padding: 16px 16px 8px 16px;
+      gap: 16px;
+      overflow: hidden;
+    }
+    .left {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      position: relative;
+    }
+    .strikezone-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 520px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      margin-top: 24px;
+    }
+    .strikezone-click-area {
+      position: relative;
+      width: 100%;
+      max-width: 520px;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+    }
+    .strikezone {
+      position: relative;
+      width: 70%;
+      max-width: 420px;
+      aspect-ratio: 2 / 3;
+      border: 2px solid var(--border);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+    }
+    .zone-cell {
+      border: 1px solid var(--border);
+    }
+    .strikezone-overlay {
+      position: absolute;
+      inset: 0;
+    }
+    .home-plate-wrapper {
+      position: relative;
+      width: 40%;
+      max-width: 220px;
+      margin: 18px auto 0 auto;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .home-plate {
+      position: relative;
+      width: 100%;
+      padding-top: 80%;
+      background: radial-gradient(circle at 30% 0%, #f9fafb 0, #d4d4d8 40%, #9ca3af 100%);
+      clip-path: polygon(10% 0%, 90% 0%, 90% 55%, 50% 100%, 10% 55%);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.6), inset 0 2px 4px rgba(255,255,255,0.6);
+    }
+    .home-plate::after {
+      content: "";
+      position: absolute;
+      inset: 6%;
+      clip-path: inherit;
+      background: linear-gradient(145deg, #e5e7eb, #9ca3af);
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.35);
+    }
+    .right {
+      width: 350px;
+      background: linear-gradient(145deg, #020617, #020617, #0b1120);
+      border-radius: 16px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.7);
+    }
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .panel-header span {
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+    .video-container {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #020617;
+      border: 1px solid #1f2937;
+      height: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      background: #020617;
+    }
+    .velocity-badge {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.85);
+      border: 1px solid rgba(148,163,184,0.6);
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .velocity-value {
+      font-weight: 600;
+      color: var(--text);
+    }
+    .velocity-label {
+      color: var(--muted);
+    }
+    .pitch-type-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .pill {
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid #1f2937;
+      background: #020617;
+      font-size: 11px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.12s ease-out;
+    }
+    .pill.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--text);
+      box-shadow: 0 0 0 1px rgba(31,143,255,0.4);
+    }
+    .pill:hover {
+      border-color: #374151;
+      background: #020617;
+      color: #e5e7eb;
+    }
+    .clips-section {
+      margin-top: 4px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .clips-controls {
+      display: flex;
+      gap: 6px;
+    }
+    .btn {
+      flex: 1;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid #1f2937;
+      background: #020617;
+      color: var(--muted);
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: all 0.12s ease-out;
+    }
+    .btn.primary {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--text);
+    }
+    .btn.danger {
+      border-color: #7f1d1d;
+      background: #450a0a;
+      color: #fecaca;
+    }
+    .btn:hover {
+      border-color: #374151;
+      background: #020617;
+      color: #e5e7eb;
+    }
+    .btn.primary:hover {
+      background: rgba(37,99,235,0.35);
+    }
+    .btn.danger:hover {
+      background: #7f1d1d;
+    }
+    .clips-list {
+      flex: 1;
+      border-radius: 10px;
+      background: #020617;
+      border: 1px solid #111827;
+      padding: 6px;
+      overflow-y: auto;
+      font-size: 12px;
+    }
+    .clip-item {
+      padding: 4px 6px;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background 0.12s ease-out;
+    }
+    .clip-item:hover {
+      background: #0b1120;
+      color: #e5e7eb;
+    }
+    .clip-name {
+      max-width: 70%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .clip-meta {
+      font-size: 11px;
+      color: #6b7280;
+    }
+    .bottom-bar {
+      height: 64px;
+      border-top: 1px solid #111827;
+      background: linear-gradient(to right, #020617, #020617, #020617);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      font-size: 13px;
+    }
+    .count-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .count-pill {
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid #1f2937;
+      background: #020617;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .count-label {
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .count-value {
+      font-weight: 600;
+      color: var(--text);
+      min-width: 10px;
+      text-align: center;
+    }
+    .count-pill.balls .count-value {
+      color: #facc15;
+    }
+    .count-pill.strikes .count-value {
+      color: #22c55e;
+    }
+    .count-pill.outs .count-value {
+      color: #f97373;
+    }
+    .count-pill.innings .count-value {
+      color: #38bdf8;
+    }
+    .total-pitches {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .save-indicator {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .save-indicator span {
+      color: var(--accent);
+      font-weight: 500;
+    }
+    .bottom-center {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+    }
+    .pdf-btn {
+      padding: 8px 24px;
+      border-radius: 999px;
+      border: 1px solid var(--accent);
+      background: var(--accent-soft);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: 0 0 0 1px rgba(31,143,255,0.4);
+      transition: all 0.12s ease-out;
+    }
+    .pdf-btn:hover {
+      background: rgba(37,99,235,0.4);
+    }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15,23,42,0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+    .modal-backdrop.active {
+      display: flex;
+    }
+    .modal {
+      background: #020617;
+      border-radius: 16px;
+      border: 1px solid #1f2937;
+      min-width: 260px;
+      max-width: 360px;
+      padding: 14px 14px 10px 14px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .modal-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .modal-subtitle {
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .modal-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .modal-btn {
+      padding: 7px 8px;
+      border-radius: 10px;
+      border: 1px solid #1f2937;
+      background: #020617;
+      color: var(--muted);
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: all 0.12s ease-out;
+    }
+    .modal-btn.primary {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--text);
+    }
+    .modal-btn:hover {
+      border-color: #374151;
+      background: #020617;
+      color: #e5e7eb;
+    }
+    .modal-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 4px;
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .modal-hotkeys {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .keycap {
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px solid #1f2937;
+      background: #020617;
+      font-size: 10px;
+      color: #9ca3af;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <div class="app">
+    <div class="main">
+      <div class="left">
+        <div class="strikezone-wrapper">
+          <div class="strikezone-click-area" id="strikezoneArea">
+            <div class="strikezone" id="strikezoneGrid">
+              <div class="zone-cell" data-cell="1"></div>
+              <div class="zone-cell" data-cell="2"></div>
+              <div class="zone-cell" data-cell="3"></div>
+              <div class="zone-cell" data-cell="4"></div>
+              <div class="zone-cell" data-cell="5"></div>
+              <div class="zone-cell" data-cell="6"></div>
+              <div class="zone-cell" data-cell="7"></div>
+              <div class="zone-cell" data-cell="8"></div>
+              <div class="zone-cell" data-cell="9"></div>
+              <div class="strikezone-overlay"></div>
+            </div>
+          </div>
+          <div class="home-plate-wrapper" id="homePlateArea">
+            <div class="home-plate"></div>
+          </div>
+        </div>
+      </div>
+      <div class="right">
+        <div class="panel-header">
+          <span>Live feed</span>
+          <span id="currentPitchTypeLabel">Pitch: —</span>
+        </div>
+        <div class="video-container">
+          <video id="liveView" autoplay muted playsinline></video>
+          <div class="velocity-badge">
+            <span class="velocity-value" id="velocityValue">—</span>
+            <span class="velocity-label">mph</span>
+          </div>
+        </div>
+        <div class="panel-header" style="margin-top:4px;">
+          <span>Pitch type</span>
+          <span style="font-size:10px;">Tap or use hotkeys</span>
+        </div>
+        <div class="pitch-type-row" id="pitchTypeRow">
+          <button class="pill" data-type="FB">FB</button>
+          <button class="pill" data-type="2FB">2FB</button>
+          <button class="pill" data-type="CH">CH</button>
+          <button class="pill" data-type="SL">SL</button>
+          <button class="pill" data-type="CB">CB</button>
+          <button class="pill" data-type="CT">CT</button>
+        </div>
+        <div class="clips-section">
+          <div class="panel-header">
+            <span>Clips</span>
+            <span id="clipStatus">Idle</span>
+          </div>
+          <div class="clips-controls">
+            <button class="btn primary" id="startClipBtn">Start Clip</button>
+            <button class="btn danger" id="stopClipBtn">Stop Clip</button>
+          </div>
+          <div class="clips-list" id="clipsList"></div>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <div class="count-group">
+        <div class="count-pill balls">
+          <span class="count-label">Balls</span>
+          <span class="count-value" id="ballsCount">0</span>
+        </div>
+        <div class="count-pill strikes">
+          <span class="count-label">Strikes</span>
+          <span class="count-value" id="strikesCount">0</span>
+        </div>
+        <div class="count-pill outs">
+          <span class="count-label">Outs</span>
+          <span class="count-value" id="outsCount">0</span>
+        </div>
+        <div class="count-pill innings">
+          <span class="count-label">IP</span>
+          <span class="count-value" id="inningsCount">0.0</span>
+        </div>
+      </div>
+      <div class="bottom-center">
+        <button class="pdf-btn" id="exportPdfBtn">Export PDF</button>
+      </div>
+      <div class="save-indicator">
+        Press <span>Enter</span> to save pitch
+      </div>
+    </div>
+  </div>
+ 
+  <div class="modal-backdrop" id="stage1Modal">
+    <div class="modal" data-modal-stage="1">
+      <div class="modal-title">Result</div>
+      <div class="modal-subtitle">Choose the outcome of this pitch</div>
+      <div class="modal-grid">
+        <button class="modal-btn" data-result="Ball" data-key="B">Ball (B)</button>
+        <button class="modal-btn" data-result="Called Strike" data-key="C">Called Strike (C)</button>
+        <button class="modal-btn" data-result="Swinging Strike" data-key="S">Swinging Strike (S)</button>
+        <button class="modal-btn" data-result="Foul" data-key="F">Foul (F)</button>
+        <button class="modal-btn primary" data-result="In Play" data-key="I">In Play (I)</button>
+      </div>
+      <div class="modal-footer">
+        <div>Stage 1</div>
+        <div class="modal-hotkeys">
+          <span class="keycap">B</span>
+          <span class="keycap">C</span>
+          <span class="keycap">S</span>
+          <span class="keycap">F</span>
+          <span class="keycap">I</span>
+          <span class="keycap">Esc</span>
+        </div>
+      </div>
+    </div>
+  </div>
+ 
+  <div class="modal-backdrop" id="stage2Modal">
+    <div class="modal" data-modal-stage="2">
+      <div class="modal-title">In Play</div>
+      <div class="modal-subtitle">How was the ball put in play?</div>
+      <div class="modal-grid">
+        <button class="modal-btn" data-result="Groundout" data-key="G">Groundout (G)</button>
+        <button class="modal-btn" data-result="Fly Out" data-key="F">Fly Out (F)</button>
+        <button class="modal-btn" data-result="Pop Out" data-key="P">Pop Out (P)</button>
+        <button class="modal-btn" data-result="Line Out" data-key="L">Line Out (L)</button>
+        <button class="modal-btn primary" data-result="Hit" data-key="H">Hit (H)</button>
+        <button class="modal-btn" data-result="Error" data-key="E">Error (E)</button>
+      </div>
+      <div class="modal-footer">
+        <div>Stage 2</div>
+        <div class="modal-hotkeys">
+          <span class="keycap">G</span>
+          <span class="keycap">F</span>
+          <span class="keycap">P</span>
+          <span class="keycap">L</span>
+          <span class="keycap">H</span>
+          <span class="keycap">E</span>
+          <span class="keycap">Esc</span>
+        </div>
+      </div>
+    </div>
+  </div>
+ 
+  <div class="modal-backdrop" id="stage3Modal">
+    <div class="modal" data-modal-stage="3">
+      <div class="modal-title">Hit Type</div>
+      <div class="modal-subtitle">What kind of hit was it?</div>
+      <div class="modal-grid">
+        <button class="modal-btn" data-result="Single" data-key="1">Single (1)</button>
+        <button class="modal-btn" data-result="Double" data-key="2">Double (2)</button>
+        <button class="modal-btn" data-result="Triple" data-key="3">Triple (3)</button>
+        <button class="modal-btn primary" data-result="Home Run" data-key="4">Home Run (4)</button>
+      </div>
+      <div class="modal-footer">
+        <div>Stage 3</div>
+        <div class="modal-hotkeys">
+          <span class="keycap">1</span>
+          <span class="keycap">2</span>
+          <span class="keycap">3</span>
+          <span class="keycap">4</span>
+          <span class="keycap">Esc</span>
+        </div>
+      </div>
+    </div>
+  </div>
+ 
+  <script>
+    const strikezoneArea = document.getElementById('strikezoneArea');
+    const strikezoneGrid = document.getElementById('strikezoneGrid');
+    const homePlateArea = document.getElementById('homePlateArea');
+ 
+    const stage1Modal = document.getElementById('stage1Modal');
+    const stage2Modal = document.getElementById('stage2Modal');
+    const stage3Modal = document.getElementById('stage3Modal');
+ 
+    const ballsCountEl = document.getElementById('ballsCount');
+    const strikesCountEl = document.getElementById('strikesCount');
+    const outsCountEl = document.getElementById('outsCount');
+    const inningsCountEl = document.getElementById('inningsCount');
+ 
+    const pitchTypeRow = document.getElementById('pitchTypeRow');
+    const currentPitchTypeLabel = document.getElementById('currentPitchTypeLabel');
+    const velocityValueEl = document.getElementById('velocityValue');
+ 
+    const startClipBtn = document.getElementById('startClipBtn');
+    const stopClipBtn = document.getElementById('stopClipBtn');
+    const clipsList = document.getElementById('clipsList');
+    const clipStatus = document.getElementById('clipStatus');
+    const exportPdfBtn = document.getElementById('exportPdfBtn');
+ 
+    <select id="pitcherSelect"></select>
+
+    async function loadPitchers() {
+  const res = await fetch('/pitchers');
+  const pitchers = await res.json();
+
+  const sel = document.getElementById('pitcherSelect');
+  sel.innerHTML = pitchers.map(p => `
+    <option value="${p.name}">${p.name}</option>
+  `).join('');
+}
+
+loadPitchers();
+
+session.pitcher = document.getElementById('pitcherSelect').value;
+
+
+    let balls = 0;
+    let strikes = 0;
+    let outs = 0;
+    let totalPitches = 0;
+    let pitches = [];
+    let clipCounter = 0;
+    let clipActive = false;
+    let incomingClips = [];
+ 
+    let currentPitch = null;
+    let modalStage = null;
+ 
+    function openModal(stage) {
+      modalStage = stage;
+      if (stage === 1) {
+        stage1Modal.classList.add('active');
+      } else if (stage === 2) {
+        stage2Modal.classList.add('active');
+      } else if (stage === 3) {
+        stage3Modal.classList.add('active');
+      }
+    }
+ 
+    function closeAllModals() {
+      stage1Modal.classList.remove('active');
+      stage2Modal.classList.remove('active');
+      stage3Modal.classList.remove('active');
+      modalStage = null;
+    }
+ 
+    function startNewPitch(location) {
+      currentPitch = {
+        locationX: location.x,
+        locationY: location.y,
+        inZone: location.inZone,
+        resultStage1: null,
+        resultStage2: null,
+        resultStage3: null,
+        pitchType: getCurrentPitchType(),
+        velocity: velocityValueEl.textContent === '—' ? null : velocityValueEl.textContent,
+        clips: []
+      };
+      openModal(1);
+    }
+ 
+    function getCurrentPitchType() {
+      const active = pitchTypeRow.querySelector('.pill.active');
+      return active ? active.dataset.type : null;
+    }
+ 
+    function handleStage1Selection(result) {
+      if (!currentPitch) return;
+      currentPitch.resultStage1 = result;
+      if (result === 'In Play') {
+        openModal(2);
+      } else {
+        closeAllModals();
+      }
+    }
+ 
+    function handleStage2Selection(result) {
+      if (!currentPitch) return;
+      currentPitch.resultStage2 = result;
+      if (result === 'Hit') {
+        openModal(3);
+      } else {
+        closeAllModals();
+      }
+    }
+ 
+    function handleStage3Selection(result) {
+      if (!currentPitch) return;
+      currentPitch.resultStage3 = result;
+      closeAllModals();
+    }
+ 
+    function savePitch() {
+      if (!currentPitch) return;
+      currentPitch.clips = [...incomingClips];
+      incomingClips = [];
+      pitches.push({ ...currentPitch });
+      totalPitches += 1;
+      applyCountsForPitch(currentPitch);
+      currentPitch = null;
+    }
+ 
+    function applyCountsForPitch(pitch) {
+      const r1 = pitch.resultStage1;
+      const r2 = pitch.resultStage2;
+ 
+      if (r1 === 'Ball') {
+        balls += 1;
+        if (balls >= 4) {
+          balls = 0;
+          strikes = 0;
+        }
+      } else if (r1 === 'Called Strike' || r1 === 'Swinging Strike') {
+        strikes += 1;
+        if (strikes >= 3) {
+          outs += 1;
+          strikes = 0;
+          balls = 0;
+        }
+      } else if (r1 === 'Foul') {
+        if (strikes < 2) {
+          strikes += 1;
+        }
+      }
+ 
+      if (r1 === 'In Play') {
+        if (r2 === 'Groundout' || r2 === 'Fly Out' || r2 === 'Pop Out' || r2 === 'Line Out') {
+          outs += 1;
+          strikes = 0;
+          balls = 0;
+        }
+      }
+ 
+      ballsCountEl.textContent = balls.toString();
+      strikesCountEl.textContent = strikes.toString();
+      outsCountEl.textContent = outs.toString();
+      const innings = outs / 3;
+      inningsCountEl.textContent = innings.toFixed(1);
+    }
+ 
+    function getRelativeLocation(event, element) {
+      const rect = element.getBoundingClientRect();
+      const x = (event.clientX - rect.left) / rect.width;
+      const y = (event.clientY - rect.top) / rect.height;
+      const gridRect = strikezoneGrid.getBoundingClientRect();
+      const inZone = event.clientX >= gridRect.left &&
+                     event.clientX <= gridRect.right &&
+                     event.clientY >= gridRect.top &&
+                     event.clientY <= gridRect.bottom;
+      return { x, y, inZone };
+    }
+ 
+    strikezoneArea.addEventListener('click', (e) => {
+      const loc = getRelativeLocation(e, strikezoneArea);
+      startNewPitch(loc);
+    });
+ 
+    homePlateArea.addEventListener('click', (e) => {
+      const rect = homePlateArea.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width;
+      const y = (e.clientY - rect.top) / rect.height;
+      startNewPitch({ x, y, inZone: false });
+    });
+ 
+    stage1Modal.addEventListener('click', (e) => {
+      if (e.target === stage1Modal) {
+        closeAllModals();
+        currentPitch = null;
+      }
+    });
+    stage2Modal.addEventListener('click', (e) => {
+      if (e.target === stage2Modal) {
+        closeAllModals();
+        currentPitch = null;
+      }
+    });
+    stage3Modal.addEventListener('click', (e) => {
+      if (e.target === stage3Modal) {
+        closeAllModals();
+        currentPitch = null;
+      }
+    });
+ 
+    stage1Modal.querySelectorAll('.modal-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        handleStage1Selection(btn.dataset.result);
+      });
+    });
+    stage2Modal.querySelectorAll('.modal-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        handleStage2Selection(btn.dataset.result);
+      });
+    });
+    stage3Modal.querySelectorAll('.modal-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        handleStage3Selection(btn.dataset.result);
+      });
+    });
+ 
+    pitchTypeRow.addEventListener('click', (e) => {
+      const btn = e.target.closest('.pill');
+      if (!btn) return;
+      pitchTypeRow.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      currentPitchTypeLabel.textContent = 'Pitch: ' + btn.dataset.type;
+      if (currentPitch) {
+        currentPitch.pitchType = btn.dataset.type;
+      }
+    });
+ 
+    startClipBtn.addEventListener('click', () => {
+      if (clipActive) return;
+      clipActive = true;
+      clipStatus.textContent = 'Recording…';
+      clipStatus.style.color = '#f97373';
+    });
+ 
+    stopClipBtn.addEventListener('click', () => {
+      if (!clipActive) return;
+      clipActive = false;
+      clipStatus.textContent = 'Saved clip';
+      clipStatus.style.color = '#4ade80';
+      clipCounter += 1;
+      const name = 'Clip ' + clipCounter;
+      const url = '#';
+      
+      incomingClips.push({
+        name: name,
+        url: url,
+        timestamp: Date.now()
+      });
+ 
+      addClip(name, url);
+    });
+ 
+    function addClip(name, url) {
+      const item = document.createElement('div');
+      item.className = 'clip-item';
+      item.dataset.url = url;
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'clip-name';
+      nameSpan.textContent = name;
+      const metaSpan = document.createElement('span');
+      metaSpan.className = 'clip-meta';
+      metaSpan.textContent = 'View';
+      item.appendChild(nameSpan);
+      item.appendChild(metaSpan);
+      item.addEventListener('click', () => {
+        if (url && url !== '#') {
+          window.open(url, '_blank');
+        }
+      });
+      clipsList.prepend(item);
+    }
+ 
+    document.addEventListener('keydown', (e) => {
+      const key = e.key.toLowerCase();
+ 
+      if (modalStage !== null) {
+        if (key === 'escape') {
+          e.preventDefault();
+          closeAllModals();
+          currentPitch = null;
+          return;
+        }
+ 
+        if (modalStage === 1) {
+          if (['b','c','s','f','i'].includes(key)) {
+            e.preventDefault();
+            const btn = Array.from(stage1Modal.querySelectorAll('.modal-btn'))
+              .find(b => b.dataset.key.toLowerCase() === key);
+            if (btn) handleStage1Selection(btn.dataset.result);
+          }
+        } else if (modalStage === 2) {
+          if (['g','f','p','l','h','e'].includes(key)) {
+            e.preventDefault();
+            const btn = Array.from(stage2Modal.querySelectorAll('.modal-btn'))
+              .find(b => b.dataset.key.toLowerCase() === key);
+            if (btn) handleStage2Selection(btn.dataset.result);
+          }
+        } else if (modalStage === 3) {
+          if (['1','2','3','4'].includes(e.key)) {
+            e.preventDefault();
+            const btn = Array.from(stage3Modal.querySelectorAll('.modal-btn'))
+              .find(b => b.dataset.key === e.key);
+            if (btn) handleStage3Selection(btn.dataset.result);
+          }
+        }
+        return;
+      }
+ 
+      if (key === 'enter') {
+        e.preventDefault();
+        savePitch();
+        return;
+      }
+    });
+ 
+    async function generateThumbnail(url) {
+      return new Promise((resolve) => {
+        const video = document.createElement('video');
+        video.src = url;
+        video.crossOrigin = "anonymous";
+        video.muted = true;
+ 
+        video.addEventListener('loadeddata', () => {
+          video.currentTime = 0.1;
+        });
+ 
+        video.addEventListener('seeked', () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = 240;
+          canvas.height = 135;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg'));
+        });
+      });
+    }
+ 
+    async function exportPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+ 
+      let y = 40;
+ 
+      for (let i = 0; i < pitches.length; i++) {
+        const p = pitches[i];
+ 
+        doc.setFontSize(14);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`Pitch #${i + 1}`, 40, y);
+        y += 18;
+ 
+        doc.setFontSize(11);
+        doc.text(`Pitch Type: ${p.pitchType || '—'}`, 40, y);
+        y += 14;
+ 
+        doc.text(`Velocity: ${p.velocity || '—'} mph`, 40, y);
+        y += 14;
+ 
+        const resultText = `Result: ${p.resultStage1 || '—'}${p.resultStage2 ? ' → ' + p.resultStage2 : ''}${p.resultStage3 ? ' → ' + p.resultStage3 : ''}`;
+        doc.text(resultText, 40, y);
+        y += 20;
+ 
+        if (p.clips && p.clips.length > 0) {
+          p.clips.forEach(clip => {
+            if (clip.url && clip.url !== '#') {
+              doc.setTextColor(0, 0, 255);
+              doc.textWithLink("Clip: " + clip.name, 40, y, { url: clip.url });
+              doc.setTextColor(0, 0, 0);
+              y += 14;
+            }
+          });
+        }
+ 
+        if (y > 700 && i < pitches.length - 1) {
+          doc.addPage();
+          y = 40;
+        }
+      }
+ 
+      doc.save("baseball_session.pdf");
+    }
+ 
+    exportPdfBtn.addEventListener('click', () => {
+      exportPDF();
+    });
+ 
+    try {
+      const ws = new WebSocket('ws://localhost:8080');
+      ws.addEventListener('message', (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'velocity' && typeof data.value === 'number') {
+            velocityValueEl.textContent = Math.round(data.value).toString();
+          }
+          if (data.type === 'clip' && data.name && data.url) {
+            incomingClips.push({
+              name: data.name,
+              url: data.url,
+              timestamp: Date.now()
+            });
+            addClip(data.name, data.url);
+          }
+        } catch (_) {}
+      });
+    } catch (_) {}
+  </script>
+</body>
+</html>

@@ -1,385 +1,139 @@
-/* --------------------------------------------------
-   GLOBAL RESET + BASE
--------------------------------------------------- */
-* {
-    box-sizing: border-box;
-}
-
+/* ===== GLOBAL ===== */
 body {
-    margin: 0;
-    background: #222;
-    font-family: -apple-system, system-ui, sans-serif;
-    color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  margin: 20px;
+  padding: 0;
+  background: #f5f5f5;
+  color: #222;
 }
 
-/* --------------------------------------------------
-   SCREEN HANDLING
--------------------------------------------------- */
-.screen {
-    display: none;
-    height: 100vh;
-    width: 100vw;
+h1, h2, h3 {
+  margin-bottom: 10px;
 }
 
-.screen.active {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+button {
+  padding: 10px 16px;
+  margin: 6px 0;
+  border: none;
+  background: #007aff;
+  color: white;
+  border-radius: 6px;
+  font-size: 16px;
 }
 
-/* --------------------------------------------------
-   LAUNCH SCREEN
--------------------------------------------------- */
-#launch-screen {
-    flex-direction: column;
+button:hover {
+  background: #005fcc;
 }
 
-#launch-screen h1 {
-    font-size: 28px;
-    margin-bottom: 40px;
-    letter-spacing: 2px;
+input, select, textarea {
+  width: 100%;
+  padding: 10px;
+  margin: 6px 0 12px 0;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 16px;
 }
 
-.launch-buttons {
-    display: flex;
-    gap: 20px;
+/* ===== TAGGING PAGE ===== */
+#velocityDisplay {
+  font-size: 48px;
+  font-weight: bold;
+  margin-bottom: 20px;
 }
 
-.launch-btn {
-    width: 140px;
-    height: 140px;
-    background: rgba(0, 120, 255, 0.4);
-    border-radius: 20px;
-    border: none;
-    color: #fff;
-    font-size: 18px;
+#clipInbox {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
-/* --------------------------------------------------
-   TAGGING LAYOUT
--------------------------------------------------- */
-#tagging-screen {
-    flex-direction: column;
+.clip-thumb {
+  width: 140px;
+  height: 80px;
+  background: #ddd;
+  border-radius: 6px;
+  overflow: hidden;
 }
 
-header {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px 20px;
-    background: rgba(0, 0, 0, 0.3);
+.clip-thumb video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-#pitcherName {
-    width: 200px;
-    padding: 6px;
-    border-radius: 6px;
-    border: none;
-}
-
-#finishBtn {
-    background: #e53935;
-    border: none;
-    color: #fff;
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-weight: 600;
-}
-
-#layout {
-    flex: 1;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 220px;
-    padding: 20px;
-    gap: 20px;
-}
-
-main {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-/* --------------------------------------------------
-   STRIKE ZONE
--------------------------------------------------- */
-#strike-zone {
-    width: 380px;
-    height: 480px;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    position: relative;
-    overflow: hidden;
-}
-
-#strike-rect {
-    position: absolute;
-    width: 280px;
-    height: 380px;
-    border-radius: 16px;
-    border: 3px solid #fff;
-    background: rgba(255, 255, 255, 0.12);
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -55%);
-}
-
-#tap-marker {
-    width: 12px;
-    height: 12px;
-    background: #ff5252;
-    border-radius: 50%;
-    position: absolute;
-    display: none;
-    box-shadow: 0 0 4px #000;
-}
-
-#tap-hint {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-weight: 600;
-    color: #eee;
-    pointer-events: none;
-}
-
-/* --------------------------------------------------
-   STATS FOOTER
--------------------------------------------------- */
-#stats-footer {
-    margin-top: 20px;
-    width: 380px;
-    display: flex;
-    justify-content: space-between;
-}
-
-.stat {
-    text-align: center;
-    flex: 1;
-}
-
-.stat label {
-    display: block;
-    font-size: 10px;
-    color: #ffb74d;
-    margin-bottom: 2px;
-}
-
-.stat span {
-    font-size: 18px;
-    font-weight: 700;
-}
-
-/* --------------------------------------------------
-   RIGHT HUD
--------------------------------------------------- */
-aside {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.hud-card {
-    background: rgba(0, 0, 0, 0.55);
-    border-radius: 12px;
-    padding: 10px;
-    text-align: center;
-}
-
-.hud-card img {
-    width: 100%;
-    height: 150px;
-    object-fit: cover;
-    border-radius: 8px;
-    background: #000;
-}
-
-.velocity span {
-    font-size: 26px;
-    font-weight: 700;
-    color: #ffb74d;
-}
-
-.velocity small {
-    display: block;
-    font-size: 10px;
-    color: #aaa;
-}
-
-.ndi span {
-    font-size: 12px;
-    font-weight: 700;
-}
-
-.status span {
-    font-size: 11px;
-}
-
-#recordBtn {
-    margin-top: 10px;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    border: 2px solid #fff;
-    background: rgba(255, 255, 255, 0.15);
-    color: #ff5252;
-    font-size: 28px;
-    align-self: center;
-}
-
-#recordBtn.recording {
-    background: #ff5252;
-    color: #fff;
-}
-
-/* --------------------------------------------------
-   PITCH LIST ITEMS
--------------------------------------------------- */
 .pitch-item {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 10px;
-    background: rgba(255,255,255,0.05);
-    padding: 8px;
-    border-radius: 8px;
+  background: white;
+  padding: 12px;
+  margin: 10px 0;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
-.pitch-item .thumb {
-    width: 80px;
-    height: 45px;
-    object-fit: cover;
-    border-radius: 6px;
+/* ===== VIEWER PAGE ===== */
+.clips-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
 }
 
-/* --------------------------------------------------
-   MODAL
--------------------------------------------------- */
-#modal-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.6);
-    display: none;
-    align-items: center;
-    justify-content: center;
+.clip-block {
+  background: white;
+  padding: 10px;
+  border-radius: 6px;
+  width: 260px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
-#modal {
-    background: #333;
-    padding: 20px;
-    border-radius: 12px;
-    width: 260px;
+.clip-block video {
+  width: 100%;
+  border-radius: 6px;
 }
 
-#modal-title {
-    margin-top: 0;
-    margin-bottom: 12px;
-    font-size: 16px;
+/* ===== DASHBOARD ===== */
+.session-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-#modal-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 12px;
-}
-
-.modal-btn {
-    flex: 1 1 45%;
-    padding: 6px 8px;
-    border-radius: 8px;
-    border: none;
-    background: #555;
-    color: #fff;
-    font-size: 13px;
-}
-
-.modal-cancel {
-    width: 100%;
-    padding: 6px 8px;
-    border-radius: 8px;
-    border: none;
-    background: #777;
-    color: #fff;
-    font-size: 13px;
-}
-
-/* --------------------------------------------------
-   SUMMARY PAGE
--------------------------------------------------- */
-#summary-container {
-    padding: 20px;
-    max-width: 700px;
-    margin: auto;
-}
-
-#summary-header p {
-    margin: 4px 0;
-}
-
-.summary-item {
-    background: rgba(255,255,255,0.05);
-    padding: 10px;
-    border-radius: 8px;
-    margin-bottom: 12px;
-}
-
-/* --------------------------------------------------
-   VIEWER PAGE
--------------------------------------------------- */
-#viewerHeader {
-    margin-bottom: 20px;
-}
-
-#viewerPitchList .summary-item {
-    margin-bottom: 12px;
-}
-
-/* --------------------------------------------------
-   HEATMAP CANVAS
--------------------------------------------------- */
-#summaryHeatmap,
-#viewerHeatmap {
-    margin-top: 20px;
-    background: rgba(0,0,0,0.2);
-    border-radius: 10px;
-}
-
-/* --------------------------------------------------
-   DASHBOARD PAGE
--------------------------------------------------- */
 .session-item {
-    background: rgba(255,255,255,0.05);
-    padding: 12px;
-    border-radius: 8px;
-    margin-bottom: 12px;
+  background: white;
+  padding: 14px;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
-/* --------------------------------------------------
-   MOBILE LAYOUT
--------------------------------------------------- */
+/* ===== PITCHER PROFILES ===== */
+#pitcherList div {
+  background: white;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* ===== ANALYTICS CHARTS ===== */
+canvas {
+  background: white;
+  padding: 10px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* ===== MOBILE ===== */
 @media (max-width: 800px) {
-    #layout {
-        grid-template-columns: 1fr;
-    }
+  body {
+    margin: 10px;
+  }
 
-    aside {
-        flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: center;
-    }
+  .clip-block {
+    width: 100%;
+  }
 
-    aside .hud-card {
-        width: 45%;
-    }
-
-    #startCameraBtn {
-        width: 100%;
-        padding: 10px;
-        background: #4caf50;
-        border: none;
-        border-radius: 8px;
-        color: white;
-        font-size: 16px;
-        font-weight: 600;
-    }
+  canvas {
+    width: 100% !important;
+    height: auto !important;
+  }
 }

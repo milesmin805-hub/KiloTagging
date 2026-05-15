@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<body style="background:black; color:white; text-align:center;">
+
+<h2>Select Camera</h2>
+
+<video id="preview" autoplay playsinline style="width:100%; max-width:600px; border:2px solid white;"></video>
+
+<select id="cameraSelect" style="margin-top:15px; padding:10px; width:100%; max-width:600px;"></select>
+
+<script>
+async function loadCameras() {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cameras = devices.filter(d => d.kind === "videoinput");
+
+    const select = document.getElementById("cameraSelect");
+    select.innerHTML = "";
+
+    cameras.forEach(cam => {
+        const option = document.createElement("option");
+        option.value = cam.deviceId;
+        option.textContent = cam.label || "Camera " + (select.length + 1);
+        select.appendChild(option);
+    });
+
+    startCamera(select.value);
+}
+
+async function startCamera(deviceId) {
+    const stream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: deviceId ? { exact: deviceId } : undefined }
+    });
+
+    const video = document.getElementById("preview");
+    video.srcObject = stream;
+}
+
+document.getElementById("cameraSelect").addEventListener("change", (e) => {
+    startCamera(e.target.value);
+});
+
+loadCameras();
+</script>
+
+<script src="/ws.js"></script>
+
+ws.send(JSON.stringify({ 
+    type: "velocity", 
+    value: currentVelocity
+}));
+
+<script>
+let mediaRecorder;
+let recordedChunks = [];
+
+async function startClip() {
+    const stream = document.querySelector("video").srcObject;
+
+    recordedChunks = [];
+    mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm" });
+
+    mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) recordedChunks.push(e.data);
+    };
+
+    mediaRecorder.onstop = async () => {
+        const blob = new Blob(recordedChunks, { type: "video/webm" });
+        const formData = new FormData();
+        formData.append("clip", blob, "clip.webm");
+
+        const res = await fetch("/uploadClip", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await res.json();
+
+        // Send clip URL to tagger device
+        ws.send(JSON.stringify({
+            type: "clip",
+            url: data.url
+        }));
+    };
+
+    mediaRecorder.start();
+}
+
+function stopClip() {
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.stop();
+    }
+}
+</script>
+
+ws.onmessage = (msg) => {
+    const data = JSON.parse(msg.data);
+
+    if (data.type === "startClip") startClip();
+    if (data.type === "stopClip") stopClip();
+};
+
+</body>
+</html>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Pitcher Analytics Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+  <h1 id="pitcherName"></h1>
+
+  <h2>Session Summary</h2>
+  <div id="sessionList"></div>
+
+  <h2>Velocity Trend</h2>
+  <canvas id="veloTrend"></canvas>
+
+  <h2>Pitch Mix</h2>
+  <canvas id="mixChart"></canvas>
+
+  <h2>Command Score History</h2>
+  <canvas id="commandChart"></canvas>
+
+  <h2>Tunneling Score History</h2>
+  <canvas id="tunnelChart"></canvas>
+
+  <h2>Pitch Quality Score History</h2>
+  <canvas id="qualityChart"></canvas>
+
+  <button onclick="window.location.href='pitchers.html'">← Back to Pitchers</button>
+
+  <script>
+    async function loadDashboard() {
+      const params = new URLSearchParams(window.location.search);
+      const pitcher = params.get('pitcher');
+      document.getElementById('pitcherName').textContent = pitcher;
+
+      // Load all sessions
+      const files = await (await fetch('/list-sessions')).json();
+      const sessions = [];
+
+      for (const file of files) {
+        const s = await (await fetch(`/sessions/${file}`)).json();
+        if (s.pitcher === pitcher) sessions.push({ file, ...s });
+      }
+
+      renderSessionList(sessions);
+      renderAnalytics(sessions);
+    }
+
+    function renderSessionList(sessions) {
+      const div = document.getElementById('sessionList');
+      div.innerHTML = sessions.map(s => `
+        <div>
+          <strong>${new Date(s.date).toLocaleString()}</strong><br>
+          ${s.pitches.length} pitches<br>
+          <button onclick="window.location.href='viewer.html?file=${s.file}'">Open</button>
+        </div><hr>
+      `).join('');
+    }
+
+    function renderAnalytics(sessions) {
+      const avgVelo = sessions.map(s => average(s.pitches.map(p => p.velocity || 0)));
+      const mix = computeMix(sessions);
+      const command = sessions.map(s => computeCommand(s.pitches));
+      const tunnel = sessions.map(s => computeTunneling(s.pitches));
+      const quality = sessions.map((s, i) =>
+        computeQuality(avgVelo[i], command[i], tunnel[i])
+      );
+
+      const labels = sessions.map(s => new Date(s.date).toLocaleDateString());
+
+      new Chart(document.getElementById('veloTrend'), {
+        type: 'line',
+        data: { labels, datasets: [{ label: 'Avg Velo', data: avgVelo, borderColor: 'red' }] }
+      });
+
+      new Chart(document.getElementById('mixChart'), {
+        type: 'bar',
+        data: {
+          labels: Object.keys(mix),
+          datasets: [{ label: 'Total Pitches', data: Object.values(mix), backgroundColor: 'blue' }]
+        }
+      });
+
+      new Chart(document.getElementById('commandChart'), {
+        type: 'line',
+        data: { labels, datasets: [{ label: 'Command Score', data: command, borderColor: 'green' }] }
+      });
+
+      new Chart(document.getElementById('tunnelChart'), {
+        type: 'line',
+        data: { labels, datasets: [{ label: 'Tunneling Score', data: tunnel, borderColor: 'purple' }] }
+      });
+
+      new Chart(document.getElementById('qualityChart'), {
+        type: 'line',
+        data: { labels, datasets: [{ label: 'Pitch Quality', data: quality, borderColor: 'orange' }] }
+      });
+    }
+
+    function average(arr) {
+      return arr.reduce((a,b)=>a+b,0) / arr.length;
+    }
+
+    function computeMix(sessions) {
+      const mix = {};
+      sessions.forEach(s => {
+        s.pitches.forEach(p => {
+          mix[p.type] = (mix[p.type] || 0) + 1;
+        });
+      });
+      return mix;
+    }
+
+    function computeCommand(pitches) {
+      const target = { x: 0, y: 1 };
+      let total = 0;
+      pitches.forEach(p => {
+        const dx = p.x - target.x;
+        const dy = p.y - target.y;
+        total += Math.sqrt(dx*dx + dy*dy);
+      });
+      const avg = total / pitches.length;
+      return Math.max(0, 100 - avg * 40);
+    }
+
+    function computeTunneling(pitches) {
+      const clusters = {};
+      pitches.forEach(p => {
+        if (!clusters[p.type]) clusters[p.type] = [];
+        clusters[p.type].push({ x: p.releaseX, y: p.releaseY });
+      });
+
+      const centers = Object.values(clusters).map(points => ({
+        x: average(points.map(p => p.x)),
+        y: average(points.map(p => p.y))
+      }));
+
+      let totalDist = 0, count = 0;
+      for (let i=0; i<centers.length; i++) {
+        for (let j=i+1; j<centers.length; j++) {
+          const dx = centers[i].x - centers[j].x;
+          const dy = centers[i].y - centers[j].y;
+          totalDist += Math.sqrt(dx*dx + dy*dy);
+          count++;
+        }
+      }
+
+      const avgDist = count ? totalDist / count : 0;
+      return Math.max(0, 100 - avgDist * 15);
+    }
+
+    function computeQuality(velo, command, tunnel) {
+      return (0.4 * velo) + (0.3 * command) + (0.3 * tunnel);
+    }
+
+    loadDashboard();
+  </script>
+</body>
+</html>

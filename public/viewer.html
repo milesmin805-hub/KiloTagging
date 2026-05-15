@@ -4,33 +4,207 @@
   <meta charset="UTF-8">
   <title>Session Viewer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <link rel="stylesheet" href="style.css">
-
-  <!-- Chart.js for velocity graph -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
-
   <h1>Session Viewer</h1>
 
-  <!-- Header -->
-  <div id="viewerHeader"></div>
+  <h2>Analytics</h2>
+  <h2>Advanced Analytics</h2>
+<div id="advancedAnalytics"></div>
 
-  <!-- Pitch List -->
-  <div id="viewerPitchList"></div>
 
-  <!-- Velocity Graph -->
-  <h2>Velocity Graph</h2>
-  <canvas id="viewerVelocityChart"></canvas>
+<canvas id="veloChart" width="400" height="200"></canvas>
+<canvas id="mixChart" width="400" height="200"></canvas>
+<canvas id="releaseChart" width="400" height="200"></canvas>
+<canvas id="heatmapChart" width="400" height="400"></canvas>
 
-  <!-- Heatmap -->
-  <h2>Heatmap</h2>
-  <canvas id="viewerHeatmap"></canvas>
+  <div id="pitchList"></div>
 
-  <!-- Viewer Logic -->
-  <script src="viewer.js"></script>
+  <button onclick="window.location.href='dashboard.html'" class="back-btn">
+    ← Back to Sessions
+  </button>
 
+  <script>
+    async function loadSession() {
+      const params = new URLSearchParams(window.location.search);
+      const file = params.get('file');
+
+      const res = await fetch(`/sessions/${file}`);
+      const session = await res.json();
+
+      const list = document.getElementById('pitchList');
+      list.innerHTML = '';
+
+      session.pitches.forEach((p, i) => {
+        const div = document.createElement('div');
+        div.className = 'pitch-item';
+
+        let clipsHTML = '';
+        if (p.clips && p.clips.length > 0) {
+          clipsHTML = p.clips.map(c => `
+            <div class="clip-block">
+              <video src="${c.url}" controls width="240"></video>
+              <div>${c.name}</div>
+            </div>
+          `).join('');
+        }
+
+        div.innerHTML = `
+          <h3>Pitch ${i + 1}</h3>
+          <strong>Type:</strong> ${p.type}<br>
+          <strong>Velocity:</strong> ${p.velocity || '—'}<br>
+          <strong>Location:</strong> ${p.location || '—'}<br>
+          <div class="clips-container">${clipsHTML}</div>
+        `;
+
+        list.appendChild(div);
+      });
+    }
+
+    loadSession();
+    const pitches = session.pitches;
+const veloCtx = document.getElementById('veloChart').getContext('2d');
+new Chart(veloCtx, {
+  type: 'line',
+  data: {
+    labels: pitches.map((p, i) => i + 1),
+    datasets: [{
+      label: 'Velocity (mph)',
+      data: pitches.map(p => p.velocity || 0),
+      borderColor: 'red',
+      borderWidth: 2,
+      tension: 0.2
+    }]
+  }
+});
+
+const mixCounts = {};
+pitches.forEach(p => {
+  mixCounts[p.type] = (mixCounts[p.type] || 0) + 1;
+});
+
+const mixCtx = document.getElementById('mixChart').getContext('2d');
+new Chart(mixCtx, {
+  type: 'pie',
+  data: {
+    labels: Object.keys(mixCounts),
+    datasets: [{
+      data: Object.values(mixCounts),
+      backgroundColor: ['#ff6384','#36a2eb','#cc65fe','#ffce56','#4bc0c0','#9966ff']
+    }]
+  }
+});
+
+const releaseCtx = document.getElementById('releaseChart').getContext('2d');
+new Chart(releaseCtx, {
+  type: 'scatter',
+  data: {
+    datasets: [{
+      label: 'Release Points',
+      data: pitches.map(p => ({ x: p.releaseX, y: p.releaseY })),
+      backgroundColor: 'blue'
+    }]
+  },
+  options: {
+    scales: {
+      x: { min: -3, max: 3 },
+      y: { min: 4, max: 7 }
+    }
+  }
+});
+
+const heatCtx = document.getElementById('heatmapChart').getContext('2d');
+const heatData = pitches.map(p => ({ x: p.x, y: p.y }));
+
+new Chart(heatCtx, {
+  type: 'scatter',
+  data: {
+    datasets: [{
+      label: 'Pitch Locations',
+      data: heatData,
+      backgroundColor: 'rgba(255,0,0,0.6)'
+    }]
+  },
+  options: {
+    scales: {
+      x: { min: -1, max: 1 },
+      y: { min: 0, max: 2 }
+    }
+  }
+});
+
+function stddev(values) {
+  const avg = values.reduce((a,b)=>a+b,0) / values.length;
+  const variance = values.reduce((a,b)=>a + Math.pow(b - avg, 2), 0) / values.length;
+  return Math.sqrt(variance);
+}
+
+const velos = pitches.map(p => p.velocity || 0);
+const veloStd = stddev(velos);
+const veloConsistency = Math.max(0, 100 - veloStd * 2);
+
+const releaseClusters = {};
+pitches.forEach(p => {
+  if (!releaseClusters[p.type]) releaseClusters[p.type] = [];
+  releaseClusters[p.type].push({ x: p.releaseX, y: p.releaseY });
+});
+
+function avgPoint(points) {
+  return {
+    x: points.reduce((a,b)=>a+b.x,0) / points.length,
+    y: points.reduce((a,b)=>a+b.y,0) / points.length
+  };
+}
+
+const clusterCenters = Object.values(releaseClusters).map(avgPoint);
+
+let totalDist = 0;
+let count = 0;
+
+for (let i=0; i<clusterCenters.length; i++) {
+  for (let j=i+1; j<clusterCenters.length; j++) {
+    const dx = clusterCenters[i].x - clusterCenters[j].x;
+    const dy = clusterCenters[i].y - clusterCenters[j].y;
+    totalDist += Math.sqrt(dx*dx + dy*dy);
+    count++;
+  }
+}
+
+const avgClusterDist = count > 0 ? totalDist / count : 0;
+const tunnelingScore = Math.max(0, 100 - avgClusterDist * 15);
+
+const target = { x: 0, y: 1 };
+
+let totalCmdDist = 0;
+pitches.forEach(p => {
+  const dx = p.x - target.x;
+  const dy = p.y - target.y;
+  totalCmdDist += Math.sqrt(dx*dx + dy*dy);
+});
+
+const avgCmdDist = totalCmdDist / pitches.length;
+const commandScore = Math.max(0, 100 - avgCmdDist * 40);
+
+const pitchQuality =
+  (0.4 * veloConsistency) +
+  (0.3 * commandScore) +
+  (0.3 * tunnelingScore);
+
+  document.getElementById("advancedAnalytics").innerHTML = `
+  <h3>Advanced Metrics</h3>
+  <p><strong>Velo Consistency:</strong> ${veloConsistency.toFixed(1)}</p>
+  <p><strong>Pitch Tunneling:</strong> ${tunnelingScore.toFixed(1)}</p>
+  <p><strong>Command Score:</strong> ${commandScore.toFixed(1)}</p>
+  <p><strong>Pitch Quality Score:</strong> ${pitchQuality.toFixed(1)}</p>
+`;
+
+document.body.insertAdjacentHTML("afterbegin", `
+  <h2>Pitcher: ${session.pitcher}</h2>
+`);
+
+  </script>
 </body>
 </html>

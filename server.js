@@ -7,6 +7,9 @@ const cors = require("cors");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const { broadcast } = require('./ws-server');
+
+let sessions = []; // In-memory session storage (not persistent)
 
 // ------------------------------
 // Middleware
@@ -38,12 +41,18 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// ------------------------------
-// Upload clip (used by script.js)
-// ------------------------------
-app.post("/upload-clip", upload.single("clip"), (req, res) => {
-    const url = `/clips/${req.file.filename}`;
-    res.json({ url });
+app.post('/upload-clip', upload.single('clip'), (req, res) => {
+  const filename = req.file.filename;
+  const clipURL = `https://yourserver.com/clips/${filename}`;
+  const clipName = filename.replace('.mp4', '');
+
+  broadcast({
+    type: "clip",
+    name: req.file.filename.replace('.mp4', ''),
+    url: url
+});
+
+  res.json({ success: true, url: clipURL });
 });
 
 // ------------------------------
@@ -56,6 +65,16 @@ app.post("/save-session", (req, res) => {
     fs.writeFileSync(`public/sessions/${filename}`, JSON.stringify(session, null, 2));
 
     res.json({ url: `/sessions/${filename}` });
+});
+
+app.get("/pitchers", (req, res) => {
+  const data = fs.readFileSync("public/pitchers.json", "utf8");
+  res.json(JSON.parse(data));
+});
+
+app.post("/save-pitchers", (req, res) => {
+  fs.writeFileSync("public/pitchers.json", JSON.stringify(req.body, null, 2));
+  res.json({ success: true });
 });
 
 // ------------------------------
@@ -139,4 +158,31 @@ app.get("*", (req, res) => {
 // ------------------------------
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running at http://0.0.0.0:${PORT}`);
+});
+
+app.post("/login", (req, res) => {
+    const { code } = req.body;
+
+    // Simple login: any code is accepted
+    if (!sessions[code]) {
+        sessions[code] = { camera: null, tagger: null };
+    }
+
+    req.session = { code };
+    res.json({ success: true });
+});
+
+app.post("/setRole", (req, res) => {
+    const { role } = req.body;
+    const code = req.session?.code;
+
+    if (!code) return res.json({ success: false });
+
+    if (role === "camera") {
+        sessions[code].camera = "active";
+    } else {
+        sessions[code].tagger = "active";
+    }
+
+    res.json({ success: true });
 });

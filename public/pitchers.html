@@ -1,8 +1,83 @@
-<h1>Pitcher Profiles</h1>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Pitcher Profiles</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
 
-<input id="pitcherNameInput" placeholder="Pitcher Name">
-<button onclick="addPitcher()">Add Pitcher</button>
+<body>
+  <h1>Pitcher Profiles</h1>
 
-<div id="pitcherList"></div>
+  <div id="pitcherList"></div>
 
-<script src="pitchers.js"></script>
+  <h2>Add Pitcher</h2>
+  <input id="name" placeholder="Name">
+  <input id="throws" placeholder="Throws (R/L)">
+  <input id="age" placeholder="Age">
+  <input id="height" placeholder="Height">
+  <input id="weight" placeholder="Weight">
+  <input id="arsenal" placeholder="Arsenal (FB, SL, CH)">
+  <textarea id="notes" placeholder="Notes"></textarea>
+
+  <button onclick="addPitcher()">Add</button>
+  <button onclick="savePitchers()">Save All</button>
+
+  <script>
+    let pitchers = [];
+
+    <button onclick="window.location.href='pitcher-dashboard.html?pitcher=${p.name}'">
+  Analytics
+</button>
+
+
+    async function loadPitchers() {
+      const res = await fetch('/pitchers');
+      pitchers = await res.json();
+      renderList();
+    }
+
+    function renderList() {
+      const div = document.getElementById('pitcherList');
+      div.innerHTML = pitchers.map((p, i) => `
+        <div>
+          <strong>${p.name}</strong> (${p.throws})<br>
+          Age: ${p.age} | ${p.height}, ${p.weight}<br>
+          Arsenal: ${p.arsenal}<br>
+          Notes: ${p.notes}<br>
+          <button onclick="deletePitcher(${i})">Delete</button>
+        </div><hr>
+      `).join('');
+    }
+
+    function addPitcher() {
+      pitchers.push({
+        name: name.value,
+        throws: throws.value,
+        age: age.value,
+        height: height.value,
+        weight: weight.value,
+        arsenal: arsenal.value,
+        notes: notes.value
+      });
+      renderList();
+    }
+
+    function deletePitcher(i) {
+      pitchers.splice(i, 1);
+      renderList();
+    }
+
+    async function savePitchers() {
+      await fetch('/save-pitchers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pitchers)
+      });
+      alert("Saved!");
+    }
+
+    loadPitchers();
+  </script>
+</body>
+</html>
