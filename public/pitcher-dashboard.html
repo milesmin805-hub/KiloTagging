@@ -8,38 +8,109 @@
 </head>
 
 <body>
-  <div id="statusBar" style="padding:10px; background:#eee; font-weight:bold;">
+
+<!-- Status Bar -->
+<div id="statusBar" style="padding:10px; background:#eee; font-weight:bold;">
   Camera: ❌ | Tagger: ❌
 </div>
-    <h1 id="pitcherName"></h1>
 
-  <h2>Session Summary</h2>
-  <div id="sessionList"></div>
+<h1 id="pitcherName"></h1>
 
-  <h2>Velocity Trend</h2>
-  <canvas id="veloTrend"></canvas>
+<h2>Session Summary</h2>
+<div id="sessionList"></div>
 
-  <h2>Pitch Mix</h2>
-  <canvas id="mixChart"></canvas>
+<h2>Velocity Trend</h2>
+<canvas id="veloTrend"></canvas>
 
-  <h2>Command Score History</h2>
-  <canvas id="commandChart"></canvas>
+<h2>Pitch Mix</h2>
+<canvas id="mixChart"></canvas>
 
-  <h2>Tunneling Score History</h2>
-  <canvas id="tunnelChart"></canvas>
+<h2>Command Score History</h2>
+<canvas id="commandChart"></canvas>
 
-  <h2>Pitch Quality Score History</h2>
-  <canvas id="qualityChart"></canvas>
+<h2>Tunneling Score History</h2>
+<canvas id="tunnelChart"></canvas>
 
-  <button onclick="window.location.href='pitchers.html'">← Back to Pitchers</button>
+<h2>Pitch Quality Score History</h2>
+<canvas id="qualityChart"></canvas>
 
-  <button id="connectRadarBtn">Connect Pocket Radar</button>
+<button onclick="window.location.href='pitchers.html'">← Back to Pitchers</button>
+
+<button id="connectRadarBtn">Connect Pocket Radar</button>
 
 <div style="font-size: 24px; margin-top: 10px;">
   Velocity: <span id="velocityDisplay">--</span> MPH
 </div>
 
+<!-- Load WebSocket FIRST -->
+<script src="/ws.js"></script>
+
 <script>
+/* -------------------------------------------------------
+   LIVE WEBSOCKET + STATUS BAR
+------------------------------------------------------- */
+const ws = window.ws;
+
+if (ws) {
+  ws.addEventListener("open", () => {
+    ws.send(JSON.stringify({
+      type: "identify",
+      device: "dashboard"
+    }));
+  });
+}
+
+const statusBar = document.getElementById("statusBar");
+
+let cameraOnline = false;
+let taggerOnline = false;
+
+function updateStatusBar() {
+  statusBar.innerHTML = `
+    Camera: ${cameraOnline ? "🟢" : "❌"} |
+    Tagger: ${taggerOnline ? "🟢" : "❌"}
+  `;
+}
+
+if (ws) {
+  ws.addEventListener("open", () => {
+    taggerOnline = true;
+    updateStatusBar();
+  });
+
+  ws.addEventListener("close", () => {
+    taggerOnline = false;
+    updateStatusBar();
+  });
+
+  ws.addEventListener("message", (event) => {
+    const msg = JSON.parse(event.data);
+
+    // Velocity from Tagger or Camera
+    if (msg.type === "velocity") {
+      document.getElementById("velocityDisplay").textContent = msg.value;
+    }
+
+    // Camera presence (optional future)
+    if (msg.type === "clip") {
+      cameraOnline = true;
+      updateStatusBar();
+    }
+
+    if (msg.type === "presence") {
+  if (msg.device === "camera") cameraOnline = msg.online;
+  if (msg.device === "tagger") taggerOnline = msg.online;
+  if (msg.device === "dashboard") {/* ignore or track */}
+  updateStatusBar();
+}
+  });
+}
+</script>
+
+<script>
+/* -------------------------------------------------------
+   POCKET RADAR
+------------------------------------------------------- */
 let radarScan = null;
 
 async function connectPocketRadar() {
@@ -53,12 +124,11 @@ async function connectPocketRadar() {
       const data = event.manufacturerData.get(0xFFFF);
       if (!data) return;
 
-      const speed = data.getUint8(2); // MPH
+      const speed = data.getUint8(2);
       updateVelocity(speed);
     });
 
     console.log("Pocket Radar scanning started");
-
   } catch (err) {
     console.error("Radar connection error:", err);
     alert("Unable to connect. Use Safari on iPhone/iPad.");
@@ -66,11 +136,10 @@ async function connectPocketRadar() {
 }
 
 function updateVelocity(speed) {
-  const el = document.getElementById("velocityDisplay");
-  if (el) el.textContent = speed;
+  document.getElementById("velocityDisplay").textContent = speed;
 
-  if (window.socket) {
-    window.socket.send(JSON.stringify({
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({
       type: "velocity",
       value: speed
     }));
@@ -78,149 +147,143 @@ function updateVelocity(speed) {
 }
 
 document.getElementById("connectRadarBtn").onclick = connectPocketRadar;
-
-// Listen for velocity from the other device
-if (window.socket) {
-  window.socket.addEventListener("message", event => {
-    const msg = JSON.parse(event.data);
-
-    if (msg.type === "velocity") {
-      const el = document.getElementById("velocityDisplay");
-      if (el) el.textContent = msg.value;
-    }
-  });
-}
 </script>
 
-  <script>
-    async function loadDashboard() {
-      const params = new URLSearchParams(window.location.search);
-      const pitcher = params.get('pitcher');
-      document.getElementById('pitcherName').textContent = pitcher;
+<script>
+/* -------------------------------------------------------
+   OFFLINE ANALYTICS (unchanged but hardened)
+------------------------------------------------------- */
+async function loadDashboard() {
+  const params = new URLSearchParams(window.location.search);
+  const pitcher = params.get('pitcher');
+  document.getElementById('pitcherName').textContent = pitcher;
 
-      // Load all sessions
-      const files = await (await fetch('/list-sessions')).json();
-      const sessions = [];
+  const files = await (await fetch('/list-sessions')).json();
+  const sessions = [];
 
-      for (const file of files) {
-        const s = await (await fetch(`/sessions/${file}`)).json();
-        if (s.pitcher === pitcher) sessions.push({ file, ...s });
-      }
+  for (const file of files) {
+    const s = await (await fetch(`/sessions/${file}`)).json();
+    if (s.pitcher === pitcher) sessions.push({ file, ...s });
+  }
 
-      renderSessionList(sessions);
-      renderAnalytics(sessions);
+  renderSessionList(sessions);
+  renderAnalytics(sessions);
+}
+
+function renderSessionList(sessions) {
+  const div = document.getElementById('sessionList');
+  div.innerHTML = sessions.map(s => `
+    <div>
+      <strong>${new Date(s.date).toLocaleString()}</strong><br>
+      ${s.pitches.length} pitches<br>
+      <button onclick="window.location.href='viewer.html?file=${s.file}'">Open</button>
+    </div><hr>
+  `).join('');
+}
+
+function renderAnalytics(sessions) {
+  const avgVelo = sessions.map(s => average(s.pitches.map(p => p.velocity || 0)));
+  const mix = computeMix(sessions);
+  const command = sessions.map(s => computeCommand(s.pitches));
+  const tunnel = sessions.map(s => computeTunneling(s.pitches));
+  const quality = sessions.map((s, i) =>
+    computeQuality(avgVelo[i], command[i], tunnel[i])
+  );
+
+  const labels = sessions.map(s => new Date(s.date).toLocaleDateString());
+
+  new Chart(document.getElementById('veloTrend'), {
+    type: 'line',
+    data: { labels, datasets: [{ label: 'Avg Velo', data: avgVelo, borderColor: 'red' }] }
+  });
+
+  new Chart(document.getElementById('mixChart'), {
+    type: 'bar',
+    data: {
+      labels: Object.keys(mix),
+      datasets: [{ label: 'Total Pitches', data: Object.values(mix), backgroundColor: 'blue' }]
     }
+  });
 
-    function renderSessionList(sessions) {
-      const div = document.getElementById('sessionList');
-      div.innerHTML = sessions.map(s => `
-        <div>
-          <strong>${new Date(s.date).toLocaleString()}</strong><br>
-          ${s.pitches.length} pitches<br>
-          <button onclick="window.location.href='viewer.html?file=${s.file}'">Open</button>
-        </div><hr>
-      `).join('');
+  new Chart(document.getElementById('commandChart'), {
+    type: 'line',
+    data: { labels, datasets: [{ label: 'Command Score', data: command, borderColor: 'green' }] }
+  });
+
+  new Chart(document.getElementById('tunnelChart'), {
+    type: 'line',
+    data: { labels, datasets: [{ label: 'Tunneling Score', data: tunnel, borderColor: 'purple' }] }
+  });
+
+  new Chart(document.getElementById('qualityChart'), {
+    type: 'line',
+    data: { labels, datasets: [{ label: 'Pitch Quality', data: quality, borderColor: 'orange' }] }
+  });
+}
+
+function average(arr) {
+  return arr.length ? arr.reduce((a,b)=>a+b,0) / arr.length : 0;
+}
+
+function computeMix(sessions) {
+  const mix = {};
+  sessions.forEach(s => {
+    s.pitches.forEach(p => {
+      const type = p.type || p.pitchType || "Unknown";
+      mix[type] = (mix[type] || 0) + 1;
+    });
+  });
+  return mix;
+}
+
+function computeCommand(pitches) {
+  if (!pitches.length) return 0;
+  const target = { x: 0, y: 1 };
+  let total = 0;
+  pitches.forEach(p => {
+    const x = p.x ?? 0;
+    const y = p.y ?? 0;
+    const dx = x - target.x;
+    const dy = y - target.y;
+    total += Math.sqrt(dx*dx + dy*dy);
+  });
+  const avg = total / pitches.length;
+  return Math.max(0, 100 - avg * 40);
+}
+
+function computeTunneling(pitches) {
+  const clusters = {};
+  pitches.forEach(p => {
+    const type = p.type || p.pitchType || "Unknown";
+    if (!clusters[type]) clusters[type] = [];
+    clusters[type].push({ x: p.releaseX ?? 0, y: p.releaseY ?? 0 });
+  });
+
+  const centers = Object.values(clusters).map(points => ({
+    x: average(points.map(p => p.x)),
+    y: average(points.map(p => p.y))
+  }));
+
+  let totalDist = 0, count = 0;
+  for (let i=0; i<centers.length; i++) {
+    for (let j=i+1; j<centers.length; j++) {
+      const dx = centers[i].x - centers[j].x;
+      const dy = centers[i].y - centers[j].y;
+      totalDist += Math.sqrt(dx*dx + dy*dy);
+      count++;
     }
+  }
 
-    function renderAnalytics(sessions) {
-      const avgVelo = sessions.map(s => average(s.pitches.map(p => p.velocity || 0)));
-      const mix = computeMix(sessions);
-      const command = sessions.map(s => computeCommand(s.pitches));
-      const tunnel = sessions.map(s => computeTunneling(s.pitches));
-      const quality = sessions.map((s, i) =>
-        computeQuality(avgVelo[i], command[i], tunnel[i])
-      );
+  const avgDist = count ? totalDist / count : 0;
+  return Math.max(0, 100 - avgDist * 15);
+}
 
-      const labels = sessions.map(s => new Date(s.date).toLocaleDateString());
+function computeQuality(velo, command, tunnel) {
+  return (0.4 * velo) + (0.3 * command) + (0.3 * tunnel);
+}
 
-      new Chart(document.getElementById('veloTrend'), {
-        type: 'line',
-        data: { labels, datasets: [{ label: 'Avg Velo', data: avgVelo, borderColor: 'red' }] }
-      });
-
-      new Chart(document.getElementById('mixChart'), {
-        type: 'bar',
-        data: {
-          labels: Object.keys(mix),
-          datasets: [{ label: 'Total Pitches', data: Object.values(mix), backgroundColor: 'blue' }]
-        }
-      });
-
-      new Chart(document.getElementById('commandChart'), {
-        type: 'line',
-        data: { labels, datasets: [{ label: 'Command Score', data: command, borderColor: 'green' }] }
-      });
-
-      new Chart(document.getElementById('tunnelChart'), {
-        type: 'line',
-        data: { labels, datasets: [{ label: 'Tunneling Score', data: tunnel, borderColor: 'purple' }] }
-      });
-
-      new Chart(document.getElementById('qualityChart'), {
-        type: 'line',
-        data: { labels, datasets: [{ label: 'Pitch Quality', data: quality, borderColor: 'orange' }] }
-      });
-    }
-
-    function average(arr) {
-      return arr.reduce((a,b)=>a+b,0) / arr.length;
-    }
-
-    function computeMix(sessions) {
-      const mix = {};
-      sessions.forEach(s => {
-        s.pitches.forEach(p => {
-          mix[p.type] = (mix[p.type] || 0) + 1;
-        });
-      });
-      return mix;
-    }
-
-    function computeCommand(pitches) {
-      const target = { x: 0, y: 1 };
-      let total = 0;
-      pitches.forEach(p => {
-        const dx = p.x - target.x;
-        const dy = p.y - target.y;
-        total += Math.sqrt(dx*dx + dy*dy);
-      });
-      const avg = total / pitches.length;
-      return Math.max(0, 100 - avg * 40);
-    }
-
-    function computeTunneling(pitches) {
-      const clusters = {};
-      pitches.forEach(p => {
-        if (!clusters[p.type]) clusters[p.type] = [];
-        clusters[p.type].push({ x: p.releaseX, y: p.releaseY });
-      });
-
-      const centers = Object.values(clusters).map(points => ({
-        x: average(points.map(p => p.x)),
-        y: average(points.map(p => p.y))
-      }));
-
-      let totalDist = 0, count = 0;
-      for (let i=0; i<centers.length; i++) {
-        for (let j=i+1; j<centers.length; j++) {
-          const dx = centers[i].x - centers[j].x;
-          const dy = centers[i].y - centers[j].y;
-          totalDist += Math.sqrt(dx*dx + dy*dy);
-          count++;
-        }
-      }
-
-      const avgDist = count ? totalDist / count : 0;
-      return Math.max(0, 100 - avgDist * 15);
-    }
-
-    function computeQuality(velo, command, tunnel) {
-      return (0.4 * velo) + (0.3 * command) + (0.3 * tunnel);
-    }
-
-    loadDashboard();
-  </script>
-  <script src="/ws.js"></script>
+loadDashboard();
+</script>
 
 </body>
 </html>

@@ -4,100 +4,153 @@
 
 <h2>Select Camera</h2>
 
+<!-- Camera Preview -->
 <video id="preview" autoplay playsinline style="width:100%; max-width:600px; border:2px solid white;"></video>
 
+<!-- Camera Selector -->
 <select id="cameraSelect" style="margin-top:15px; padding:10px; width:100%; max-width:600px;"></select>
 
-<script>
-async function loadCameras() {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const cameras = devices.filter(d => d.kind === "videoinput");
-
-    const select = document.getElementById("cameraSelect");
-    select.innerHTML = "";
-
-    cameras.forEach(cam => {
-        const option = document.createElement("option");
-        option.value = cam.deviceId;
-        option.textContent = cam.label || "Camera " + (select.length + 1);
-        select.appendChild(option);
-    });
-
-    startCamera(select.value);
-}
-
-async function startCamera(deviceId) {
-    const stream = await navigator.mediaDevices.getUserMedia({
-        video: { deviceId: deviceId ? { exact: deviceId } : undefined }
-    });
-
-    const video = document.getElementById("preview");
-    video.srcObject = stream;
-}
-
-document.getElementById("cameraSelect").addEventListener("change", (e) => {
-    startCamera(e.target.value);
-});
-
-loadCameras();
-</script>
+<!-- Start Camera Button (required for iPhone) -->
+<button id="initCameraBtn" style="margin-top:20px; padding:12px; width:100%; max-width:600px;">
+  Tap to Enable Camera
+</button>
 
 <script src="/ws.js"></script>
 
-ws.send(JSON.stringify({ 
-    type: "velocity", 
-    value: currentVelocity
-}));
-
 <script>
-let mediaRecorder;
+let currentStream = null;
+let mediaRecorder = null;
 let recordedChunks = [];
 
+const ws = window.ws;
+
+ws.addEventListener("open", () => {
+  ws.send(JSON.stringify({
+    type: "identify",
+    device: "camera"
+  }));
+});
+
+/* ---------------------------------------------------
+   INITIAL CAMERA PERMISSION (required on iPhone)
+--------------------------------------------------- */
+document.getElementById("initCameraBtn").addEventListener("click", async () => {
+  await requestCameraPermission();
+  await loadCameras();
+  document.getElementById("initCameraBtn").style.display = "none";
+});
+
+/* ---------------------------------------------------
+   REQUEST CAMERA PERMISSION FIRST
+--------------------------------------------------- */
+async function requestCameraPermission() {
+  try {
+    await navigator.mediaDevices.getUserMedia({ video: true });
+  } catch (err) {
+    alert("Camera permission blocked. Enable it in browser settings.");
+    console.error(err);
+  }
+}
+
+/* ---------------------------------------------------
+   LOAD CAMERA DEVICES
+--------------------------------------------------- */
+async function loadCameras() {
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  const cameras = devices.filter(d => d.kind === "videoinput");
+
+  const select = document.getElementById("cameraSelect");
+  select.innerHTML = "";
+
+  cameras.forEach(cam => {
+    const option = document.createElement("option");
+    option.value = cam.deviceId;
+    option.textContent = cam.label || "Camera " + (select.length + 1);
+    select.appendChild(option);
+  });
+
+  startCamera(select.value);
+}
+
+/* ---------------------------------------------------
+   START CAMERA STREAM
+--------------------------------------------------- */
+async function startCamera(deviceId) {
+  if (currentStream) {
+    currentStream.getTracks().forEach(t => t.stop());
+  }
+
+  const stream = await navigator.mediaDevices.getUserMedia({
+    video: { deviceId: deviceId ? { exact: deviceId } : undefined }
+  });
+
+  currentStream = stream;
+
+  const video = document.getElementById("preview");
+  video.srcObject = stream;
+}
+
+/* ---------------------------------------------------
+   SWITCH CAMERA
+--------------------------------------------------- */
+document.getElementById("cameraSelect").addEventListener("change", (e) => {
+  startCamera(e.target.value);
+});
+
+/* ---------------------------------------------------
+   START CLIP RECORDING
+--------------------------------------------------- */
 async function startClip() {
-    const stream = document.querySelector("video").srcObject;
+  if (!currentStream) return;
 
-    recordedChunks = [];
-    mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm" });
+  recordedChunks = [];
+  mediaRecorder = new MediaRecorder(currentStream, { mimeType: "video/webm" });
 
-    mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) recordedChunks.push(e.data);
-    };
+  mediaRecorder.ondataavailable = (e) => {
+    if (e.data.size > 0) recordedChunks.push(e.data);
+  };
 
-    mediaRecorder.onstop = async () => {
-        const blob = new Blob(recordedChunks, { type: "video/webm" });
-        const formData = new FormData();
-        formData.append("clip", blob, "clip.webm");
+  mediaRecorder.onstop = async () => {
+    const blob = new Blob(recordedChunks, { type: "video/webm" });
+    const formData = new FormData();
+    formData.append("clip", blob, "clip.webm");
 
-        const res = await fetch("/uploadClip", {
-            method: "POST",
-            body: formData
-        });
+    const res = await fetch("/uploadClip", {
+      method: "POST",
+      body: formData
+    });
 
-        const data = await res.json();
+    const data = await res.json();
 
-        // Send clip URL to tagger device
-        ws.send(JSON.stringify({
-            type: "clip",
-            url: data.url
-        }));
-    };
+    // Notify tagger device
+    ws.send(JSON.stringify({
+      type: "clip",
+      url: data.url
+    }));
+  };
 
-    mediaRecorder.start();
+  mediaRecorder.start();
 }
 
+/* ---------------------------------------------------
+   STOP CLIP RECORDING
+--------------------------------------------------- */
 function stopClip() {
-    if (mediaRecorder && mediaRecorder.state === "recording") {
-        mediaRecorder.stop();
-    }
+  if (mediaRecorder && mediaRecorder.state === "recording") {
+    mediaRecorder.stop();
+  }
 }
-</script>
 
+/* ---------------------------------------------------
+   HANDLE INCOMING WS COMMANDS
+--------------------------------------------------- */
 ws.onmessage = (msg) => {
-    const data = JSON.parse(msg.data);
+  const data = JSON.parse(msg.data);
 
-    if (data.type === "startClip") startClip();
-    if (data.type === "stopClip") stopClip();
+  if (data.type === "startClip") startClip();
+  if (data.type === "stopClip") stopClip();
 };
+</script>
 
 </body>
 </html>
