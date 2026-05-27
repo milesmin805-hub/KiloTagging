@@ -235,93 +235,10 @@
       font-weight: 500;
     }
 
-    .strikezone-wrapper {
-      display: grid;
-      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-      gap: 10px;
-    }
-
     @media (max-width: 700px) {
       .strikezone-wrapper {
         grid-template-columns: minmax(0, 1fr);
       }
-    }
-
-    .strikezone {
-      aspect-ratio: 3 / 4;
-      border-radius: 14px;
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), #020617);
-      padding: 8px;
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-      gap: 6px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .strikezone-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 11px;
-      color: #9ca3af;
-    }
-
-    .strikezone-grid {
-      border-radius: 10px;
-      border: 1px solid rgba(148, 163, 184, 0.6);
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      grid-template-rows: repeat(3, 1fr);
-      overflow: hidden;
-      position: relative;
-      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), #020617);
-    }
-
-    .zone-cell {
-      border: 1px solid rgba(30, 64, 175, 0.7);
-      position: relative;
-      cursor: pointer;
-      transition: background 0.15s ease, box-shadow 0.15s ease;
-    }
-
-    .zone-cell:hover {
-      background: rgba(37, 99, 235, 0.25);
-      box-shadow: inset 0 0 12px rgba(37, 99, 235, 0.5);
-    }
-
-    .zone-cell.active {
-      background: radial-gradient(circle at center, rgba(56, 189, 248, 0.4), rgba(15, 23, 42, 1));
-      box-shadow:
-        inset 0 0 18px rgba(56, 189, 248, 0.8),
-        0 0 18px rgba(56, 189, 248, 0.6);
-    }
-
-    .zone-label {
-      position: absolute;
-      bottom: 4px;
-      right: 4px;
-      font-size: 9px;
-      color: #9ca3af;
-      background: rgba(15, 23, 42, 0.8);
-      padding: 2px 4px;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.5);
-    }
-
-    .strikezone-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 11px;
-      color: #9ca3af;
-    }
-
-    .strikezone-footer span {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
     }
 
     .legend-dot {
@@ -612,24 +529,20 @@
           </div>
         </div>
 
-        <div class="strikezone-wrapper">
-          <div class="strikezone">
-            <div class="strikezone-header">
-              <span>Pitch Location</span>
-              <span id="lastPitchLabel">No pitch tagged</span>
-            </div>
-            <div class="strikezone-grid" id="strikezoneGrid">
-              <!-- 3x3 grid -->
-              <div class="zone-cell" data-zone="1"><span class="zone-label">1</span></div>
-              <div class="zone-cell" data-zone="2"><span class="zone-label">2</span></div>
-              <div class="zone-cell" data-zone="3"><span class="zone-label">3</span></div>
-              <div class="zone-cell" data-zone="4"><span class="zone-label">4</span></div>
-              <div class="zone-cell" data-zone="5"><span class="zone-label">5</span></div>
-              <div class="zone-cell" data-zone="6"><span class="zone-label">6</span></div>
-              <div class="zone-cell" data-zone="7"><span class="zone-label">7</span></div>
-              <div class="zone-cell" data-zone="8"><span class="zone-label">8</span></div>
-              <div class="zone-cell" data-zone="9"><span class="zone-label">9</span></div>
-            </div>
+    
+           <div id="pitchArea">
+  <div id="strikeZone">
+    <div class="zone-cell" data-zone="1"><span class="zone-label">1</span></div>
+    <div class="zone-cell" data-zone="2"><span class="zone-label">2</span></div>
+    <div class="zone-cell" data-zone="3"><span class="zone-label">3</span></div>
+    <div class="zone-cell" data-zone="4"><span class="zone-label">4</span></div>
+    <div class="zone-cell" data-zone="5"><span class="zone-label">5</span></div>
+    <div class="zone-cell" data-zone="6"><span class="zone-label">6</span></div>
+    <div class="zone-cell" data-zone="7"><span class="zone-label">7</span></div>
+    <div class="zone-cell" data-zone="8"><span class="zone-label">8</span></div>
+    <div class="zone-cell" data-zone="9"><span class="zone-label">9</span></div>
+  </div>
+</div>
             <div class="strikezone-footer">
               <span><span class="legend-dot"></span> In-zone</span>
               <span>Tap again to clear selection</span>
@@ -771,7 +684,7 @@
 
     // --- WebSocket from ws.js ---
     const ws = window.ws;
-    
+
     ws.addEventListener("open", () => {
   ws.send(JSON.stringify({
     type: "identify",
@@ -791,24 +704,55 @@
     const footerVelocityEl = document.getElementById("footerVelocity");
 
     // --- Strikezone logic ---
-    document.querySelectorAll(".zone-cell").forEach(cell => {
-  cell.addEventListener("click", () => {
-    const zone = cell.dataset.zone;
+  // --- NEW: Tap anywhere to place a dot + compute zone ---
+const pitchArea = document.getElementById("pitchArea");
+const strikeZone = document.getElementById("strikeZone");
 
-    selectedZone = (selectedZone === zone) ? null : zone;
+pitchArea.addEventListener("click", (event) => {
+  // Remove old dots
+  document.querySelectorAll(".pitch-dot").forEach(d => d.remove());
 
-    document.querySelectorAll(".zone-cell")
-      .forEach(c => c.classList.remove("active"));
+  const rect = pitchArea.getBoundingClientRect();
+  const x = (event.clientX - rect.left) / rect.width;
+  const y = (event.clientY - rect.top) / rect.height;
 
-    if (selectedZone) cell.classList.add("active");
+  // Save exact location
+  selectedX = x;
+  selectedY = y;
 
-    lastZoneEl.textContent = selectedZone || "—";
+  // Draw dot
+  const dot = document.createElement("div");
+  dot.className = "pitch-dot";
+  dot.style.left = `${x * 100}%`;
+  dot.style.top = `${y * 100}%`;
+  pitchArea.appendChild(dot);
 
-    updateLastPitchLabel();
-    trySendPitchEvent();
-  });
+  // Determine zone (or null if outside)
+  selectedZone = computeZoneFromCoordinates(x, y);
+  lastZoneEl.textContent = selectedZone || "Ball";
+
+  updateLastPitchLabel();
+  trySendPitchEvent();
 });
 
+function computeZoneFromCoordinates(x, y) {
+  // Strike zone is centered inside pitchArea
+  const zoneLeft = 0.20;
+  const zoneRight = 0.80;
+  const zoneTop = 0.20;
+  const zoneBottom = 0.80;
+
+  if (x < zoneLeft || x > zoneRight || y < zoneTop || y > zoneBottom) {
+    return null; // Ball
+  }
+
+  // Convert to 3×3 grid
+  const zx = Math.floor((x - zoneLeft) / (zoneRight - zoneLeft) * 3);
+  const zy = Math.floor((y - zoneTop) / (zoneBottom - zoneTop) * 3);
+
+  // Zones numbered 1–9
+  return zy * 3 + zx + 1;
+}
 
     // --- Pitch type buttons ---
 document.querySelectorAll("#pitchTypeRow .pill").forEach(btn => {
@@ -830,9 +774,19 @@ document.querySelectorAll("#pitchTypeRow .pill").forEach(btn => {
 });
 
     // --- Pitch result buttons ---
+// --- Pitch Result Buttons (with In Play submenu) ---
 document.querySelectorAll("#pitchResultRow .pill").forEach(btn => {
   btn.addEventListener("click", () => {
     const result = btn.dataset.result;
+
+    // If user taps "In Play", show submenu
+    if (result === "InPlay") {
+      document.getElementById("inPlayMenu").classList.remove("hidden");
+      return;
+    }
+
+    // Otherwise hide submenu
+    document.getElementById("inPlayMenu").classList.add("hidden");
 
     selectedResult = (selectedResult === result) ? null : result;
 
@@ -840,6 +794,19 @@ document.querySelectorAll("#pitchResultRow .pill").forEach(btn => {
       .forEach(b => b.classList.remove("active"));
 
     if (selectedResult) btn.classList.add("active");
+
+    updateLastPitchLabel();
+    trySendPitchEvent();
+  });
+});
+
+// --- Submenu buttons for In Play ---
+document.querySelectorAll("#inPlayMenu .inplay").forEach(btn => {
+  btn.addEventListener("click", () => {
+    selectedResult = btn.dataset.result;
+
+    // Hide submenu after selection
+    document.getElementById("inPlayMenu").classList.add("hidden");
 
     updateLastPitchLabel();
     trySendPitchEvent();
@@ -855,7 +822,7 @@ document.querySelectorAll("#pitchResultRow .pill").forEach(btn => {
 
       const parts = [];
       if (selectedPitchType) parts.push(selectedPitchType);
-      if (selectedZone) parts.push("Zone " + selectedZone);
+     parts.push(selectedZone ? "Zone " + selectedZone : "Ball");
       if (selectedResult) parts.push(selectedResult);
 
       const summary = parts.join(" · ");
@@ -965,10 +932,18 @@ ws.onmessage = (event) => {
   }
 };
 
+<div id="gameTracker" class="game-tracker">
+  <div>Balls: <span id="ballsCount">0</span></div>
+  <div>Strikes: <span id="strikesCount">0</span></div>
+  <div>Outs: <span id="outsCount">0</span></div>
+  <div>Inning: <span id="inningCount">1</span></div>
+  <div>Total Pitches: <span id="totalPitches">0</span></div>
+</div>
 
     // --- Send pitch over WebSocket ---
-  function trySendPitchEvent() {
-  if (!selectedPitchType || !selectedZone || !selectedResult) return;
+function trySendPitchEvent() {
+  // Must have pitch type + result + location (zone OR ball)
+  if (!selectedPitchType || selectedZone === undefined || !selectedResult) return;
 
   lastPitchId = crypto.randomUUID();
 
@@ -976,7 +951,9 @@ ws.onmessage = (event) => {
     type: "pitch",
     pitchId: lastPitchId,
     pitchType: selectedPitchType,
-    zone: selectedZone,
+    zone: selectedZone,       // null = ball
+    x: selectedX,             // exact tap location (0–1)
+    y: selectedY,             // exact tap location (0–1)
     result: selectedResult,
     timestamp: Date.now()
   };
@@ -984,10 +961,80 @@ ws.onmessage = (event) => {
   ws.send(JSON.stringify(payload));
   console.log("Pitch event sent:", payload);
 
+  // Update UI summary
+  const zoneLabel = selectedZone ? `Zone ${selectedZone}` : "Ball";
   lastTaggedSummaryEl.textContent =
-    `${selectedPitchType} · Zone ${selectedZone} · ${selectedResult}`;
+    `${selectedPitchType} · ${zoneLabel} · ${selectedResult}`;
+
+    // --- BASEBALL TRACKER LOGIC ---
+
+// Increment total pitches
+totalPitches++;
+
+// BALLS
+if (selectedResult === "Ball") {
+  balls++;
+  if (balls >= 4) {
+    // Walk
+    balls = 0;
+    strikes = 0;
+  }
 }
 
+// STRIKES
+if (selectedResult === "Strike") {
+  strikes++;
+  if (strikes >= 3) {
+    outs++;
+    balls = 0;
+    strikes = 0;
+  }
+}
+
+// FOUL BALLS (cannot strike out on foul unless bunt)
+if (selectedResult === "Foul") {
+  if (strikes < 2) strikes++;
+}
+
+// IN-PLAY OUTS
+if (["Groundout", "Flyout", "Pop Out"].includes(selectedResult)) {
+  outs++;
+  balls = 0;
+  strikes = 0;
+}
+
+// INNING ADVANCE
+if (outs >= 3) {
+  outs = 0;
+  inning++;
+}
+
+// UPDATE TRACKER UI
+document.getElementById("ballsCount").textContent = balls;
+document.getElementById("strikesCount").textContent = strikes;
+document.getElementById("outsCount").textContent = outs;
+document.getElementById("inningCount").textContent = inning;
+document.getElementById("totalPitches").textContent = totalPitches;
+
+  // --- CLEAR UI FOR NEXT PITCH ---
+  selectedPitchType = null;
+  selectedZone = null;
+  selectedResult = null;
+  selectedX = null;
+  selectedY = null;
+
+  // Remove dot
+  document.querySelectorAll(".pitch-dot").forEach(d => d.remove());
+
+  // Reset pills
+  document.querySelectorAll(".pill").forEach(p => p.classList.remove("active"));
+
+  // Reset labels
+  lastPitchTypeEl.textContent = "—";
+  lastZoneEl.textContent = "—";
+  lastPitchLabelEl.textContent = "No pitch tagged";
+  lastTaggedSummaryEl.textContent = "None";
+}
 
     // --- Pocket Radar integration ---
     let radarScan = null;

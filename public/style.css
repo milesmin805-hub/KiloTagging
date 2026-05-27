@@ -69,6 +69,63 @@ input, select, textarea {
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
+#pitchArea {
+  width: 300px;
+  height: 400px;
+  background: #eee;
+  position: relative;
+  margin: 0 auto;
+}
+
+#strikeZone {
+  width: 60%;
+  height: 60%;
+  border: 2px solid black;
+  position: absolute;
+  top: 20%;
+  left: 20%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+}
+
+.pitch-dot {
+  width: 14px;
+  height: 14px;
+  background: red;
+  border-radius: 50%;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+#pitchArea {
+  width: 300px;
+  height: 400px;
+  background: #eee;
+  position: relative;
+  margin: 0 auto;
+}
+
+.inplay-menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.hidden {
+  display: none;
+}
+
+.game-tracker {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 15px;
+  font-size: 14px;
+  color: #fff;
+}
+
 /* ===== VIEWER PAGE ===== */
 .clips-container {
   display: flex;
