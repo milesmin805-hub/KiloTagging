@@ -927,6 +927,14 @@ ws.onmessage = (event) => {
     console.log("Clip tag broadcast:", data);
   }
 
+  if (data.type === "clip-attached") {
+  const pitch = sessionPitches.find(p => p.pitchId === data.pitchId);
+  if (pitch) {
+    pitch.clipUrl = data.url;
+    console.log("Clip synced to pitch:", pitch);
+  }
+}
+
   if (data.type === "pitch") {
     console.log("Pitch received:", data);
   }
@@ -946,6 +954,11 @@ function trySendPitchEvent() {
   if (!selectedPitchType || selectedZone === undefined || !selectedResult) return;
 
   lastPitchId = crypto.randomUUID();
+
+  ws.send(JSON.stringify({
+  type: "pitch-start",
+  pitchId: lastPitchId
+}));
 
   const payload = {
     type: "pitch",

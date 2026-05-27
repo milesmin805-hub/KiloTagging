@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Device Manager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      font-family: Arial;
+      background: #f4f4f4;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    #deviceList {
+      margin-top: 20px;
+    }
+
+    .device-item {
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 12px;
+      border: 1px solid #ddd;
+    }
+
+    .device-item button {
+      padding: 8px 12px;
+      margin-right: 6px;
+      border-radius: 6px;
+      border: none;
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+    }
+
+    .device-item button:hover {
+      background: #1e40af;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>Device Manager</h1>
+<p>Manage connected cameras and taggers.</p>
+
+<div id="deviceList"></div>
+
+<button onclick="window.location.href='dashboard.html'" style="margin-top:20px;">
+  ← Back to Dashboard
+</button>
+
+<script src="/ws.js"></script>
+
+<script>
+// ---------------------------------------------
+// DEVICE MANAGER STATE
+// ---------------------------------------------
+const devices = {}; // { deviceId: { type, name, status } }
+
+const ws = window.ws;
+
+// ---------------------------------------------
+// HANDLE INCOMING MESSAGES
+// ---------------------------------------------
+ws.onmessage = (msg) => {
+  const data = JSON.parse(msg.data);
+
+  // Device identifies itself
+  if (data.type === "identify") {
+    registerDevice(data);
+  }
+
+  // Camera uploaded a clip
+  if (data.type === "clip") {
+    updateDeviceStatus(data.deviceId, "Clip Uploaded");
+  }
+
+  // Camera status updates
+  if (data.type === "recording") {
+    updateDeviceStatus(data.deviceId, "Recording…");
+  }
+
+  if (data.type === "idle") {
+    updateDeviceStatus(data.deviceId, "Idle");
+  }
+
+  if (data.type === "clip") {
+  // Forward clip to tagger
+  ws.send(JSON.stringify({
+    type: "clip-attached",
+    pitchId: data.pitchId,
+    url: data.url
+  }));
+}
+
+  if (data.type === "pitch-start") {
+  // Forward to all cameras
+  Object.values(devices)
+    .filter(d => d.type === "camera")
+    .forEach(cam => {
+      ws.send(JSON.stringify({
+        type: "startClip",
+        deviceId: cam.id,
+        pitchId: data.pitchId
+      }));
+    });
+}
+};
+
+// ---------------------------------------------
+// REGISTER DEVICE
+// ---------------------------------------------
+function registerDevice(data) {
+  const id = data.deviceId || crypto.randomUUID();
+
+  devices[id] = {
+    id,
+    type: data.device,
+    name: data.name || data.device.toUpperCase(),
+    status: "Connected"
+  };
+
+  renderDeviceList();
+}
+
+// ---------------------------------------------
+// UPDATE DEVICE STATUS
+// ---------------------------------------------
+function updateDeviceStatus(deviceId, status) {
+  if (!devices[deviceId]) return;
+  devices[deviceId].status = status;
+  renderDeviceList();
+}
+
+// ---------------------------------------------
+// RENDER DEVICE LIST
+// ---------------------------------------------
+function renderDeviceList() {
+  const list = document.getElementById("deviceList");
+  list.innerHTML = "";
+
+  Object.values(devices).forEach(device => {
+    const div = document.createElement("div");
+    div.className = "device-item";
+
+    div.innerHTML = `
+      <strong>${device.name}</strong><br>
+      Type: ${device.type}<br>
+      Status: ${device.status}<br><br>
+
+      ${device.type === "camera" ? `
+        <button onclick="activateCamera('${device.id}')">Activate Camera</button>
+        <button onclick="startClip('${device.id}')">Start Clip</button>
+        <button onclick="stopClip('${device.id}')">Stop Clip</button>
+      ` : ""}
+    `;
+
+    list.appendChild(div);
+  });
+}
+
+// ---------------------------------------------
+// SEND COMMANDS TO CAMERA DEVICES
+// ---------------------------------------------
+function activateCamera(deviceId) {
+  ws.send(JSON.stringify({
+    type: "activate-camera",
+    deviceId
+  }));
+
+  updateDeviceStatus(deviceId, "Activating Camera…");
+}
+
+function startClip(deviceId) {
+  ws.send(JSON.stringify({
+    type: "startClip",
+    deviceId
+  }));
+
+  updateDeviceStatus(deviceId, "Recording…");
+}
+
+function stopClip(deviceId) {
+  ws.send(JSON.stringify({
+    type: "stopClip",
+    deviceId
+  }));
+
+  updateDeviceStatus(deviceId, "Processing Clip…");
+}
+</script>
+
+</body>
+</html>

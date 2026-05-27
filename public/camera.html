@@ -4,13 +4,13 @@
 
 <h2>Select Camera</h2>
 
-<!-- Camera Preview -->
+<!-- Live Camera Preview -->
 <video id="preview" autoplay playsinline style="width:100%; max-width:600px; border:2px solid white;"></video>
 
 <!-- Camera Selector -->
 <select id="cameraSelect" style="margin-top:15px; padding:10px; width:100%; max-width:600px;"></select>
 
-<!-- Start Camera Button (required for iPhone) -->
+<!-- Manual Permission Button (iPhone requires user gesture) -->
 <button id="initCameraBtn" style="margin-top:20px; padding:12px; width:100%; max-width:600px;">
   Tap to Enable Camera
 </button>
@@ -24,6 +24,9 @@ let recordedChunks = [];
 
 const ws = window.ws;
 
+/* ---------------------------------------------------
+   IDENTIFY AS CAMERA DEVICE
+--------------------------------------------------- */
 ws.addEventListener("open", () => {
   ws.send(JSON.stringify({
     type: "identify",
@@ -32,7 +35,34 @@ ws.addEventListener("open", () => {
 });
 
 /* ---------------------------------------------------
-   INITIAL CAMERA PERMISSION (required on iPhone)
+   AUTO START WHEN DESKTOP ACTIVATES CAMERA
+--------------------------------------------------- */
+ws.onmessage = (msg) => {
+  const data = JSON.parse(msg.data);
+
+  if (data.type === "activate-camera") {
+    autoStartCamera();
+  }
+
+  if (data.type === "startClip") startClip();
+  if (data.type === "stopClip") stopClip();
+};
+
+/* ---------------------------------------------------
+   AUTO CAMERA START (desktop-triggered)
+--------------------------------------------------- */
+async function autoStartCamera() {
+  try {
+    await requestCameraPermission();
+    await loadCameras();
+    document.getElementById("initCameraBtn").style.display = "none";
+  } catch (err) {
+    console.error("Auto camera start failed:", err);
+  }
+}
+
+/* ---------------------------------------------------
+   MANUAL CAMERA START (user-triggered)
 --------------------------------------------------- */
 document.getElementById("initCameraBtn").addEventListener("click", async () => {
   await requestCameraPermission();
@@ -41,7 +71,7 @@ document.getElementById("initCameraBtn").addEventListener("click", async () => {
 });
 
 /* ---------------------------------------------------
-   REQUEST CAMERA PERMISSION FIRST
+   REQUEST CAMERA PERMISSION
 --------------------------------------------------- */
 async function requestCameraPermission() {
   try {
@@ -62,10 +92,10 @@ async function loadCameras() {
   const select = document.getElementById("cameraSelect");
   select.innerHTML = "";
 
-  cameras.forEach(cam => {
+  cameras.forEach((cam, index) => {
     const option = document.createElement("option");
     option.value = cam.deviceId;
-    option.textContent = cam.label || "Camera " + (select.length + 1);
+    option.textContent = cam.label || `Camera ${index + 1}`;
     select.appendChild(option);
   });
 
@@ -98,9 +128,13 @@ document.getElementById("cameraSelect").addEventListener("change", (e) => {
 });
 
 /* ---------------------------------------------------
-   START CLIP RECORDING
+   START RECORDING
 --------------------------------------------------- */
-async function startClip() {
+async function startClip(pitchId) {
+  currentPitchId = pitchId;
+
+if (data.type === "startClip") startClip(data.pitchId);
+
   if (!currentStream) return;
 
   recordedChunks = [];
@@ -122,34 +156,24 @@ async function startClip() {
 
     const data = await res.json();
 
-    // Notify tagger device
     ws.send(JSON.stringify({
-      type: "clip",
-      url: data.url
-    }));
+  type: "clip",
+  pitchId: currentPitchId,
+  url: data.url
+}));
   };
 
   mediaRecorder.start();
 }
 
 /* ---------------------------------------------------
-   STOP CLIP RECORDING
+   STOP RECORDING
 --------------------------------------------------- */
 function stopClip() {
   if (mediaRecorder && mediaRecorder.state === "recording") {
     mediaRecorder.stop();
   }
 }
-
-/* ---------------------------------------------------
-   HANDLE INCOMING WS COMMANDS
---------------------------------------------------- */
-ws.onmessage = (msg) => {
-  const data = JSON.parse(msg.data);
-
-  if (data.type === "startClip") startClip();
-  if (data.type === "stopClip") stopClip();
-};
 </script>
 
 </body>
