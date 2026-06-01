@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Kilo - Sessions</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #050816;
+      color: #e5e7eb;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 16px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.15), transparent 55%);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #22d3ee, #0f172a);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .brand-text .title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .brand-text .subtitle {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .logout-btn {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      color: #fca5a5;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.15s ease;
+    }
+
+    .logout-btn:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.8);
+    }
+
+    main {
+      flex: 1;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+      width: 100%;
+      overflow-y: auto;
+    }
+
+    .card {
+      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), #020617);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 16px;
+    }
+
+    .form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #9ca3af;
+    }
+
+    input {
+      padding: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      background: rgba(15, 23, 42, 0.9);
+      color: #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.15s ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: rgba(56, 189, 248, 0.9);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+    }
+
+    .btn {
+      padding: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      background: rgba(15, 23, 42, 0.9);
+      color: #e5e7eb;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.15s ease;
+    }
+
+    .btn:hover {
+      border-color: rgba(56, 189, 248, 0.9);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+    }
+
+    .btn-primary {
+      background: radial-gradient(circle at top left, #22d3ee, #0f172a);
+      border-color: rgba(56, 189, 248, 1);
+      color: #000;
+    }
+
+    .sessions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 16px;
+    }
+
+    .session-item {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      border-radius: 12px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .session-item:hover {
+      border-color: rgba(56, 189, 248, 0.9);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+    }
+
+    .session-item .name {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .session-item .date {
+      font-size: 12px;
+      color: #9ca3af;
+    }
+
+    .session-item .status {
+      font-size: 11px;
+      color: #22d3ee;
+      margin-top: 8px;
+      text-transform: uppercase;
+    }
+
+    .empty {
+      text-align: center;
+      color: #9ca3af;
+      padding: 40px 20px;
+    }
+
+    .error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      color: #fca5a5;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      display: none;
+      margin-bottom: 16px;
+    }
+
+    .error.show {
+      display: block;
+    }
+
+    .success {
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.5);
+      color: #86efac;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      display: none;
+      margin-bottom: 16px;
+    }
+
+    .success.show {
+      display: block;
+    }
+
+    /* ROLE MODAL */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.95), #020617);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 500px;
+      text-align: center;
+    }
+
+    .modal-content h2 {
+      font-size: 20px;
+      margin-bottom: 24px;
+    }
+
+    .role-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .role-btn {
+      padding: 20px;
+      border: 2px solid rgba(148, 163, 184, 0.5);
+      background: rgba(15, 23, 42, 0.9);
+      color: #e5e7eb;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .role-btn:hover {
+      border-color: rgba(56, 189, 248, 0.9);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+    }
+
+    .role-btn .icon {
+      font-size: 32px;
+    }
+
+    .role-btn .label {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .role-btn .desc {
+      font-size: 12px;
+      color: #9ca3af;
+    }
+
+    @media (max-width: 600px) {
+      main {
+        padding: 12px;
+      }
+
+      .sessions-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .modal-content {
+        padding: 24px;
+        margin: 20px;
+      }
+
+      .role-buttons {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-mark">⚾</div>
+      <div class="brand-text">
+        <div class="title">Kilo Sessions</div>
+        <div class="subtitle" id="userEmail"></div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="logout()">Log Out</button>
+  </header>
+
+  <main>
+    <div id="errorMsg" class="error"></div>
+    <div id="successMsg" class="success"></div>
+
+    <!-- CREATE NEW SESSION -->
+    <div class="card">
+      <div class="card-title">Create New Session</div>
+      <div class="form">
+        <div class="form-group">
+          <label>Session Name</label>
+          <input
+            id="newSessionName"
+            type="text"
+            placeholder="e.g., Pitcher Johnny Smith - Game 1"
+          />
+        </div>
+        <button class="btn btn-primary" onclick="createSession()">Create Session</button>
+      </div>
+    </div>
+
+    <!-- EXISTING SESSIONS -->
+    <div class="card">
+      <div class="card-title">Your Sessions</div>
+      <div id="sessionsList" class="sessions-grid">
+        <div class="empty">No sessions yet. Create one to get started!</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ROLE SELECTION MODAL -->
+  <div id="roleModal" class="modal">
+    <div class="modal-content">
+      <h2>Select Your Role</h2>
+      <p style="color: #9ca3af; margin-bottom: 24px;">What device are you using for this session?</p>
+      <div class="role-buttons">
+        <button class="role-btn" onclick="selectRole('tagger')">
+          <div class="icon">🏷️</div>
+          <div class="label">Tagger</div>
+          <div class="desc">iPad - Tag pitches</div>
+        </button>
+        <button class="role-btn" onclick="selectRole('camera')">
+          <div class="icon">📹</div>
+          <div class="label">Camera</div>
+          <div class="desc">iPhone - Record video</div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentSessionId = null;
+
+    // Check auth on load
+    window.addEventListener("load", () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        window.location.href = "/login.html";
+        return;
+      }
+
+      document.getElementById("userEmail").textContent =
+        localStorage.getItem("email") || "User";
+
+      loadSessions();
+    });
+
+    // LOAD SESSIONS
+    async function loadSessions() {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch("/session/list", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        showError("Failed to load sessions");
+        return;
+      }
+
+      const list = document.getElementById("sessionsList");
+
+      if (data.sessions.length === 0) {
+        list.innerHTML = '<div class="empty">No sessions yet. Create one to get started!</div>';
+        return;
+      }
+
+      list.innerHTML = data.sessions
+        .filter(s => !s.closed)
+        .map(
+          (session) => `
+        <div class="session-item" onclick="selectSession('${session.sessionId}')">
+          <div class="name">${session.name}</div>
+          <div class="date">${new Date(session.createdAt).toLocaleString()}</div>
+          <div class="status">${session.pitches?.length || 0} pitches</div>
+        </div>
+      `
+        )
+        .join("");
+    }
+
+    // CREATE SESSION
+    async function createSession() {
+      const token = localStorage.getItem("token");
+      const name = document.getElementById("newSessionName").value.trim();
+
+      if (!name) {
+        showError("Please enter a session name");
+        return;
+      }
+
+      const res = await fetch("/session/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, name })
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        showError(data.error || "Failed to create session");
+        return;
+      }
+
+      showSuccess("Session created!");
+      document.getElementById("newSessionName").value = "";
+      currentSessionId = data.sessionId;
+
+      // Show role selection
+      showRoleModal();
+    }
+
+    // SELECT EXISTING SESSION
+    function selectSession(sessionId) {
+      currentSessionId = sessionId;
+      showRoleModal();
+    }
+
+    // SHOW ROLE MODAL
+    function showRoleModal() {
+      document.getElementById("roleModal").classList.add("show");
+    }
+
+    // SELECT ROLE & REDIRECT
+    function selectRole(role) {
+      localStorage.setItem("sessionId", currentSessionId);
+      localStorage.setItem("role", role);
+
+      if (role === "tagger") {
+        window.location.href = "/tagging.html";
+      } else if (role === "camera") {
+        window.location.href = "/camera.html";
+      }
+    }
+
+    // LOGOUT
+    function logout() {
+      localStorage.clear();
+      window.location.href = "/login.html";
+    }
+
+    function showError(msg) {
+      const el = document.getElementById("errorMsg");
+      el.textContent = msg;
+      el.classList.add("show");
+      setTimeout(() => el.classList.remove("show"), 5000);
+    }
+
+    function showSuccess(msg) {
+      const el = document.getElementById("successMsg");
+      el.textContent = msg;
+      el.classList.add("show");
+      setTimeout(() => el.classList.remove("show"), 3000);
+    }
+  </script>
+</body>
+</html>

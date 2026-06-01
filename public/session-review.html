@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Kilo - Session Review</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #050816;
+      color: #e5e7eb;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 16px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.15), transparent 55%);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #22d3ee, #0f172a);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .brand-text .title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .brand-text .subtitle {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .header-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    button {
+      padding: 8px 12px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      background: rgba(15, 23, 42, 0.9);
+      color: #e5e7eb;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.15s ease;
+    }
+
+    button:hover {
+      border-color: rgba(56, 189, 248, 0.9);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+    }
+
+    .btn-back {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.5);
+      color: #fca5a5;
+    }
+
+    .btn-back:hover {
+      background: rgba(239, 68, 68, 0.2);
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+    }
+
+    main {
+      flex: 1;
+      padding: 20px;
+      max-width: 1000px;
+      margin: 0 auto;
+      width: 100%;
+      overflow-y: auto;
+    }
+
+    .card {
+      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), #020617);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 16px;
+    }
+
+    .sessions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 16px;
+    }
+
+    .session-item {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      border-radius: 12px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .session-item:hover {
+      border-color: rgba(56, 189, 248, 0.9);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+    }
+
+    .session-item .name {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .session-item .date {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-bottom: 8px;
+    }
+
+    .session-item .stats {
+      font-size: 12px;
+      color: #22d3ee;
+      display: flex;
+      gap: 16px;
+    }
+
+    .session-item button {
+      width: 100%;
+      margin-top: 12px;
+    }
+
+    /* SESSION DETAIL */
+    .detail-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .detail-title h2 {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .detail-title p {
+      color: #9ca3af;
+      font-size: 13px;
+    }
+
+    .detail-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .detail-actions button {
+      background: radial-gradient(circle at top left, #22d3ee, #0f172a);
+      border-color: rgba(56, 189, 248, 1);
+      color: #000;
+      font-weight: 600;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .summary-box {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .summary-label {
+      font-size: 10px;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .summary-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #22d3ee;
+      margin-top: 4px;
+    }
+
+    /* PITCH TABLE */
+    .pitch-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .pitch-table thead {
+      border-bottom: 2px solid rgba(148, 163, 184, 0.5);
+    }
+
+    .pitch-table th {
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 10px;
+    }
+
+    .pitch-table td {
+      padding: 12px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+    }
+
+    .pitch-table tbody tr:hover {
+      background: rgba(34, 211, 238, 0.05);
+    }
+
+    .pitch-number {
+      font-weight: 600;
+      color: #22d3ee;
+      width: 30px;
+    }
+
+    .pitch-type {
+      font-weight: 500;
+    }
+
+    .pitch-zone {
+      text-align: center;
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 6px;
+      padding: 4px 8px;
+    }
+
+    .pitch-result {
+      text-align: center;
+    }
+
+    .result-ball {
+      color: #3b82f6;
+    }
+
+    .result-strike {
+      color: #ef4444;
+    }
+
+    .result-foul {
+      color: #f59e0b;
+    }
+
+    .result-inplay {
+      color: #22c55e;
+    }
+
+    .clip-link {
+      color: #22d3ee;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .clip-link:hover {
+      color: #06b6d4;
+    }
+
+    .empty {
+      text-align: center;
+      color: #9ca3af;
+      padding: 40px 20px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 768px) {
+      .detail-header {
+        flex-direction: column;
+      }
+
+      .sessions-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .pitch-table {
+        font-size: 11px;
+      }
+
+      .pitch-table th,
+      .pitch-table td {
+        padding: 8px;
+      }
+
+      main {
+        padding: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-mark">📊</div>
+      <div class="brand-text">
+        <div class="title">Kilo Review</div>
+        <div class="subtitle">Session Analytics</div>
+      </div>
+    </div>
+    <div class="header-buttons">
+      <button class="btn-back" onclick="goToSessions()">← Back to Sessions</button>
+      <button class="btn-back" onclick="logout()">Log Out</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- SESSIONS LIST VIEW -->
+    <div id="sessionsView" class="card">
+      <div class="card-title">Your Sessions</div>
+      <div id="sessionsList" class="sessions-grid">
+        <div class="empty">Loading sessions...</div>
+      </div>
+    </div>
+
+    <!-- SESSION DETAIL VIEW -->
+    <div id="detailView" class="hidden">
+      <div class="card">
+        <div class="detail-header">
+          <div class="detail-title">
+            <h2 id="sessionName"></h2>
+            <p id="sessionDate"></p>
+          </div>
+          <div class="detail-actions">
+            <button onclick="downloadPDF()" style="background: radial-gradient(circle at top left, #22c55e, #0f172a); border-color: rgba(34, 197, 94, 0.8); color: #000;">
+              ⬇️ Download PDF
+            </button>
+            <button onclick="backToList()">← Back to List</button>
+          </div>
+        </div>
+
+        <div class="summary-grid">
+          <div class="summary-box">
+            <div class="summary-label">Total Pitches</div>
+            <div class="summary-value" id="statPitches">0</div>
+          </div>
+          <div class="summary-box">
+            <div class="summary-label">Balls</div>
+            <div class="summary-value" id="statBalls">0</div>
+          </div>
+          <div class="summary-box">
+            <div class="summary-label">Strikes</div>
+            <div class="summary-value" id="statStrikes">0</div>
+          </div>
+          <div class="summary-box">
+            <div class="summary-label">Clips Recorded</div>
+            <div class="summary-value" id="statClips">0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Pitch Details</div>
+        <div style="overflow-x: auto;">
+          <table class="pitch-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Type</th>
+                <th>Zone</th>
+                <th>Result</th>
+                <th>Clip</th>
+              </tr>
+            </thead>
+            <tbody id="pitchTableBody">
+              <tr>
+                <td colspan="5" style="text-align: center; color: #9ca3af;">
+                  No pitches recorded
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let currentSessionId = null;
+    let currentSession = null;
+
+    // ===== AUTH CHECK =====
+    window.addEventListener("load", () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        window.location.href = "/login.html";
+        return;
+      }
+
+      loadSessions();
+    });
+
+    // ===== LOAD SESSIONS =====
+    async function loadSessions() {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch("/session/list", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        document.getElementById("sessionsList").innerHTML =
+          '<div class="empty">Failed to load sessions</div>';
+        return;
+      }
+
+      if (data.sessions.length === 0) {
+        document.getElementById("sessionsList").innerHTML =
+          '<div class="empty">No sessions yet. Go create one!</div>';
+        return;
+      }
+
+      document.getElementById("sessionsList").innerHTML = data.sessions
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .map(
+          (session) => `
+        <div class="session-item">
+          <div class="name">${session.name}</div>
+          <div class="date">${new Date(session.createdAt).toLocaleString()}</div>
+          <div class="stats">
+            <span>${session.pitches?.length || 0} pitches</span>
+            ${session.closed ? '<span style="color:#22c55e;">✓ Closed</span>' : '<span style="color:#f59e0b;">Active</span>'}
+          </div>
+          <button onclick="viewSession('${session.sessionId}')">View Details</button>
+        </div>
+      `
+        )
+        .join("");
+    }
+
+    // ===== VIEW SESSION DETAILS =====
+    async function viewSession(sessionId) {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(`/session/${sessionId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        alert("Failed to load session");
+        return;
+      }
+
+      currentSessionId = sessionId;
+      currentSession = data.session;
+
+      // Update detail view
+      document.getElementById("sessionName").textContent = data.session.name;
+      document.getElementById("sessionDate").textContent = new Date(
+        data.session.createdAt
+      ).toLocaleString();
+
+      const pitches = data.session.pitches || [];
+      const balls = pitches.filter((p) => p.result === "Ball").length;
+      const strikes = pitches.filter(
+        (p) => p.result === "Strike" || p.result === "Foul"
+      ).length;
+      const clips = Object.keys(data.session.clips || {}).length;
+
+      document.getElementById("statPitches").textContent = pitches.length;
+      document.getElementById("statBalls").textContent = balls;
+      document.getElementById("statStrikes").textContent = strikes;
+      document.getElementById("statClips").textContent = clips;
+
+      // Populate pitch table
+      const tbody = document.getElementById("pitchTableBody");
+
+      if (pitches.length === 0) {
+        tbody.innerHTML =
+          '<tr><td colspan="5" style="text-align: center; color: #9ca3af;">No pitches recorded</td></tr>';
+      } else {
+        tbody.innerHTML = pitches
+          .map((pitch, index) => {
+            const clipUrl = data.session.clips?.[pitch.pitchId];
+            const resultClass = `result-${pitch.result.toLowerCase().replace(" ", "")}`;
+
+            return `
+          <tr>
+            <td class="pitch-number">${index + 1}</td>
+            <td class="pitch-type">${pitch.pitchType || "—"}</td>
+            <td class="pitch-zone">${pitch.zone || "Ball"}</td>
+            <td class="pitch-result ${resultClass}">${pitch.result}</td>
+            <td>
+              ${
+                clipUrl
+                  ? `<a class="clip-link" href="${clipUrl}" target="_blank">📹 Watch</a>`
+                  : "—"
+              }
+            </td>
+          </tr>
+        `;
+          })
+          .join("");
+      }
+
+      // Switch views
+      document.getElementById("sessionsView").classList.add("hidden");
+      document.getElementById("detailView").classList.remove("hidden");
+    }
+
+    // ===== DOWNLOAD PDF =====
+    async function downloadPDF() {
+      const token = localStorage.getItem("token");
+
+      window.location.href = `/session/${currentSessionId}/download-pdf`;
+    }
+
+    // ===== NAVIGATION =====
+    function backToList() {
+      document.getElementById("detailView").classList.add("hidden");
+      document.getElementById("sessionsView").classList.remove("hidden");
+    }
+
+    function goToSessions() {
+      window.location.href = "/session-select.html";
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = "/login.html";
+    }
+  </script>
+</body>
+</html>

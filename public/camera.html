@@ -1,180 +1,553 @@
 <!DOCTYPE html>
-<html>
-<body style="background:black; color:white; text-align:center;">
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Kilo Camera</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-<h2>Select Camera</h2>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #050816;
+      color: #e5e7eb;
+      padding: 16px;
+      min-height: 100vh;
+    }
 
-<!-- Live Camera Preview -->
-<video id="preview" autoplay playsinline style="width:100%; max-width:600px; border:2px solid white;"></video>
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
 
-<!-- Camera Selector -->
-<select id="cameraSelect" style="margin-top:15px; padding:10px; width:100%; max-width:600px;"></select>
+    header {
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.15), transparent 55%);
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
 
-<!-- Manual Permission Button (iPhone requires user gesture) -->
-<button id="initCameraBtn" style="margin-top:20px; padding:12px; width:100%; max-width:600px;">
-  Tap to Enable Camera
-</button>
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
-<script src="/ws.js"></script>
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, #22d3ee, #0f172a);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 700;
+    }
 
-<script>
-let currentStream = null;
-let mediaRecorder = null;
-let recordedChunks = [];
+    .brand-text .title {
+      font-size: 16px;
+      font-weight: 600;
+    }
 
-const ws = window.ws;
+    .brand-text .subtitle {
+      font-size: 11px;
+      color: #9ca3af;
+    }
 
-/* ---------------------------------------------------
-   IDENTIFY AS CAMERA DEVICE
---------------------------------------------------- */
-ws.addEventListener("open", () => {
-  ws.send(JSON.stringify({
-    type: "identify",
-    device: "camera"
-  }));
-});
+    .session-info {
+      font-size: 12px;
+      color: #9ca3af;
+    }
 
-/* ---------------------------------------------------
-   AUTO START WHEN DESKTOP ACTIVATES CAMERA
---------------------------------------------------- */
-ws.onmessage = (msg) => {
-  const data = JSON.parse(msg.data);
+    h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
 
-  if (data.type === "activate-camera") {
-    autoStartCamera();
-  }
+    .card {
+      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), #020617);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
 
-  if (data.type === "startClip") startClip();
-  if (data.type === "stopClip") stopClip();
-};
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 12px;
+    }
 
-/* ---------------------------------------------------
-   AUTO CAMERA START (desktop-triggered)
---------------------------------------------------- */
-async function autoStartCamera() {
-  try {
-    await requestCameraPermission();
-    await loadCameras();
-    document.getElementById("initCameraBtn").style.display = "none";
-  } catch (err) {
-    console.error("Auto camera start failed:", err);
-  }
-}
+    video {
+      width: 100%;
+      max-width: 600px;
+      height: auto;
+      border-radius: 12px;
+      background: #000;
+      margin-bottom: 12px;
+    }
 
-/* ---------------------------------------------------
-   MANUAL CAMERA START (user-triggered)
---------------------------------------------------- */
-document.getElementById("initCameraBtn").addEventListener("click", async () => {
-  await requestCameraPermission();
-  await loadCameras();
-  document.getElementById("initCameraBtn").style.display = "none";
-});
+    select,
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 8px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      background: rgba(15, 23, 42, 0.9);
+      color: #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
 
-/* ---------------------------------------------------
-   REQUEST CAMERA PERMISSION
---------------------------------------------------- */
-async function requestCameraPermission() {
-  try {
-    await navigator.mediaDevices.getUserMedia({ video: true });
-  } catch (err) {
-    alert("Camera permission blocked. Enable it in browser settings.");
-    console.error(err);
-  }
-}
+    button:hover:not(:disabled) {
+      border-color: rgba(56, 189, 248, 0.9);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+    }
 
-/* ---------------------------------------------------
-   LOAD CAMERA DEVICES
---------------------------------------------------- */
-async function loadCameras() {
-  const devices = await navigator.mediaDevices.enumerateDevices();
-  const cameras = devices.filter(d => d.kind === "videoinput");
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
 
-  const select = document.getElementById("cameraSelect");
-  select.innerHTML = "";
+    .btn-primary {
+      background: radial-gradient(circle at top left, #22d3ee, #0f172a);
+      border-color: rgba(56, 189, 248, 1);
+      font-weight: 600;
+      color: #000;
+    }
 
-  cameras.forEach((cam, index) => {
-    const option = document.createElement("option");
-    option.value = cam.deviceId;
-    option.textContent = cam.label || `Camera ${index + 1}`;
-    select.appendChild(option);
-  });
+    .status {
+      padding: 12px;
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      text-align: center;
+      margin-bottom: 12px;
+      font-size: 12px;
+    }
 
-  startCamera(select.value);
-}
+    .status.connected {
+      border-color: #22c55e;
+      background: rgba(34, 197, 94, 0.1);
+      color: #22c55e;
+    }
 
-/* ---------------------------------------------------
-   START CAMERA STREAM
---------------------------------------------------- */
-async function startCamera(deviceId) {
-  if (currentStream) {
-    currentStream.getTracks().forEach(t => t.stop());
-  }
+    .status.disconnected {
+      border-color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+    }
 
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video: { deviceId: deviceId ? { exact: deviceId } : undefined }
-  });
+    .status.recording {
+      border-color: #ef4444;
+      background: rgba(239, 68, 68, 0.15);
+      color: #ef4444;
+      animation: pulse 1s infinite;
+    }
 
-  currentStream = stream;
+    @keyframes pulse {
+      0%,
+      100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.7;
+      }
+    }
 
-  const video = document.getElementById("preview");
-  video.srcObject = stream;
-}
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
 
-/* ---------------------------------------------------
-   SWITCH CAMERA
---------------------------------------------------- */
-document.getElementById("cameraSelect").addEventListener("change", (e) => {
-  startCamera(e.target.value);
-});
+    .stat-box {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      border-radius: 8px;
+      padding: 8px;
+      text-align: center;
+      font-size: 12px;
+    }
 
-/* ---------------------------------------------------
-   START RECORDING
---------------------------------------------------- */
-async function startClip(pitchId) {
-  currentPitchId = pitchId;
+    .stat-label {
+      color: #9ca3af;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
 
-if (data.type === "startClip") startClip(data.pitchId);
+    .stat-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: #22d3ee;
+      margin-top: 4px;
+    }
 
-  if (!currentStream) return;
+    .info-box {
+      background: rgba(34, 211, 238, 0.1);
+      border: 1px solid rgba(34, 211, 238, 0.5);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12px;
+      color: #e5e7eb;
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-mark">📹</div>
+      <div class="brand-text">
+        <div class="title">Kilo Camera</div>
+        <div class="subtitle">Baseball Pitch Recording</div>
+      </div>
+    </div>
+    <div class="session-info" id="sessionInfo"></div>
+  </header>
 
-  recordedChunks = [];
-  mediaRecorder = new MediaRecorder(currentStream, { mimeType: "video/webm" });
+  <div class="container">
+    <div id="statusIndicator" class="status disconnected">
+      WebSocket: Not Connected
+    </div>
 
-  mediaRecorder.ondataavailable = (e) => {
-    if (e.data.size > 0) recordedChunks.push(e.data);
-  };
+    <div class="card">
+      <div class="card-title">Camera Selection</div>
+      <select id="cameraSelect"></select>
+      <button id="initCameraBtn" class="btn-primary">Enable Camera</button>
 
-  mediaRecorder.onstop = async () => {
-    const blob = new Blob(recordedChunks, { type: "video/webm" });
-    const formData = new FormData();
-    formData.append("clip", blob, "clip.webm");
+      <div class="info-box" style="margin-top: 12px;">
+        This device will automatically record video clips when the Tagger tags each pitch. Both devices must be
+        connected to the same session.
+      </div>
+    </div>
 
-    const res = await fetch("/uploadClip", {
-      method: "POST",
-      body: formData
+    <div class="card">
+      <div class="card-title">Live Preview</div>
+      <video id="preview" autoplay playsinline muted></video>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Recording Status</div>
+      <div id="recordingStatus" class="status disconnected">
+        ⏳ Waiting for tagger to tag a pitch...
+      </div>
+
+      <div class="stats">
+        <div class="stat-box">
+          <div class="stat-label">Clips Recorded</div>
+          <div class="stat-value" id="clipCount">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Last Clip</div>
+          <div class="stat-value" id="lastClipTime">—</div>
+        </div>
+      </div>
+
+      <div class="info-box" style="margin-top: 12px;">
+        <strong>How it works:</strong><br />
+        1. Tagger tags a pitch on the iPad<br />
+        2. Camera automatically starts recording<br />
+        3. Tagger confirms the result<br />
+        4. Camera stops and uploads clip<br />
+        5. Clip is linked to that pitch
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentStream = null;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let isRecording = false;
+    let currentPitchId = null;
+    let clipsRecorded = 0;
+    let ws = null;
+
+    // ===== AUTH STATE =====
+    let token = null;
+    let userId = null;
+    let sessionId = null;
+
+    // ===== DOM ELEMENTS =====
+    const preview = document.getElementById("preview");
+    const cameraSelect = document.getElementById("cameraSelect");
+    const initCameraBtn = document.getElementById("initCameraBtn");
+    const statusIndicator = document.getElementById("statusIndicator");
+    const recordingStatus = document.getElementById("recordingStatus");
+    const clipCountEl = document.getElementById("clipCount");
+    const lastClipTimeEl = document.getElementById("lastClipTime");
+    const sessionInfo = document.getElementById("sessionInfo");
+
+    // ===== CHECK AUTH & SETUP =====
+    window.addEventListener("load", () => {
+      token = localStorage.getItem("token");
+      userId = localStorage.getItem("userId");
+      sessionId = localStorage.getItem("sessionId");
+
+      if (!token || !sessionId) {
+        window.location.href = "/session-select.html";
+        return;
+      }
+
+      sessionInfo.textContent = `Session ${sessionId.slice(0, 8)}...`;
+
+      // Connect WebSocket
+      connectWebSocket();
     });
 
-    const data = await res.json();
+    // ===== WEBSOCKET CONNECTION =====
+    function connectWebSocket() {
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      ws = new WebSocket(`${protocol}//${window.location.host}`);
 
-    ws.send(JSON.stringify({
-  type: "clip",
-  pitchId: currentPitchId,
-  url: data.url
-}));
-  };
+      ws.addEventListener("open", () => {
+        statusIndicator.textContent = "✅ WebSocket: Connected";
+        statusIndicator.classList.remove("disconnected");
+        statusIndicator.classList.add("connected");
 
-  mediaRecorder.start();
-}
+        // Join session
+        ws.send(
+          JSON.stringify({
+            type: "join-session",
+            sessionId,
+            userId,
+            device: "camera"
+          })
+        );
 
-/* ---------------------------------------------------
-   STOP RECORDING
---------------------------------------------------- */
-function stopClip() {
-  if (mediaRecorder && mediaRecorder.state === "recording") {
-    mediaRecorder.stop();
-  }
-}
-</script>
+        console.log("Camera device identified");
+      });
 
+      ws.addEventListener("close", () => {
+        statusIndicator.textContent = "❌ WebSocket: Disconnected";
+        statusIndicator.classList.add("disconnected");
+        statusIndicator.classList.remove("connected");
+      });
+
+      ws.addEventListener("message", (event) => {
+        const data = JSON.parse(event.data);
+
+        // Listen for pitch start from tagger
+        if (data.type === "pitch-start") {
+          currentPitchId = data.pitchId;
+          startRecording(data.pitchId);
+        }
+
+        // Listen for pitch end from tagger
+        if (data.type === "pitch-end") {
+          stopRecording(data.pitchId);
+        }
+      });
+    }
+
+    // ===== CAMERA PERMISSION =====
+    async function requestCameraPermission() {
+      try {
+        await navigator.mediaDevices.getUserMedia({ video: true });
+        return true;
+      } catch (err) {
+        alert("Camera permission denied. Please enable camera access in settings.");
+        console.error(err);
+        return false;
+      }
+    }
+
+    // ===== LOAD CAMERA DEVICES =====
+    async function loadCameras() {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const cameras = devices.filter((d) => d.kind === "videoinput");
+
+        cameraSelect.innerHTML = "";
+
+        cameras.forEach((cam, index) => {
+          const option = document.createElement("option");
+          option.value = cam.deviceId;
+          option.textContent = cam.label || `Camera ${index + 1}`;
+          cameraSelect.appendChild(option);
+        });
+
+        if (cameras.length > 0) {
+          await startCamera(cameraSelect.value);
+        }
+      } catch (err) {
+        console.error("Failed to load cameras:", err);
+      }
+    }
+
+    // ===== START CAMERA STREAM =====
+    async function startCamera(deviceId) {
+      try {
+        if (currentStream) {
+          currentStream.getTracks().forEach((t) => t.stop());
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: deviceId ? { exact: deviceId } : undefined },
+          audio: false
+        });
+
+        currentStream = stream;
+        preview.srcObject = stream;
+
+        // Setup recording when stream is ready
+        setupMediaRecorder();
+      } catch (err) {
+        console.error("Failed to start camera:", err);
+        alert("Could not access camera.");
+      }
+    }
+
+    // ===== SETUP MEDIA RECORDER =====
+    function setupMediaRecorder() {
+      if (!currentStream) return;
+
+      mediaRecorder = new MediaRecorder(currentStream, {
+        mimeType: "video/webm;codecs=vp9"
+      });
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunks.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const blob = new Blob(recordedChunks, { type: "video/webm" });
+        await uploadClip(blob, currentPitchId);
+        recordedChunks = [];
+      };
+    }
+
+    // ===== START RECORDING (called when tagger tags a pitch) =====
+    function startRecording(pitchId) {
+      if (!mediaRecorder || isRecording) return;
+
+      currentPitchId = pitchId;
+      recordedChunks = [];
+      mediaRecorder.start();
+      isRecording = true;
+
+      recordingStatus.textContent = `🔴 Recording Pitch #${pitchId.slice(0, 8)}...`;
+      recordingStatus.classList.remove("disconnected");
+      recordingStatus.classList.add("recording");
+
+      console.log("Recording started for pitch:", pitchId);
+    }
+
+    // ===== STOP RECORDING (called when pitch result is confirmed) =====
+    function stopRecording(pitchId) {
+      if (!mediaRecorder || !isRecording) return;
+
+      // Only stop if this is the current pitch
+      if (pitchId !== currentPitchId) {
+        console.warn("Pitch ID mismatch:", pitchId, currentPitchId);
+        return;
+      }
+
+      mediaRecorder.stop();
+      isRecording = false;
+
+      recordingStatus.textContent = "⏳ Uploading clip...";
+      recordingStatus.classList.remove("recording");
+      recordingStatus.classList.add("disconnected");
+
+      console.log("Recording stopped for pitch:", pitchId);
+    }
+
+    // ===== UPLOAD CLIP =====
+    async function uploadClip(blob, pitchId) {
+      try {
+        const formData = new FormData();
+        formData.append("clip", blob, `clip_${pitchId.slice(0, 8)}.webm`);
+
+        const response = await fetch("/uploadClip", {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.url) {
+          // Link clip to pitch in session
+          await fetch(`/session/${sessionId}/link-clip`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token, pitchId, clipUrl: data.url })
+          });
+
+          // Send clip to tagger via WebSocket
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(
+              JSON.stringify({
+                type: "clip",
+                pitchId: pitchId,
+                url: data.url,
+                timestamp: Date.now()
+              })
+            );
+          }
+
+          clipsRecorded++;
+          clipCountEl.textContent = clipsRecorded;
+          lastClipTimeEl.textContent = new Date().toLocaleTimeString();
+
+          recordingStatus.textContent = "✅ Clip uploaded and linked!";
+          recordingStatus.classList.remove("disconnected");
+          recordingStatus.classList.add("connected");
+
+          setTimeout(() => {
+            recordingStatus.textContent = "⏳ Waiting for next pitch...";
+            recordingStatus.classList.remove("connected");
+            recordingStatus.classList.add("disconnected");
+          }, 3000);
+        }
+      } catch (err) {
+        console.error("Upload failed:", err);
+        recordingStatus.textContent = "❌ Upload failed";
+        recordingStatus.classList.add("disconnected");
+      }
+    }
+
+    // ===== BUTTON HANDLERS =====
+    initCameraBtn.addEventListener("click", async () => {
+      const hasPermission = await requestCameraPermission();
+      if (hasPermission) {
+        await loadCameras();
+        initCameraBtn.style.display = "none";
+      }
+    });
+
+    cameraSelect.addEventListener("change", (e) => {
+      startCamera(e.target.value);
+    });
+
+    // Auto-request permission on load
+    window.addEventListener("load", async () => {
+      const hasPermission = await requestCameraPermission();
+      if (hasPermission) {
+        await loadCameras();
+        initCameraBtn.style.display = "none";
+      }
+    });
+  </script>
 </body>
 </html>

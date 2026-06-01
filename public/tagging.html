@@ -2,27 +2,31 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Tagging</title>
+  <title>Kilo Baseball Tagging</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body {
+    * {
       margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: #050816;
       color: #e5e7eb;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
-      min-height: 100vh;
     }
 
     header {
       padding: 12px 16px;
       border-bottom: 1px solid rgba(148, 163, 184, 0.3);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
       background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.15), transparent 55%);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
     .brand {
@@ -39,175 +43,174 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 0 18px rgba(56, 189, 248, 0.6);
-    }
-
-    .brand-mark span {
       font-size: 16px;
       font-weight: 700;
-      color: #e5e7eb;
-    }
-
-    .brand-text {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
     }
 
     .brand-text .title {
       font-size: 16px;
       font-weight: 600;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: #e5e7eb;
     }
 
     .brand-text .subtitle {
       font-size: 11px;
       color: #9ca3af;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .status-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      font-size: 11px;
-      color: #e5e7eb;
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 999px;
-      background: #22c55e;
-      box-shadow: 0 0 10px rgba(34, 197, 94, 0.7);
     }
 
     .session-info {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 11px;
-      color: #9ca3af;
+      gap: 16px;
+      font-size: 12px;
     }
 
-    .session-info span {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
+    .ws-status {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ef4444;
+      animation: pulse 1s infinite;
     }
 
-    .session-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 999px;
+    .ws-status.connected {
       background: #22c55e;
+      animation: none;
     }
 
-    .main {
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    main {
       flex: 1;
       display: grid;
-      grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr);
+      grid-template-columns: 2fr 1.4fr;
       gap: 12px;
       padding: 12px;
+      overflow: auto;
     }
 
     @media (max-width: 900px) {
-      .main {
-        grid-template-columns: minmax(0, 1fr);
+      main {
+        grid-template-columns: 1fr;
       }
     }
 
     .card {
       background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), #020617);
-      border-radius: 16px;
       border: 1px solid rgba(148, 163, 184, 0.35);
-      padding: 12px;
+      border-radius: 16px;
+      padding: 16px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      box-shadow:
-        0 18px 40px rgba(15, 23, 42, 0.9),
-        0 0 0 1px rgba(15, 23, 42, 0.9);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .card::before {
-      content: "";
-      position: absolute;
-      inset: -1px;
-      border-radius: inherit;
-      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 55%);
-      opacity: 0.8;
-      mix-blend-mode: screen;
-      pointer-events: none;
-    }
-
-    .card-inner {
-      position: relative;
-      z-index: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
+      gap: 12px;
     }
 
     .card-title {
       font-size: 13px;
       font-weight: 600;
-      letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: #e5e7eb;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      letter-spacing: 0.08em;
     }
 
     .card-title span {
+      display: block;
       font-size: 11px;
-      font-weight: 500;
+      font-weight: 400;
       color: #9ca3af;
       text-transform: none;
-      letter-spacing: 0;
+      margin-top: 4px;
     }
 
+    /* ===== STRIKE ZONE ===== */
+    #pitchArea {
+      width: 100%;
+      max-width: 320px;
+      height: 420px;
+      background: linear-gradient(135deg, #1a2332, #0f1419);
+      position: relative;
+      margin: 0 auto;
+      border: 2px solid rgba(56, 189, 248, 0.3);
+      border-radius: 8px;
+      cursor: crosshair;
+    }
+
+    #strikeZone {
+      position: absolute;
+      width: 60%;
+      height: 60%;
+      top: 20%;
+      left: 20%;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      border: 2px solid #22d3ee;
+      box-shadow: 0 0 20px rgba(34, 211, 238, 0.3) inset;
+    }
+
+    .zone-cell {
+      border: 1px solid rgba(34, 211, 238, 0.5);
+      background: rgba(34, 211, 238, 0);
+      transition: all 0.2s ease;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .zone-cell:hover {
+      background: rgba(34, 211, 238, 0.15);
+      border-color: rgba(34, 211, 238, 0.8);
+    }
+
+    .zone-cell.active {
+      background: rgba(34, 211, 238, 0.3);
+      border-color: #22d3ee;
+    }
+
+    .zone-cell span {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 12px;
+      color: rgba(229, 231, 235, 0.5);
+      font-weight: 500;
+    }
+
+    .pitch-dot {
+      width: 16px;
+      height: 16px;
+      background: #ef4444;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      position: absolute;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.8);
+      z-index: 10;
+    }
+
+    /* ===== PITCH TYPE & RESULT BUTTONS ===== */
     .pill-row {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 8px;
     }
 
     .pill {
-      border-radius: 999px;
       border: 1px solid rgba(148, 163, 184, 0.5);
       background: rgba(15, 23, 42, 0.9);
       color: #e5e7eb;
-      padding: 4px 10px;
+      padding: 6px 12px;
       font-size: 11px;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
+      border-radius: 999px;
       cursor: pointer;
       transition: all 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
     }
 
     .pill:hover {
@@ -218,64 +221,29 @@
     .pill.active {
       background: radial-gradient(circle at top left, #22d3ee, #0f172a);
       border-color: rgba(56, 189, 248, 1);
-      box-shadow:
-        0 0 18px rgba(56, 189, 248, 0.7),
-        0 0 0 1px rgba(15, 23, 42, 0.9);
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.7);
     }
 
-    .pill-label {
+    .pill span:first-child {
       font-size: 10px;
+      color: #9ca3af;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      color: #9ca3af;
     }
 
-    .pill-value {
-      font-size: 11px;
+    .pill span:last-child {
       font-weight: 500;
     }
 
-    @media (max-width: 700px) {
-      .strikezone-wrapper {
-        grid-template-columns: minmax(0, 1fr);
-      }
-    }
-
-    .legend-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 999px;
-      background: #22c55e;
-      box-shadow: 0 0 10px rgba(34, 197, 94, 0.7);
-    }
-
-    .velocity-card {
-      display: grid;
-      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-      gap: 10px;
-    }
-
-    @media (max-width: 700px) {
-      .velocity-card {
-        grid-template-columns: minmax(0, 1fr);
-      }
-    }
-
+    /* ===== VELOCITY & CLIPS PANEL ===== */
     .velocity-display {
-      border-radius: 14px;
       border: 1px solid rgba(148, 163, 184, 0.5);
-      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), #020617);
-      padding: 10px;
+      background: rgba(15, 23, 42, 0.9);
+      border-radius: 12px;
+      padding: 12px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
-    }
-
-    .velocity-label {
-      font-size: 11px;
-      color: #9ca3af;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
+      gap: 8px;
     }
 
     .velocity-value-row {
@@ -285,54 +253,106 @@
     }
 
     .velocity-value {
-      font-size: 32px;
+      font-size: 36px;
       font-weight: 700;
-      color: #e5e7eb;
     }
 
-    .velocity-unit {
-      font-size: 12px;
-      color: #9ca3af;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-    }
-
-    .velocity-meta {
-      display: flex;
-      justify-content: space-between;
+    .velocity-label {
       font-size: 11px;
       color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
     }
 
-    .velocity-meta span {
-      display: inline-flex;
+    .clips-list {
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      background: rgba(15, 23, 42, 0.9);
+      border-radius: 12px;
+      padding: 10px;
+      max-height: 300px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .clip-item {
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      background: rgba(15, 23, 42, 0.9);
+      border-radius: 8px;
+      padding: 8px;
+      font-size: 11px;
+      display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 4px;
     }
 
-    .velocity-meta strong {
+    .clip-item .clip-name {
       color: #e5e7eb;
       font-weight: 500;
     }
 
-    .velocity-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
+    .clip-item button {
+      padding: 4px 8px;
+      font-size: 10px;
+      background: #22d3ee;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      color: #000;
+      font-weight: 500;
+    }
+
+    /* ===== GAME TRACKER (FOOTER) ===== */
+    footer {
+      border-top: 1px solid rgba(148, 163, 184, 0.3);
+      background: radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.15), transparent 55%);
+      padding: 12px 16px;
+    }
+
+    .tracker-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .tracker-pill {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      border-radius: 12px;
+      padding: 8px 12px;
+      text-align: center;
+    }
+
+    .tracker-label {
+      font-size: 10px;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .tracker-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #22d3ee;
       margin-top: 4px;
     }
 
+    .footer-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
     .btn {
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.6);
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
       background: rgba(15, 23, 42, 0.9);
       color: #e5e7eb;
-      padding: 4px 10px;
-      font-size: 11px;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
+      border-radius: 8px;
       cursor: pointer;
+      font-size: 12px;
       transition: all 0.15s ease;
     }
 
@@ -344,783 +364,521 @@
     .btn-primary {
       background: radial-gradient(circle at top left, #22d3ee, #0f172a);
       border-color: rgba(56, 189, 248, 1);
-      box-shadow:
-        0 0 18px rgba(56, 189, 248, 0.7),
-        0 0 0 1px rgba(15, 23, 42, 0.9);
+      color: #000;
     }
 
-    .btn-ghost {
-      background: rgba(15, 23, 42, 0.9);
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.5);
+      color: #fca5a5;
     }
 
-    .clips-list {
-      border-radius: 14px;
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), #020617);
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      max-height: 260px;
-      overflow: hidden;
-    }
-
-    .clips-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 11px;
-      color: #9ca3af;
-    }
-
-    .clips-scroll {
-      margin-top: 4px;
-      overflow-y: auto;
-      padding-right: 4px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .clip-item {
-      border-radius: 10px;
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      background: rgba(15, 23, 42, 0.9);
-      padding: 6px 8px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      font-size: 11px;
-    }
-
-    .clip-main {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .clip-title {
-      color: #e5e7eb;
-      font-weight: 500;
-    }
-
-    .clip-meta {
-      color: #9ca3af;
-      font-size: 10px;
-    }
-
-    .clip-actions {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .clip-tag-pill {
-      border-radius: 999px;
-      border: 1px solid rgba(56, 189, 248, 0.7);
-      background: rgba(15, 23, 42, 0.9);
-      color: #e5e7eb;
-      padding: 3px 8px;
-      font-size: 10px;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      cursor: pointer;
-    }
-
-    .clip-tag-pill span {
-      font-size: 9px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #9ca3af;
-    }
-
-    .clip-tag-pill strong {
-      font-weight: 600;
-      color: #e5e7eb;
-    }
-
-    .clip-open-btn {
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.6);
-      background: rgba(15, 23, 42, 0.9);
-      color: #e5e7eb;
-      padding: 3px 8px;
-      font-size: 10px;
-      cursor: pointer;
-    }
-
-    .footer {
-      padding: 8px 12px;
-      border-top: 1px solid rgba(148, 163, 184, 0.3);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 11px;
-      color: #9ca3af;
-      background: radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.15), transparent 55%);
-    }
-
-    .footer-left {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .footer-right {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .footer-pill {
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      padding: 3px 8px;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 10px;
-      color: #9ca3af;
-    }
-
-    .footer-pill strong {
-      color: #e5e7eb;
-      font-weight: 500;
-    }
-
-    .hidden {
-      display: none !important;
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.2);
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
     }
   </style>
 </head>
 <body>
   <header>
     <div class="brand">
-      <div class="brand-mark">
-        <span>T</span>
-      </div>
+      <div class="brand-mark">T</div>
       <div class="brand-text">
-        <div class="title">Tagger</div>
-        <div class="subtitle">Pitch Session Tagging</div>
+        <div class="title">Kilo Tagger</div>
+        <div class="subtitle">Baseball Pitch Tagging</div>
       </div>
     </div>
-    <div class="header-right">
-      <div class="status-pill">
-        <div class="status-dot"></div>
-        <span>Live Session</span>
-      </div>
-      <div class="session-info">
-        <span><span class="session-dot"></span> Camera</span>
-        <span><span class="session-dot"></span> Tagger</span>
-      </div>
+
+    <div class="session-info">
+      <span class="ws-status" id="wsStatus"></span>
+      <span id="sessionInfo"></span>
     </div>
   </header>
 
-  <main class="main">
-    <!-- Left: Strikezone + Pitch Controls -->
+  <main>
+    <!-- LEFT: STRIKEZONE -->
     <section class="card">
-      <div class="card-inner">
-        <div class="card-header">
-          <div class="card-title">
-            Strikezone
-            <span>Tap a zone, then tag pitch type and result</span>
-          </div>
+      <div class="card-title">
+        Strikezone
+        <span>Click to tag pitch location, then select pitch type & result</span>
+      </div>
+
+      <div id="pitchArea">
+        <div id="strikeZone">
+          <div class="zone-cell" data-zone="1"><span>1</span></div>
+          <div class="zone-cell" data-zone="2"><span>2</span></div>
+          <div class="zone-cell" data-zone="3"><span>3</span></div>
+          <div class="zone-cell" data-zone="4"><span>4</span></div>
+          <div class="zone-cell" data-zone="5"><span>5</span></div>
+          <div class="zone-cell" data-zone="6"><span>6</span></div>
+          <div class="zone-cell" data-zone="7"><span>7</span></div>
+          <div class="zone-cell" data-zone="8"><span>8</span></div>
+          <div class="zone-cell" data-zone="9"><span>9</span></div>
         </div>
+      </div>
 
-    
-           <div id="pitchArea">
-  <div id="strikeZone">
-    <div class="zone-cell" data-zone="1"><span class="zone-label">1</span></div>
-    <div class="zone-cell" data-zone="2"><span class="zone-label">2</span></div>
-    <div class="zone-cell" data-zone="3"><span class="zone-label">3</span></div>
-    <div class="zone-cell" data-zone="4"><span class="zone-label">4</span></div>
-    <div class="zone-cell" data-zone="5"><span class="zone-label">5</span></div>
-    <div class="zone-cell" data-zone="6"><span class="zone-label">6</span></div>
-    <div class="zone-cell" data-zone="7"><span class="zone-label">7</span></div>
-    <div class="zone-cell" data-zone="8"><span class="zone-label">8</span></div>
-    <div class="zone-cell" data-zone="9"><span class="zone-label">9</span></div>
-  </div>
-</div>
-            <div class="strikezone-footer">
-              <span><span class="legend-dot"></span> In-zone</span>
-              <span>Tap again to clear selection</span>
-            </div>
-          </div>
+      <div>
+        <div class="card-title">
+          Pitch Type
+          <span>Select the pitch thrown</span>
+        </div>
+        <div class="pill-row" id="pitchTypeRow">
+          <button class="pill" data-type="FB">
+            <span>Pitch</span>
+            <span>FB</span>
+          </button>
+          <button class="pill" data-type="SL">
+            <span>Pitch</span>
+            <span>SL</span>
+          </button>
+          <button class="pill" data-type="CH">
+            <span>Pitch</span>
+            <span>CH</span>
+          </button>
+          <button class="pill" data-type="CU">
+            <span>Pitch</span>
+            <span>CU</span>
+          </button>
+          <button class="pill" data-type="SI">
+            <span>Pitch</span>
+            <span>SI</span>
+          </button>
+          <button class="pill" data-type="CT">
+            <span>Pitch</span>
+            <span>CT</span>
+          </button>
+        </div>
+      </div>
 
-          <div>
-            <div class="card-title" style="margin-bottom: 6px;">
-              Pitch Type
-              <span>Select pitch type and result</span>
-            </div>
-            <div class="pill-row" id="pitchTypeRow">
-              <button class="pill" data-type="FB">
-                <span class="pill-label">Pitch</span>
-                <span class="pill-value">FB</span>
-              </button>
-              <button class="pill" data-type="SL">
-                <span class="pill-label">Pitch</span>
-                <span class="pill-value">SL</span>
-              </button>
-              <button class="pill" data-type="CH">
-                <span class="pill-label">Pitch</span>
-                <span class="pill-value">CH</span>
-              </button>
-              <button class="pill" data-type="CU">
-                <span class="pill-label">Pitch</span>
-                <span class="pill-value">CU</span>
-              </button>
-              <button class="pill" data-type="SI">
-                <span class="pill-label">Pitch</span>
-                <span class="pill-value">SI</span>
-              </button>
-              <button class="pill" data-type="CT">
-                <span class="pill-label">Pitch</span>
-                <span class="pill-value">CT</span>
-              </button>
-            </div>
-
-            <div class="card-title" style="margin: 10px 0 4px;">
-              Result
-              <span>Tag outcome of the pitch</span>
-            </div>
-            <div class="pill-row" id="pitchResultRow">
-              <button class="pill" data-result="S">
-                <span class="pill-label">Result</span>
-                <span class="pill-value">Strike</span>
-              </button>
-              <button class="pill" data-result="B">
-                <span class="pill-label">Result</span>
-                <span class="pill-value">Ball</span>
-              </button>
-              <button class="pill" data-result="F">
-                <span class="pill-label">Result</span>
-                <span class="pill-value">Foul</span>
-              </button>
-              <button class="pill" data-result="IP">
-                <span class="pill-label">Result</span>
-                <span class="pill-value">In Play</span>
-              </button>
-            </div>
-          </div>
+      <div>
+        <div class="card-title">
+          Result
+          <span>What happened with the pitch</span>
+        </div>
+        <div class="pill-row" id="pitchResultRow">
+          <button class="pill" data-result="Ball">
+            <span>Result</span>
+            <span>Ball</span>
+          </button>
+          <button class="pill" data-result="Strike">
+            <span>Result</span>
+            <span>Strike</span>
+          </button>
+          <button class="pill" data-result="Foul">
+            <span>Result</span>
+            <span>Foul</span>
+          </button>
+          <button class="pill" data-result="In Play">
+            <span>Result</span>
+            <span>In Play</span>
+          </button>
         </div>
       </div>
     </section>
 
-    <!-- Right: Velocity + Clips -->
+    <!-- RIGHT: VELOCITY & CLIPS -->
     <section class="card">
-      <div class="card-inner">
-        <div class="card-header">
-          <div class="card-title">
-            Velocity & Clips
-            <span>Live radar + incoming video clips</span>
-          </div>
-        </div>
+      <div class="card-title">
+        Velocity & Clips
+        <span>Live radar + incoming video</span>
+      </div>
 
-        <div class="velocity-card">
-          <div class="velocity-display">
-            <div class="velocity-label">Velocity</div>
-            <div class="velocity-value-row">
-              <div id="velocityDisplay" class="velocity-value">0</div>
-              <div class="velocity-unit">MPH</div>
-            </div>
-            <div class="velocity-meta">
-              <span>Last pitch: <strong id="lastPitchType">—</strong></span>
-              <span>Zone: <strong id="lastZone">—</strong></span>
-            </div>
-            <div class="velocity-actions">
-              <button id="connectRadarBtn" class="btn btn-primary">Connect Pocket Radar</button>
-              <button id="clearSessionBtn" class="btn btn-ghost">Clear Session</button>
-            </div>
-          </div>
-
-          <div class="clips-list">
-            <div class="clips-header">
-              <span>Incoming Clips</span>
-              <span id="clipCount">0 clips</span>
-            </div>
-            <div id="clipsContainer" class="clips-scroll">
-              <!-- Clips will be appended here -->
-            </div>
-          </div>
+      <div class="velocity-display">
+        <div class="velocity-label">Live Velocity</div>
+        <div class="velocity-value-row">
+          <div id="velocityValue" class="velocity-value">—</div>
+          <div class="velocity-label">MPH</div>
         </div>
+        <button id="connectRadarBtn" class="btn btn-primary">Connect Radar</button>
+      </div>
+
+      <div>
+        <div class="card-title">Incoming Clips <span><span id="clipCount">0</span> clips</span></div>
+        <div id="clipsContainer" class="clips-list"></div>
       </div>
     </section>
   </main>
 
-  <footer class="footer">
-    <div class="footer-left">
-      <div class="footer-pill">
-        Session:
-        <strong id="sessionIdLabel">Active</strong>
+  <!-- FOOTER: GAME TRACKER -->
+  <footer>
+    <div class="tracker-grid">
+      <div class="tracker-pill">
+        <div class="tracker-label">Balls</div>
+        <div class="tracker-value" id="ballsCount">0</div>
       </div>
-      <div class="footer-pill">
-        Last tagged:
-        <strong id="lastTaggedSummary">None</strong>
+      <div class="tracker-pill">
+        <div class="tracker-label">Strikes</div>
+        <div class="tracker-value" id="strikesCount">0</div>
+      </div>
+      <div class="tracker-pill">
+        <div class="tracker-label">Outs</div>
+        <div class="tracker-value" id="outsCount">0</div>
+      </div>
+      <div class="tracker-pill">
+        <div class="tracker-label">IP</div>
+        <div class="tracker-value" id="inningsCount">0.0</div>
+      </div>
+      <div class="tracker-pill">
+        <div class="tracker-label">Total Pitches</div>
+        <div class="tracker-value" id="totalPitches">0</div>
+      </div>
+      <div class="tracker-pill">
+        <div class="tracker-label">Total Balls</div>
+        <div class="tracker-value" id="totalBalls">0</div>
+      </div>
+      <div class="tracker-pill">
+        <div class="tracker-label">Total Strikes</div>
+        <div class="tracker-value" id="totalStrikes">0</div>
+      </div>
+      <div class="tracker-pill">
+        <div class="tracker-label">Total Outs</div>
+        <div class="tracker-value" id="totalOuts">0</div>
       </div>
     </div>
-    <div class="footer-right">
-      <div class="footer-pill">
-        Clips:
-        <strong id="footerClipCount">0</strong>
-      </div>
-      <div class="footer-pill">
-        Velocity:
-        <strong id="footerVelocity">0 MPH</strong>
-      </div>
+
+    <div class="footer-buttons">
+      <button id="endSessionBtn" class="btn btn-danger">End & Generate PDF</button>
+      <button id="clearSessionBtn" class="btn">Clear Session</button>
     </div>
   </footer>
 
-  <!-- Load global WebSocket helper -->
-  <script src="/ws.js"></script>
-
   <script>
-    // --- State ---
-    let incomingClips = [];
+    // ===== STATE =====
     let selectedZone = null;
+    let selectedX = null;
+    let selectedY = null;
     let selectedPitchType = null;
     let selectedResult = null;
+    let incomingClips = [];
+    let ws = null;
 
-    // --- WebSocket from ws.js ---
-    const ws = window.ws;
+    // ===== GAME TRACKER STATE =====
+    let balls = 0;
+    let strikes = 0;
+    let outs = 0;
+    let totalPitches = 0;
+    let totalBalls = 0;
+    let totalStrikes = 0;
+    let totalOuts = 0;
 
-    ws.addEventListener("open", () => {
-  ws.send(JSON.stringify({
-    type: "identify",
-    device: "tagger"
-  }));
-});
+    // ===== AUTH STATE =====
+    let token = null;
+    let userId = null;
+    let sessionId = null;
 
-    // --- DOM helpers ---
-    const velocityDisplayEl = document.getElementById("velocityDisplay");
-    const lastPitchTypeEl = document.getElementById("lastPitchType");
-    const lastZoneEl = document.getElementById("lastZone");
-    const lastPitchLabelEl = document.getElementById("lastPitchLabel");
-    const lastTaggedSummaryEl = document.getElementById("lastTaggedSummary");
-    const clipsContainerEl = document.getElementById("clipsContainer");
-    const clipCountEl = document.getElementById("clipCount");
-    const footerClipCountEl = document.getElementById("footerClipCount");
-    const footerVelocityEl = document.getElementById("footerVelocity");
+    // ===== DOM ELEMENTS =====
+    const pitchArea = document.getElementById("pitchArea");
+    const strikeZone = document.getElementById("strikeZone");
+    const ballsCountEl = document.getElementById("ballsCount");
+    const strikesCountEl = document.getElementById("strikesCount");
+    const outsCountEl = document.getElementById("outsCount");
+    const inningsCountEl = document.getElementById("inningsCount");
+    const totalPitchesEl = document.getElementById("totalPitches");
+    const totalBallsEl = document.getElementById("totalBalls");
+    const totalStrikesEl = document.getElementById("totalStrikes");
+    const totalOutsEl = document.getElementById("totalOuts");
+    const velocityValue = document.getElementById("velocityValue");
+    const clipsContainer = document.getElementById("clipsContainer");
+    const clipCount = document.getElementById("clipCount");
+    const sessionInfo = document.getElementById("sessionInfo");
+    const wsStatus = document.getElementById("wsStatus");
 
-    // --- Strikezone logic ---
-  // --- NEW: Tap anywhere to place a dot + compute zone ---
-const pitchArea = document.getElementById("pitchArea");
-const strikeZone = document.getElementById("strikeZone");
+    // ===== CHECK AUTH & SETUP =====
+    window.addEventListener("load", () => {
+      token = localStorage.getItem("token");
+      userId = localStorage.getItem("userId");
+      sessionId = localStorage.getItem("sessionId");
 
-pitchArea.addEventListener("click", (event) => {
-  // Remove old dots
-  document.querySelectorAll(".pitch-dot").forEach(d => d.remove());
-
-  const rect = pitchArea.getBoundingClientRect();
-  const x = (event.clientX - rect.left) / rect.width;
-  const y = (event.clientY - rect.top) / rect.height;
-
-  // Save exact location
-  selectedX = x;
-  selectedY = y;
-
-  // Draw dot
-  const dot = document.createElement("div");
-  dot.className = "pitch-dot";
-  dot.style.left = `${x * 100}%`;
-  dot.style.top = `${y * 100}%`;
-  pitchArea.appendChild(dot);
-
-  // Determine zone (or null if outside)
-  selectedZone = computeZoneFromCoordinates(x, y);
-  lastZoneEl.textContent = selectedZone || "Ball";
-
-  updateLastPitchLabel();
-  trySendPitchEvent();
-});
-
-function computeZoneFromCoordinates(x, y) {
-  // Strike zone is centered inside pitchArea
-  const zoneLeft = 0.20;
-  const zoneRight = 0.80;
-  const zoneTop = 0.20;
-  const zoneBottom = 0.80;
-
-  if (x < zoneLeft || x > zoneRight || y < zoneTop || y > zoneBottom) {
-    return null; // Ball
-  }
-
-  // Convert to 3×3 grid
-  const zx = Math.floor((x - zoneLeft) / (zoneRight - zoneLeft) * 3);
-  const zy = Math.floor((y - zoneTop) / (zoneBottom - zoneTop) * 3);
-
-  // Zones numbered 1–9
-  return zy * 3 + zx + 1;
-}
-
-    // --- Pitch type buttons ---
-document.querySelectorAll("#pitchTypeRow .pill").forEach(btn => {
-  btn.addEventListener("click", () => {
-    const type = btn.dataset.type;
-
-    selectedPitchType = (selectedPitchType === type) ? null : type;
-
-    document.querySelectorAll("#pitchTypeRow .pill")
-      .forEach(b => b.classList.remove("active"));
-
-    if (selectedPitchType) btn.classList.add("active");
-
-    lastPitchTypeEl.textContent = selectedPitchType || "—";
-
-    updateLastPitchLabel();
-    trySendPitchEvent();
-  });
-});
-
-<div id="pitchArea">
-  <div id="strikeZone">
-    <div class="zone-cell" data-zone="1"></div>
-    <div class="zone-cell" data-zone="2"></div>
-    <div class="zone-cell" data-zone="3"></div>
-    <div class="zone-cell" data-zone="4"></div>
-    <div class="zone-cell" data-zone="5"></div>
-    <div class="zone-cell" data-zone="6"></div>
-    <div class="zone-cell" data-zone="7"></div>
-    <div class="zone-cell" data-zone="8"></div>
-    <div class="zone-cell" data-zone="9"></div>
-  </div>
-</div>
-
-    // --- Pitch result buttons ---
-// --- Pitch Result Buttons (with In Play submenu) ---
-document.querySelectorAll("#pitchResultRow .pill").forEach(btn => {
-  btn.addEventListener("click", () => {
-    const result = btn.dataset.result;
-
-    // If user taps "In Play", show submenu
-    if (result === "InPlay") {
-      document.getElementById("inPlayMenu").classList.remove("hidden");
-      return;
-    }
-
-    // Otherwise hide submenu
-    document.getElementById("inPlayMenu").classList.add("hidden");
-
-    selectedResult = (selectedResult === result) ? null : result;
-
-    document.querySelectorAll("#pitchResultRow .pill")
-      .forEach(b => b.classList.remove("active"));
-
-    if (selectedResult) btn.classList.add("active");
-
-    updateLastPitchLabel();
-    trySendPitchEvent();
-  });
-});
-
-// --- Submenu buttons for In Play ---
-document.querySelectorAll("#inPlayMenu .inplay").forEach(btn => {
-  btn.addEventListener("click", () => {
-    selectedResult = btn.dataset.result;
-
-    // Hide submenu after selection
-    document.getElementById("inPlayMenu").classList.add("hidden");
-
-    updateLastPitchLabel();
-    trySendPitchEvent();
-  });
-});
-
-    function updateLastPitchLabel() {
-      if (!selectedPitchType && !selectedZone && !selectedResult) {
-        lastPitchLabelEl.textContent = "No pitch tagged";
-        lastTaggedSummaryEl.textContent = "None";
+      if (!token || !sessionId) {
+        window.location.href = "/session-select.html";
         return;
       }
 
-      const parts = [];
-      if (selectedPitchType) parts.push(selectedPitchType);
-     parts.push(selectedZone ? "Zone " + selectedZone : "Ball");
-      if (selectedResult) parts.push(selectedResult);
+      sessionInfo.textContent = `Session ${sessionId.slice(0, 8)}...`;
 
-      const summary = parts.join(" · ");
-      lastPitchLabelEl.textContent = summary;
-      lastTaggedSummaryEl.textContent = summary;
+      // Connect WebSocket
+      connectWebSocket();
+    });
+
+    // ===== WEBSOCKET =====
+    function connectWebSocket() {
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      ws = new WebSocket(`${protocol}//${window.location.host}`);
+
+      ws.addEventListener("open", () => {
+        wsStatus.classList.add("connected");
+
+        // Join session
+        ws.send(
+          JSON.stringify({
+            type: "join-session",
+            sessionId,
+            userId,
+            device: "tagger"
+          })
+        );
+      });
+
+      ws.addEventListener("close", () => {
+        wsStatus.classList.remove("connected");
+      });
+
+      ws.addEventListener("message", (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === "velocity") {
+          velocityValue.textContent = Math.round(data.value);
+        }
+
+        if (data.type === "clip") {
+          addClip(data.url, data.pitchId);
+        }
+      });
     }
 
-    // --- Clips UI ---
-function addClip(url) {
-  const timestamp = Date.now();
+    // ===== STRIKE ZONE CLICK =====
+    pitchArea.addEventListener("click", (event) => {
+      document.querySelectorAll(".pitch-dot").forEach((d) => d.remove());
 
-  const clip = {
-    url,
-    pitchId: lastPitchId || null,
-    timestamp
-  };
+      const rect = pitchArea.getBoundingClientRect();
+      const x = (event.clientX - rect.left) / rect.width;
+      const y = (event.clientY - rect.top) / rect.height;
 
-  incomingClips.push(clip);
+      selectedX = x;
+      selectedY = y;
 
-  const item = document.createElement("div");
-  item.className = "clip-item";
+      const dot = document.createElement("div");
+      dot.className = "pitch-dot";
+      dot.style.left = `${x * 100}%`;
+      dot.style.top = `${y * 100}%`;
+      pitchArea.appendChild(dot);
 
-  const main = document.createElement("div");
-  main.className = "clip-main";
+      selectedZone = computeZone(x, y);
+      console.log("Zone:", selectedZone);
+    });
 
-  const title = document.createElement("div");
-  title.className = "clip-title";
-  title.textContent = clip.pitchId
-    ? `Linked to Pitch ${clip.pitchId.slice(0, 8)}`
-    : "Unlinked Clip";
+    function computeZone(x, y) {
+      const zoneLeft = 0.2;
+      const zoneRight = 0.8;
+      const zoneTop = 0.2;
+      const zoneBottom = 0.8;
 
-  const meta = document.createElement("div");
-  meta.className = "clip-meta";
-  meta.textContent = new Date(timestamp).toLocaleTimeString();
-
-  main.appendChild(title);
-  main.appendChild(meta);
-
-  const actions = document.createElement("div");
-  actions.className = "clip-actions";
-
-  const tagBtn = document.createElement("button");
-  tagBtn.className = "clip-tag-pill";
-  tagBtn.innerHTML = "<span>Tag</span><strong>Apply</strong>";
-
-  tagBtn.addEventListener("click", () => {
-    if (!lastPitchId) {
-      alert("No pitch selected to tag this clip.");
-      return;
-    }
-
-    clip.pitchId = lastPitchId;
-    title.textContent = `Linked to Pitch ${lastPitchId.slice(0, 8)}`;
-
-    ws.send(JSON.stringify({
-      type: "clip-tag",
-      url,
-      pitchId: lastPitchId
-    }));
-
-    console.log("Clip linked:", clip);
-  });
-
-  const openBtn = document.createElement("button");
-  openBtn.className = "clip-open-btn";
-  openBtn.textContent = "Open";
-  openBtn.addEventListener("click", () => window.open(url, "_blank"));
-
-  actions.appendChild(tagBtn);
-  actions.appendChild(openBtn);
-
-  item.appendChild(main);
-  item.appendChild(actions);
-
-  clipsContainerEl.prepend(item);
-
-  updateClipCounts();
-}
-
-
-    function updateClipCounts() {
-      const count = incomingClips.length;
-      clipCountEl.textContent = count + (count === 1 ? " clip" : " clips");
-      footerClipCountEl.textContent = count.toString();
-    }
-
-    // --- WebSocket incoming messages ---
-ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-
-  if (data.type === "velocity") {
-    const v = Math.round(data.value);
-    velocityDisplayEl.textContent = v;
-    footerVelocityEl.textContent = v + " MPH";
-  }
-
-  if (data.type === "clip" && data.url) {
-    addClip(data.url);
-  }
-
-  if (data.type === "clip-tag") {
-    console.log("Clip tag broadcast:", data);
-  }
-
-  if (data.type === "clip-attached") {
-  const pitch = sessionPitches.find(p => p.pitchId === data.pitchId);
-  if (pitch) {
-    pitch.clipUrl = data.url;
-    console.log("Clip synced to pitch:", pitch);
-  }
-}
-
-  if (data.type === "pitch") {
-    console.log("Pitch received:", data);
-  }
-};
-
-<div id="gameTracker" class="game-tracker">
-  <div>Balls: <span id="ballsCount">0</span></div>
-  <div>Strikes: <span id="strikesCount">0</span></div>
-  <div>Outs: <span id="outsCount">0</span></div>
-  <div>Inning: <span id="inningCount">1</span></div>
-  <div>Total Pitches: <span id="totalPitches">0</span></div>
-</div>
-
-    // --- Send pitch over WebSocket ---
-function trySendPitchEvent() {
-  // Must have pitch type + result + location (zone OR ball)
-  if (!selectedPitchType || selectedZone === undefined || !selectedResult) return;
-
-  lastPitchId = crypto.randomUUID();
-
-  ws.send(JSON.stringify({
-  type: "pitch-start",
-  pitchId: lastPitchId
-}));
-
-  const payload = {
-    type: "pitch",
-    pitchId: lastPitchId,
-    pitchType: selectedPitchType,
-    zone: selectedZone,       // null = ball
-    x: selectedX,             // exact tap location (0–1)
-    y: selectedY,             // exact tap location (0–1)
-    result: selectedResult,
-    timestamp: Date.now()
-  };
-
-  ws.send(JSON.stringify(payload));
-  console.log("Pitch event sent:", payload);
-
-  // Update UI summary
-  const zoneLabel = selectedZone ? `Zone ${selectedZone}` : "Ball";
-  lastTaggedSummaryEl.textContent =
-    `${selectedPitchType} · ${zoneLabel} · ${selectedResult}`;
-
-    // --- BASEBALL TRACKER LOGIC ---
-
-// Increment total pitches
-totalPitches++;
-
-// BALLS
-if (selectedResult === "Ball") {
-  balls++;
-  if (balls >= 4) {
-    // Walk
-    balls = 0;
-    strikes = 0;
-  }
-}
-
-// STRIKES
-if (selectedResult === "Strike") {
-  strikes++;
-  if (strikes >= 3) {
-    outs++;
-    balls = 0;
-    strikes = 0;
-  }
-}
-
-// FOUL BALLS (cannot strike out on foul unless bunt)
-if (selectedResult === "Foul") {
-  if (strikes < 2) strikes++;
-}
-
-// IN-PLAY OUTS
-if (["Groundout", "Flyout", "Pop Out"].includes(selectedResult)) {
-  outs++;
-  balls = 0;
-  strikes = 0;
-}
-
-// INNING ADVANCE
-if (outs >= 3) {
-  outs = 0;
-  inning++;
-}
-
-// UPDATE TRACKER UI
-document.getElementById("ballsCount").textContent = balls;
-document.getElementById("strikesCount").textContent = strikes;
-document.getElementById("outsCount").textContent = outs;
-document.getElementById("inningCount").textContent = inning;
-document.getElementById("totalPitches").textContent = totalPitches;
-
-  // --- CLEAR UI FOR NEXT PITCH ---
-  selectedPitchType = null;
-  selectedZone = null;
-  selectedResult = null;
-  selectedX = null;
-  selectedY = null;
-
-  // Remove dot
-  document.querySelectorAll(".pitch-dot").forEach(d => d.remove());
-
-  // Reset pills
-  document.querySelectorAll(".pill").forEach(p => p.classList.remove("active"));
-
-  // Reset labels
-  lastPitchTypeEl.textContent = "—";
-  lastZoneEl.textContent = "—";
-  lastPitchLabelEl.textContent = "No pitch tagged";
-  lastTaggedSummaryEl.textContent = "None";
-}
-
-    // --- Pocket Radar integration ---
-    let radarScan = null;
-
-    async function connectPocketRadar() {
-      try {
-        radarScan = await navigator.bluetooth.requestLEScan({
-          filters: [{ manufacturerData: { 0xFFFF: {} } }],
-          keepRepeatedDevices: true
-        });
-
-        navigator.bluetooth.addEventListener("advertisementreceived", event => {
-          const data = event.manufacturerData.get(0xFFFF);
-          if (!data) return;
-
-          const speed = data.getUint8(2); // MPH
-          updateVelocity(speed);
-        });
-
-        console.log("Pocket Radar scanning started");
-      } catch (err) {
-        console.error("Radar connection error:", err);
-        alert("Unable to connect. Use Safari on iPhone/iPad.");
+      if (x < zoneLeft || x > zoneRight || y < zoneTop || y > zoneBottom) {
+        return null;
       }
+
+      const zx = Math.floor(((x - zoneLeft) / (zoneRight - zoneLeft)) * 3);
+      const zy = Math.floor(((y - zoneTop) / (zoneBottom - zoneTop)) * 3);
+      return zy * 3 + zx + 1;
     }
 
-    function updateVelocity(speed) {
-      velocityDisplayEl.textContent = speed;
-      footerVelocityEl.textContent = speed + " MPH";
+    // ===== PITCH TYPE SELECTION =====
+    document.querySelectorAll("#pitchTypeRow .pill").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const type = btn.dataset.type;
+        selectedPitchType = selectedPitchType === type ? null : type;
 
+        document.querySelectorAll("#pitchTypeRow .pill").forEach((b) => b.classList.remove("active"));
+        if (selectedPitchType) btn.classList.add("active");
+      });
+    });
+
+    // ===== RESULT SELECTION =====
+    document.querySelectorAll("#pitchResultRow .pill").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const result = btn.dataset.result;
+        selectedResult = selectedResult === result ? null : result;
+
+        document.querySelectorAll("#pitchResultRow .pill").forEach((b) => b.classList.remove("active"));
+        if (selectedResult) btn.classList.add("active");
+
+        if (selectedResult && selectedPitchType && selectedZone !== undefined) {
+          savePitch();
+        }
+      });
+    });
+
+    // ===== SAVE PITCH =====
+    async function savePitch() {
+      const pitchId = crypto.randomUUID();
+
+      // Signal camera to start recording
       if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-          type: "velocity",
-          value: speed
-        }));
+        ws.send(
+          JSON.stringify({
+            type: "pitch-start",
+            pitchId,
+            timestamp: Date.now()
+          })
+        );
       }
-    }
 
-    document.getElementById("connectRadarBtn").onclick = connectPocketRadar;
+      // Update counts
+      if (selectedResult === "Ball") {
+        totalBalls++;
+        balls++;
+        if (balls >= 4) {
+          balls = 0;
+          strikes = 0;
+        }
+      } else if (selectedResult === "Strike") {
+        totalStrikes++;
+        strikes++;
+        if (strikes >= 3) {
+          outs++;
+          strikes = 0;
+          balls = 0;
+        }
+      } else if (selectedResult === "Foul") {
+        totalStrikes++;
+        if (strikes < 2) strikes++;
+      } else if (selectedResult === "In Play") {
+        totalStrikes++;
+      }
 
-    // Clear session (local only)
-    document.getElementById("clearSessionBtn").onclick = () => {
-      incomingClips = [];
-      clipsContainerEl.innerHTML = "";
-      updateClipCounts();
+      totalPitches++;
 
+      // Update UI
+      ballsCountEl.textContent = balls;
+      strikesCountEl.textContent = strikes;
+      outsCountEl.textContent = outs;
+      inningsCountEl.textContent = (outs / 3).toFixed(1);
+      totalPitchesEl.textContent = totalPitches;
+      totalBallsEl.textContent = totalBalls;
+      totalStrikesEl.textContent = totalStrikes;
+      totalOutsEl.textContent = totalOuts;
+
+      const pitchData = {
+        pitchId,
+        pitchType: selectedPitchType,
+        zone: selectedZone,
+        result: selectedResult,
+        x: selectedX,
+        y: selectedY,
+        timestamp: Date.now()
+      };
+
+      // Save pitch to server
+      await fetch(`/session/${sessionId}/pitch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, pitch: pitchData })
+      });
+
+      // Broadcast pitch
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "pitch", ...pitchData }));
+      }
+
+      // Signal camera to stop recording
+      setTimeout(() => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(
+            JSON.stringify({
+              type: "pitch-end",
+              pitchId,
+              timestamp: Date.now()
+            })
+          );
+        }
+      }, 500);
+
+      // Reset UI
       selectedZone = null;
       selectedPitchType = null;
       selectedResult = null;
+      selectedX = null;
+      selectedY = null;
 
-      document.querySelectorAll(".zone-cell").forEach(c => c.classList.remove("active"));
-      document.querySelectorAll("#pitchTypeRow .pill").forEach(b => b.classList.remove("active"));
-      document.querySelectorAll("#pitchResultRow .pill").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".pitch-dot").forEach((d) => d.remove());
+      document.querySelectorAll(".pill").forEach((p) => p.classList.remove("active"));
+    }
 
-      lastPitchTypeEl.textContent = "—";
-      lastZoneEl.textContent = "—";
-      lastPitchLabelEl.textContent = "No pitch tagged";
-      lastTaggedSummaryEl.textContent = "None";
-    };
+    // ===== ADD CLIP =====
+    function addClip(url, pitchId) {
+      const item = document.createElement("div");
+      item.className = "clip-item";
+
+      const name = document.createElement("div");
+      name.className = "clip-name";
+      name.textContent = pitchId ? `Pitch ${pitchId.slice(0, 8)}` : url.split("/").pop();
+
+      const btn = document.createElement("button");
+      btn.textContent = "Open";
+      btn.addEventListener("click", () => window.open(url, "_blank"));
+
+      item.appendChild(name);
+      item.appendChild(btn);
+      clipsContainer.prepend(item);
+
+      incomingClips.push(url);
+      clipCount.textContent = incomingClips.length;
+    }
+
+    // ===== END SESSION & GENERATE PDF =====
+    document.getElementById("endSessionBtn").addEventListener("click", async () => {
+      if (!confirm("End session and generate PDF report?")) return;
+
+      const res = await fetch(`/session/${sessionId}/close`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        // Download PDF
+        window.location.href = `/session/${sessionId}/download-pdf`;
+        
+        // Go to review page
+        setTimeout(() => {
+          window.location.href = "/session-review.html";
+        }, 1000);
+      } else {
+        alert("Failed to end session");
+      }
+    });
+
+    // ===== CLEAR SESSION =====
+    document.getElementById("clearSessionBtn").addEventListener("click", () => {
+      balls = strikes = outs = 0;
+      totalPitches = totalBalls = totalStrikes = totalOuts = 0;
+      incomingClips = [];
+      clipsContainer.innerHTML = "";
+      clipCount.textContent = "0";
+
+      ballsCountEl.textContent = "0";
+      strikesCountEl.textContent = "0";
+      outsCountEl.textContent = "0";
+      inningsCountEl.textContent = "0.0";
+      totalPitchesEl.textContent = "0";
+      totalBallsEl.textContent = "0";
+      totalStrikesEl.textContent = "0";
+      totalOutsEl.textContent = "0";
+    });
+
+    // ===== RADAR =====
+    document.getElementById("connectRadarBtn").addEventListener("click", async () => {
+      try {
+        const scan = await navigator.bluetooth.requestLEScan({
+          filters: [{ manufacturerData: { 0xffff: {} } }],
+          keepRepeatedDevices: true
+        });
+
+        navigator.bluetooth.addEventListener("advertisementreceived", (event) => {
+          const data = event.manufacturerData.get(0xffff);
+          if (data) {
+            const speed = data.getUint8(2);
+            velocityValue.textContent = speed;
+          }
+        });
+
+        alert("Radar connected!");
+      } catch (err) {
+        alert("Radar connection failed. Use Safari on iPhone/iPad.");
+      }
+    });
   </script>
 </body>
 </html>

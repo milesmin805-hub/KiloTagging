@@ -1,36 +1,337 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Login</title>
+  <meta charset="UTF-8" />
+  <title>Kilo Baseball - Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #050816 0%, #1a2332 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #e5e7eb;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 400px;
+      padding: 20px;
+    }
+
+    .card {
+      background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.95), #020617);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .logo {
+      width: 48px;
+      height: 48px;
+      background: radial-gradient(circle at 30% 30%, #22d3ee, #0f172a);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 700;
+      margin: 0 auto 16px;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      font-size: 13px;
+      color: #9ca3af;
+    }
+
+    .form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #9ca3af;
+    }
+
+    input {
+      padding: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      background: rgba(15, 23, 42, 0.9);
+      color: #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.15s ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: rgba(56, 189, 248, 0.9);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+    }
+
+    input::placeholder {
+      color: #6b7280;
+    }
+
+    button {
+      padding: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      background: radial-gradient(circle at top left, #22d3ee, #0f172a);
+      color: #000;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      margin-top: 8px;
+    }
+
+    button:hover {
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.7);
+      border-color: rgba(56, 189, 248, 1);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .toggle {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 13px;
+      color: #9ca3af;
+    }
+
+    .toggle button {
+      background: none;
+      border: none;
+      color: #22d3ee;
+      cursor: pointer;
+      padding: 0;
+      margin: 0;
+      font-size: 13px;
+      text-decoration: underline;
+      margin-left: 4px;
+    }
+
+    .toggle button:hover {
+      color: #06b6d4;
+      box-shadow: none;
+    }
+
+    .error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      color: #fca5a5;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      display: none;
+      margin-bottom: 16px;
+    }
+
+    .error.show {
+      display: block;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 480px) {
+      .card {
+        padding: 24px;
+      }
+
+      .header h1 {
+        font-size: 20px;
+      }
+    }
+  </style>
 </head>
 <body>
-  <h1>Enter Session Code</h1>
+  <div class="container">
+    <div class="card">
+      <div class="header">
+        <div class="logo">⚾</div>
+        <h1>Kilo Baseball</h1>
+        <p>Professional Pitch Tagging</p>
+      </div>
 
-  <input id="codeInput" placeholder="Enter code" />
-  <button id="loginBtn">Join</button>
+      <div id="errorMsg" class="error"></div>
 
-  <p id="msg" style="color:red;"></p>
+      <!-- SIGNUP FORM -->
+      <div id="signupForm" class="form">
+        <h2 style="font-size: 16px; margin-bottom: 16px;">Create Account</h2>
+
+        <div class="form-group">
+          <label>Email</label>
+          <input id="signupEmail" type="email" placeholder="your@email.com" />
+        </div>
+
+        <div class="form-group">
+          <label>Password</label>
+          <input id="signupPassword" type="password" placeholder="At least 6 characters" />
+        </div>
+
+        <div class="form-group">
+          <label>Confirm Password</label>
+          <input id="signupConfirm" type="password" placeholder="Re-enter password" />
+        </div>
+
+        <button id="signupBtn">Create Account</button>
+
+        <div class="toggle">
+          Already have an account?
+          <button type="button" onclick="toggleForms()">Log in</button>
+        </div>
+      </div>
+
+      <!-- LOGIN FORM -->
+      <div id="loginForm" class="form hidden">
+        <h2 style="font-size: 16px; margin-bottom: 16px;">Log In</h2>
+
+        <div class="form-group">
+          <label>Email</label>
+          <input id="loginEmail" type="email" placeholder="your@email.com" />
+        </div>
+
+        <div class="form-group">
+          <label>Password</label>
+          <input id="loginPassword" type="password" placeholder="Enter your password" />
+        </div>
+
+        <button id="loginBtn">Log In</button>
+
+        <div class="toggle">
+          Don't have an account?
+          <button type="button" onclick="toggleForms()">Sign up</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script>
-    document.getElementById("loginBtn").onclick = async () => {
-      const code = document.getElementById("codeInput").value.trim();
-      if (!code) return;
+    const errorMsg = document.getElementById("errorMsg");
+    const signupForm = document.getElementById("signupForm");
+    const loginForm = document.getElementById("loginForm");
 
-      const res = await fetch("/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code })
-      });
+    function toggleForms() {
+      signupForm.classList.toggle("hidden");
+      loginForm.classList.toggle("hidden");
+      errorMsg.classList.remove("show");
+    }
 
-      const data = await res.json();
-      if (!data.success) {
-        document.getElementById("msg").textContent = "Login failed";
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorMsg.classList.add("show");
+      setTimeout(() => errorMsg.classList.remove("show"), 5000);
+    }
+
+    // SIGNUP
+    document.getElementById("signupBtn").addEventListener("click", async () => {
+      const email = document.getElementById("signupEmail").value.trim();
+      const password = document.getElementById("signupPassword").value;
+      const confirm = document.getElementById("signupConfirm").value;
+
+      if (!email || !password || !confirm) {
+        showError("Please fill in all fields");
         return;
       }
 
-      localStorage.setItem("sessionCode", code);
-      window.location.href = "/role.html";
-    };
+      const res = await fetch("/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, confirmPassword: confirm })
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        showError(data.error || "Signup failed");
+        return;
+      }
+
+      // Store auth
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("userId", data.userId);
+      localStorage.setItem("email", data.email);
+
+      // Go to session page
+      window.location.href = "/session-select.html";
+    });
+
+    // LOGIN
+    document.getElementById("loginBtn").addEventListener("click", async () => {
+      const email = document.getElementById("loginEmail").value.trim();
+      const password = document.getElementById("loginPassword").value;
+
+      if (!email || !password) {
+        showError("Please fill in all fields");
+        return;
+      }
+
+      const res = await fetch("/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        showError(data.error || "Login failed");
+        return;
+      }
+
+      // Store auth
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("userId", data.userId);
+      localStorage.setItem("email", data.email);
+
+      // Go to session page
+      window.location.href = "/session-select.html";
+    });
+
+    // Check if already logged in
+    window.addEventListener("load", () => {
+      const token = localStorage.getItem("token");
+      if (token) {
+        window.location.href = "/session-select.html";
+      }
+    });
   </script>
 </body>
 </html>
