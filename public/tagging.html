@@ -285,6 +285,66 @@
       font-weight: 500;
     }
 
+    .previous-pitches {
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      background: rgba(15, 23, 42, 0.9);
+      border-radius: 12px;
+      padding: 12px;
+      max-height: 400px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .pitch-row {
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(15, 23, 42, 0.7);
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 11px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .pitch-row-info {
+      flex: 1;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .pitch-row-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .pitch-row-actions button {
+      padding: 4px 8px;
+      font-size: 9px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+
+    .pitch-row-actions button.edit {
+      background: #22d3ee;
+      color: #000;
+    }
+
+    .pitch-row-actions button.delete {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.5);
+    }
+
+    .pitch-row-actions button:hover {
+      box-shadow: 0 0 8px rgba(34, 211, 238, 0.4);
+    }
+
     footer {
       border-top: 1px solid rgba(148, 163, 184, 0.3);
       background: radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.15), transparent 55%);
@@ -293,7 +353,7 @@
 
     .tracker-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
       gap: 12px;
       margin-bottom: 12px;
     }
@@ -304,6 +364,7 @@
       border-radius: 12px;
       padding: 8px 12px;
       text-align: center;
+      position: relative;
     }
 
     .tracker-label {
@@ -318,6 +379,32 @@
       font-weight: 700;
       color: #22d3ee;
       margin-top: 4px;
+    }
+
+    .tracker-controls {
+      display: flex;
+      gap: 4px;
+      margin-top: 6px;
+      justify-content: center;
+    }
+
+    .tracker-btn {
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      background: rgba(15, 23, 42, 0.8);
+      color: #22d3ee;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.15s;
+    }
+
+    .tracker-btn:hover {
+      border-color: rgba(56, 189, 248, 0.9);
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
     }
 
     .footer-buttons {
@@ -480,7 +567,7 @@
       </div>
     </section>
 
-    <section class="card">
+    <section class="card" style="grid-column: 2; grid-row: 1 / 3; overflow: auto;">
       <div class="card-title">Velocity & Clips<span>Live radar + incoming video</span></div>
       <div class="velocity-display">
         <div class="velocity-label">Live Velocity</div>
@@ -494,14 +581,40 @@
         <div class="card-title">Incoming Clips <span><span id="clipCount">0</span> clips</span></div>
         <div id="clipsContainer" class="clips-list"></div>
       </div>
+
+      <div style="margin-top: 12px;">
+        <div class="card-title">Previously Tagged <span><span id="pitchCount">0</span> pitches</span></div>
+        <div id="previousPitchesContainer" class="previous-pitches"></div>
+      </div>
     </section>
   </main>
 
   <footer>
     <div class="tracker-grid">
-      <div class="tracker-pill"><div class="tracker-label">Balls</div><div class="tracker-value" id="ballsCount">0</div></div>
-      <div class="tracker-pill"><div class="tracker-label">Strikes</div><div class="tracker-value" id="strikesCount">0</div></div>
-      <div class="tracker-pill"><div class="tracker-label">Outs</div><div class="tracker-value" id="outsCount">0</div></div>
+      <div class="tracker-pill">
+        <div class="tracker-label">Balls</div>
+        <div class="tracker-value" id="ballsCount">0</div>
+        <div class="tracker-controls">
+          <button class="tracker-btn" onclick="adjustCount('balls', -1)">−</button>
+          <button class="tracker-btn" onclick="adjustCount('balls', 1)">+</button>
+        </div>
+      </div>
+      <div class="tracker-pill">
+        <div class="tracker-label">Strikes</div>
+        <div class="tracker-value" id="strikesCount">0</div>
+        <div class="tracker-controls">
+          <button class="tracker-btn" onclick="adjustCount('strikes', -1)">−</button>
+          <button class="tracker-btn" onclick="adjustCount('strikes', 1)">+</button>
+        </div>
+      </div>
+      <div class="tracker-pill">
+        <div class="tracker-label">Outs</div>
+        <div class="tracker-value" id="outsCount">0</div>
+        <div class="tracker-controls">
+          <button class="tracker-btn" onclick="adjustCount('outs', -1)">−</button>
+          <button class="tracker-btn" onclick="adjustCount('outs', 1)">+</button>
+        </div>
+      </div>
       <div class="tracker-pill"><div class="tracker-label">IP</div><div class="tracker-value" id="inningsCount">0.0</div></div>
       <div class="tracker-pill"><div class="tracker-label">Total Pitches</div><div class="tracker-value" id="totalPitches">0</div></div>
       <div class="tracker-pill"><div class="tracker-label">Total Balls</div><div class="tracker-value" id="totalBalls">0</div></div>
@@ -557,6 +670,7 @@
     let selectedZone = null, selectedX = null, selectedY = null, selectedPitchType = null, selectedResult = null, incomingClips = [], ws = null;
     let balls = 0, strikes = 0, outs = 0, totalPitches = 0, totalBalls = 0, totalStrikes = 0;
     let token = null, userId = null, sessionId = null;
+    let sessionPitches = [];
 
     const pitchArea = document.getElementById("pitchArea");
     const ballsCountEl = document.getElementById("ballsCount");
@@ -569,6 +683,8 @@
     const velocityValue = document.getElementById("velocityValue");
     const clipsContainer = document.getElementById("clipsContainer");
     const clipCount = document.getElementById("clipCount");
+    const pitchCount = document.getElementById("pitchCount");
+    const previousPitchesContainer = document.getElementById("previousPitchesContainer");
     const sessionInfo = document.getElementById("sessionInfo");
     const wsStatus = document.getElementById("wsStatus");
 
@@ -579,6 +695,7 @@
       if (!token || !sessionId) { window.location.href = "/session-select.html"; return; }
       sessionInfo.textContent = `Session ${sessionId.slice(0, 8)}...`;
       connectWebSocket();
+      loadSessionPitches();
     });
 
     function connectWebSocket() {
@@ -596,6 +713,121 @@
       });
     }
 
+    function adjustCount(type, delta) {
+      if (type === 'balls') {
+        balls = Math.max(0, Math.min(3, balls + delta));
+        ballsCountEl.textContent = balls;
+      } else if (type === 'strikes') {
+        strikes = Math.max(0, Math.min(2, strikes + delta));
+        strikesCountEl.textContent = strikes;
+      } else if (type === 'outs') {
+        outs = Math.max(0, outs + delta);
+        outsCountEl.textContent = outs;
+        updateInnings();
+      }
+    }
+
+    function updateInnings() {
+      let innings = Math.floor(outs / 3);
+      let inningPart = (outs % 3) / 10;
+      let ipValue = innings + inningPart;
+      inningsCountEl.textContent = ipValue.toFixed(1);
+    }
+
+    async function loadSessionPitches() {
+      try {
+        const res = await fetch(`/session/${sessionId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.pitches) {
+          sessionPitches = data.pitches;
+          displayPreviousPitches();
+        }
+      } catch (err) {
+        console.error("Error loading pitches:", err);
+      }
+    }
+
+    function displayPreviousPitches() {
+      previousPitchesContainer.innerHTML = "";
+      pitchCount.textContent = sessionPitches.length;
+
+      sessionPitches.forEach((pitch, index) => {
+        const row = document.createElement("div");
+        row.className = "pitch-row";
+        row.innerHTML = `
+          <div class="pitch-row-info">
+            <strong>#${index + 1}</strong>
+            <span>${pitch.pitch_type || '—'}</span>
+            <span>Z${pitch.zone || '—'}</span>
+            <span>${pitch.result || '—'}</span>
+            <span>${pitch.mph ? pitch.mph + ' mph' : '—'}</span>
+          </div>
+          <div class="pitch-row-actions">
+            <button class="edit" onclick="editPitch('${pitch.id}')">Edit</button>
+            <button class="delete" onclick="deletePitch('${pitch.id}')">Delete</button>
+          </div>
+        `;
+        previousPitchesContainer.appendChild(row);
+      });
+    }
+
+    async function deletePitch(pitchId) {
+      if (!confirm("Delete this pitch?")) return;
+
+      try {
+        const res = await fetch(`/session/${sessionId}/pitch/${pitchId}`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          sessionPitches = sessionPitches.filter(p => p.id !== pitchId);
+          displayPreviousPitches();
+          console.log("✅ Pitch deleted");
+        }
+      } catch (err) {
+        console.error("Error deleting pitch:", err);
+        alert("Failed to delete pitch");
+      }
+    }
+
+    function editPitch(pitchId) {
+      const pitch = sessionPitches.find(p => p.id === pitchId);
+      if (!pitch) return;
+
+      const newResult = prompt(`Edit result for pitch #${sessionPitches.indexOf(pitch) + 1}:\n\nCurrent: ${pitch.result}\n\nEnter new result:`, pitch.result);
+      if (!newResult) return;
+
+      updatePitch(pitchId, { result: newResult });
+    }
+
+    async function updatePitch(pitchId, updates) {
+      try {
+        const res = await fetch(`/session/${sessionId}/pitch/${pitchId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, updates })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          const pitchIndex = sessionPitches.findIndex(p => p.id === pitchId);
+          if (pitchIndex >= 0) {
+            sessionPitches[pitchIndex] = { ...sessionPitches[pitchIndex], ...updates };
+            displayPreviousPitches();
+            console.log("✅ Pitch updated");
+          }
+        }
+      } catch (err) {
+        console.error("Error updating pitch:", err);
+        alert("Failed to update pitch");
+      }
+    }
+
     pitchArea.addEventListener("click", (event) => {
       document.querySelectorAll(".pitch-dot").forEach((d) => d.remove());
       const rect = pitchArea.getBoundingClientRect();
@@ -609,7 +841,6 @@
       pitchArea.appendChild(dot);
       selectedZone = computeZone(x, y);
 
-      // START RECORDING when zone is clicked (5 seconds EARLY)
       if (ws && ws.readyState === WebSocket.OPEN) {
         const pitchId = crypto.randomUUID();
         ws.send(JSON.stringify({ 
@@ -701,14 +932,11 @@
       }
 
       totalPitches++;
-      let innings = Math.floor(outs / 3);
-      let inningPart = (outs % 3) / 10;
-      let ipValue = innings + inningPart;
+      updateInnings();
 
       ballsCountEl.textContent = balls;
       strikesCountEl.textContent = strikes;
       outsCountEl.textContent = outs;
-      inningsCountEl.textContent = ipValue.toFixed(1);
       totalPitchesEl.textContent = totalPitches;
       totalBallsEl.textContent = totalBalls;
       totalStrikesEl.textContent = totalStrikes;
@@ -724,15 +952,20 @@
         timestamp: Date.now() 
       };
 
-      await fetch(`/session/${sessionId}/pitch`, {
+      const saveRes = await fetch(`/session/${sessionId}/pitch`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, pitch: pitchData })
       });
 
+      const saveData = await saveRes.json();
+      if (saveData.pitch) {
+        sessionPitches.push(saveData.pitch);
+        displayPreviousPitches();
+      }
+
       if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "pitch", ...pitchData }));
 
-      // Send pitch-end 5 seconds AFTER result is selected (5 sec recording after)
       setTimeout(() => {
         if (ws && ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ 

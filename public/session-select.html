@@ -155,6 +155,17 @@
       color: #000;
     }
 
+    .btn-secondary {
+      background: radial-gradient(circle at top left, rgba(34, 197, 94, 0.3), #0f172a);
+      border-color: rgba(34, 197, 94, 0.8);
+      color: #86efac;
+    }
+
+    .btn-secondary:hover {
+      background: radial-gradient(circle at top left, rgba(34, 197, 94, 0.4), #0f172a);
+      box-shadow: 0 0 12px rgba(34, 197, 94, 0.3);
+    }
+
     .sessions-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -227,6 +238,17 @@
 
     .success.show {
       display: block;
+    }
+
+    .info-box {
+      background: rgba(34, 211, 238, 0.1);
+      border: 1px solid rgba(34, 211, 238, 0.5);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12px;
+      color: #e5e7eb;
+      margin-top: 12px;
+      line-height: 1.5;
     }
 
     /* ROLE MODAL */
@@ -352,11 +374,22 @@
       </div>
     </div>
 
+    <!-- VIEW PAST SESSIONS -->
+    <div class="card">
+      <div class="card-title">View Past Sessions</div>
+      <button class="btn btn-secondary" onclick="goToSessionReview()">
+        📊 View Session Analytics
+      </button>
+      <div class="info-box">
+        View all your past sessions, statistics, and download PDFs from previous games.
+      </div>
+    </div>
+
     <!-- EXISTING SESSIONS -->
     <div class="card">
-      <div class="card-title">Your Sessions</div>
+      <div class="card-title">Your Active Sessions</div>
       <div id="sessionsList" class="sessions-grid">
-        <div class="empty">No sessions yet. Create one to get started!</div>
+        <div class="empty">No active sessions. Create one to get started!</div>
       </div>
     </div>
   </main>
@@ -416,7 +449,7 @@
       const list = document.getElementById("sessionsList");
 
       if (data.sessions.length === 0) {
-        list.innerHTML = '<div class="empty">No sessions yet. Create one to get started!</div>';
+        list.innerHTML = '<div class="empty">No active sessions. Create one to get started!</div>';
         return;
       }
 
@@ -486,6 +519,11 @@
       } else if (role === "camera") {
         window.location.href = "/camera.html";
       }
+    }
+
+    // GO TO SESSION REVIEW
+    function goToSessionReview() {
+      window.location.href = "/session-review.html";
     }
 
     // LOGOUT

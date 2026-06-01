@@ -12,7 +12,13 @@ const multer = require("multer");
 const fs = require("fs");
 const crypto = require("crypto");
 const PDFDocument = require("pdfkit");
+const jwt = require("jsonwebtoken");
 const { Pool } = require("pg");
+
+// ======================================
+// CONFIG
+// ======================================
+const SECRET = "kilo-baseball-secret-key-change-in-production";
 
 // ======================================
 // DATABASE CONNECTION
@@ -32,7 +38,6 @@ pool.on("error", (err) => {
 // MIDDLEWARE
 // ======================================
 app.use(express.static("public"));
-// Serve clip files
 app.use("/clips", express.static("clips"));
 app.use(express.json());
 
@@ -64,7 +69,7 @@ async function initializeDatabase() {
       );
     `);
 
-    // Create pitches table
+    // Create pitches table with mph column
     await pool.query(`
       CREATE TABLE IF NOT EXISTS pitches (
         id UUID PRIMARY KEY,
@@ -74,8 +79,14 @@ async function initializeDatabase() {
         result VARCHAR(50),
         x DECIMAL(5,3),
         y DECIMAL(5,3),
+        mph INTEGER,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+    `);
+
+    // Add mph column if it doesn't exist
+    await pool.query(`
+      ALTER TABLE pitches ADD COLUMN IF NOT EXISTS mph INTEGER DEFAULT NULL;
     `);
 
     // Create clips table
@@ -143,7 +154,6 @@ app.post("/auth/signup", async (req, res) => {
   }
 
   try {
-    // Check if user exists
     const existingUser = await pool.query(
       "SELECT id FROM users WHERE email = $1",
       [email]
@@ -289,9 +299,9 @@ app.get("/session/:sessionId", async (req, res) => {
 
     const session = sessionResult.rows[0];
 
-    // Get pitches
+    // Get pitches with mph
     const pitchesResult = await pool.query(
-      `SELECT id, pitch_type, zone, result, x, y, created_at
+      `SELECT id, pitch_type, zone, result, x, y, mph, created_at
        FROM pitches WHERE session_id = $1 ORDER BY created_at ASC`,
       [sessionId]
     );
@@ -308,12 +318,14 @@ app.get("/session/:sessionId", async (req, res) => {
     });
 
     const pitches = pitchesResult.rows.map((pitch) => ({
+      id: pitch.id,
       pitchId: pitch.id,
       pitchType: pitch.pitch_type,
       zone: pitch.zone,
       result: pitch.result,
       x: pitch.x,
       y: pitch.y,
+      mph: pitch.mph,
       timestamp: new Date(pitch.created_at).getTime()
     }));
 
@@ -326,7 +338,8 @@ app.get("/session/:sessionId", async (req, res) => {
         closed: session.is_closed,
         pitches,
         clips
-      }
+      },
+      pitches
     });
   } catch (err) {
     console.error("Get session error:", err);
@@ -345,7 +358,6 @@ app.post("/session/:sessionId/pitch", async (req, res) => {
   }
 
   try {
-    // Verify session belongs to user
     const sessionCheck = await pool.query(
       "SELECT id FROM sessions WHERE id = $1 AND user_id = $2",
       [sessionId, user.id]
@@ -355,9 +367,10 @@ app.post("/session/:sessionId/pitch", async (req, res) => {
       return res.json({ success: false, error: "Session not found" });
     }
 
-    await pool.query(
-      `INSERT INTO pitches (id, session_id, pitch_type, zone, result, x, y)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    const result = await pool.query(
+      `INSERT INTO pitches (id, session_id, pitch_type, zone, result, x, y, mph)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING *`,
       [
         pitch.pitchId,
         sessionId,
@@ -365,14 +378,127 @@ app.post("/session/:sessionId/pitch", async (req, res) => {
         pitch.zone,
         pitch.result,
         pitch.x,
-        pitch.y
+        pitch.y,
+        pitch.mph || null
       ]
     );
 
-    res.json({ success: true });
+    const savedPitch = result.rows[0];
+    res.json({ 
+      success: true, 
+      pitch: {
+        id: savedPitch.id,
+        pitch_type: savedPitch.pitch_type,
+        zone: savedPitch.zone,
+        result: savedPitch.result,
+        mph: savedPitch.mph
+      }
+    });
   } catch (err) {
     console.error("Save pitch error:", err);
     res.json({ success: false, error: "Failed to save pitch" });
+  }
+});
+
+// UPDATE PITCH
+app.patch("/session/:sessionId/pitch/:pitchId", async (req, res) => {
+  const { sessionId, pitchId } = req.params;
+  const { token, updates } = req.body;
+  const user = await verifyToken(token);
+
+  if (!user) {
+    return res.json({ success: false, error: "Invalid token" });
+  }
+
+  try {
+    const sessionCheck = await pool.query(
+      "SELECT id FROM sessions WHERE id = $1 AND user_id = $2",
+      [sessionId, user.id]
+    );
+
+    if (sessionCheck.rows.length === 0) {
+      return res.json({ success: false, error: "Session not found" });
+    }
+
+    const allowedFields = ["pitch_type", "zone", "result", "x", "y", "mph"];
+    const updateClause = [];
+    const values = [];
+    let paramCount = 1;
+
+    for (const [key, value] of Object.entries(updates)) {
+      if (allowedFields.includes(key)) {
+        updateClause.push(`${key} = $${paramCount}`);
+        values.push(value);
+        paramCount++;
+      }
+    }
+
+    if (updateClause.length === 0) {
+      return res.json({ success: false, error: "No valid fields to update" });
+    }
+
+    values.push(pitchId);
+    const query = `
+      UPDATE pitches 
+      SET ${updateClause.join(", ")} 
+      WHERE id = $${paramCount}
+      RETURNING *
+    `;
+
+    const result = await pool.query(query, values);
+
+    if (result.rows.length === 0) {
+      return res.json({ success: false, error: "Pitch not found" });
+    }
+
+    console.log("✅ Pitch updated:", pitchId);
+    res.json({ success: true, pitch: result.rows[0] });
+
+  } catch (err) {
+    console.error("Error updating pitch:", err);
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// DELETE PITCH
+app.delete("/session/:sessionId/pitch/:pitchId", async (req, res) => {
+  const { sessionId, pitchId } = req.params;
+  const { token } = req.body;
+  const user = await verifyToken(token);
+
+  if (!user) {
+    return res.json({ success: false, error: "Invalid token" });
+  }
+
+  try {
+    const sessionCheck = await pool.query(
+      "SELECT id FROM sessions WHERE id = $1 AND user_id = $2",
+      [sessionId, user.id]
+    );
+
+    if (sessionCheck.rows.length === 0) {
+      return res.json({ success: false, error: "Session not found" });
+    }
+
+    // Delete associated clips first
+    await pool.query("DELETE FROM clips WHERE pitch_id = $1", [pitchId]);
+
+    // Delete the pitch
+    const result = await pool.query(
+      "DELETE FROM pitches WHERE id = $1 RETURNING id",
+      [pitchId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({ success: false, error: "Pitch not found" });
+    }
+
+    console.log("✅ Pitch deleted:", pitchId);
+    res.json({ success: true });
+
+  } catch (err) {
+    console.error("Error deleting pitch:", err);
+    res.json({ success: false, error: err.message });
   }
 });
 
@@ -402,6 +528,7 @@ app.post("/session/:sessionId/link-clip", async (req, res) => {
       [clipId, sessionId, pitchId, clipUrl]
     );
 
+    console.log("✅ Clip linked to pitch:", pitchId);
     res.json({ success: true });
   } catch (err) {
     console.error("Link clip error:", err);
@@ -409,7 +536,7 @@ app.post("/session/:sessionId/link-clip", async (req, res) => {
   }
 });
 
-// CLOSE SESSION
+// CLOSE SESSION & GENERATE PDF
 app.post("/session/:sessionId/close", async (req, res) => {
   const { sessionId } = req.params;
   const { token } = req.body;
@@ -441,7 +568,7 @@ app.post("/session/:sessionId/close", async (req, res) => {
     );
 
     const pitchesResult = await pool.query(
-      "SELECT id, pitch_type, zone, result FROM pitches WHERE session_id = $1 ORDER BY created_at ASC",
+      "SELECT id, pitch_type, zone, result, mph FROM pitches WHERE session_id = $1 ORDER BY created_at ASC",
       [sessionId]
     );
 
@@ -499,7 +626,7 @@ function generateSessionPDF(session) {
   const strikes = session.pitches.filter(
     (p) => p.result === "Strike" || p.result === "Foul"
   ).length;
-  const inPlay = session.pitches.filter((p) => p.result === "In Play").length;
+  const inPlay = session.pitches.filter((p) => p.result?.includes("Play")).length;
 
   doc.fontSize(14).font("Helvetica-Bold").text("Session Summary", { underline: true });
   doc.fontSize(11).font("Helvetica").fillColor("#000");
@@ -512,36 +639,36 @@ function generateSessionPDF(session) {
 
   // Pitches Table
   doc.fontSize(14).font("Helvetica-Bold").text("Pitch Details", { underline: true });
-  doc.moveDown(0.3);
+  doc.moveDown(0.5);
 
   // Table Header
-  doc.fontSize(10).font("Helvetica-Bold");
-  doc.text("#", 50, doc.y, { width: 30 });
-  doc.text("Type", 85, doc.y - 15, { width: 50 });
-  doc.text("Zone", 140, doc.y - 15, { width: 40 });
-  doc.text("Result", 185, doc.y - 15, { width: 60 });
-  doc.text("Clip", 250, doc.y - 15, { width: 100 });
+  const tableTop = doc.y;
+  doc.fontSize(10).font("Helvetica-Bold")
+    .text("#", 50, tableTop)
+    .text("Type", 90, tableTop)
+    .text("Zone", 140, tableTop)
+    .text("Result", 190, tableTop)
+    .text("MPH", 300, tableTop);
 
-  doc.moveTo(50, doc.y).lineTo(500, doc.y).stroke();
-  doc.moveDown();
+  doc.moveTo(50, tableTop + 18).lineTo(550, tableTop + 18).stroke();
+
+  let yPos = tableTop + 28;
 
   // Table Rows
   doc.fontSize(9).font("Helvetica");
   session.pitches.forEach((pitch, index) => {
-    const hasClip = session.clips.some((c) => c.pitch_id === pitch.id);
-    const clipUrl = hasClip ? "✓ Video" : "—";
-
-    doc.text(String(index + 1), 50, doc.y, { width: 30 });
-    doc.text(pitch.pitch_type || "—", 85, doc.y - 15, { width: 50 });
-    doc.text(pitch.zone || "Ball", 140, doc.y - 15, { width: 40 });
-    doc.text(pitch.result || "—", 185, doc.y - 15, { width: 60 });
-    doc.text(clipUrl, 250, doc.y - 15, { width: 100 });
-
-    doc.moveDown();
-
-    if (doc.y > 700) {
+    if (yPos > 700) {
       doc.addPage();
+      yPos = 50;
     }
+
+    doc.text(String(index + 1), 50, yPos);
+    doc.text(pitch.pitch_type || "—", 90, yPos);
+    doc.text(pitch.zone ? String(pitch.zone) : "Ball", 140, yPos);
+    doc.text(pitch.result || "—", 190, yPos);
+    doc.text(pitch.mph ? String(pitch.mph) : "—", 300, yPos);
+
+    yPos += 15;
   });
 
   doc.end();
@@ -612,11 +739,11 @@ app.get("/", (req, res) => {
 // ======================================
 // WEBSOCKET SESSIONS
 // ======================================
-const wsConnections = {}; // sessionId → [ws connections]
+const clients = {}; // sessionId → { tagger: ws, camera: ws, etc }
 
 wss.on("connection", (ws) => {
   let sessionId = null;
-  let userId = null;
+  let deviceType = null;
 
   ws.on("message", (raw) => {
     let msg;
@@ -629,51 +756,54 @@ wss.on("connection", (ws) => {
     // Join session
     if (msg.type === "join-session") {
       sessionId = msg.sessionId;
-      userId = msg.userId;
+      deviceType = msg.device;
 
-      if (!wsConnections[sessionId]) {
-        wsConnections[sessionId] = [];
+      if (!clients[sessionId]) {
+        clients[sessionId] = {};
       }
-      wsConnections[sessionId].push(ws);
+      clients[sessionId][deviceType] = ws;
 
-      // Notify other devices
-      broadcast(sessionId, {
-        type: "device-joined",
-        device: msg.device,
-        userId
-      });
+      console.log(`✅ ${deviceType} joined session ${sessionId}`);
       return;
     }
 
-    // Broadcast to other devices in same session
-    if (
-      msg.type === "pitch-start" ||
-      msg.type === "pitch-end" ||
-      msg.type === "pitch" ||
-      msg.type === "clip"
-    ) {
-      broadcast(sessionId, msg);
-      return;
+    // Route messages to appropriate devices
+    if (msg.type === "pitch-start" || msg.type === "pitch-end" || msg.type === "pitch") {
+      // Send from tagger to camera
+      const cameraWs = clients[sessionId]?.camera;
+      if (cameraWs && cameraWs.readyState === WebSocket.OPEN) {
+        cameraWs.send(raw);
+      }
+    }
+
+    // Route clip from camera to tagger
+    if (msg.type === "clip") {
+      const taggerWs = clients[sessionId]?.tagger;
+      if (taggerWs && taggerWs.readyState === WebSocket.OPEN) {
+        taggerWs.send(raw);
+        console.log("📹 Clip forwarded to tagger");
+      }
+    }
+
+    // Broadcast velocity to tagger
+    if (msg.type === "velocity") {
+      const taggerWs = clients[sessionId]?.tagger;
+      if (taggerWs && taggerWs.readyState === WebSocket.OPEN) {
+        taggerWs.send(raw);
+      }
     }
   });
 
   ws.on("close", () => {
-    if (sessionId && wsConnections[sessionId]) {
-      wsConnections[sessionId] = wsConnections[sessionId].filter((c) => c !== ws);
+    if (sessionId && clients[sessionId]) {
+      delete clients[sessionId][deviceType];
+      if (Object.keys(clients[sessionId]).length === 0) {
+        delete clients[sessionId];
+      }
+      console.log(`❌ ${deviceType} disconnected from session ${sessionId}`);
     }
   });
 });
-
-function broadcast(sessionId, msg) {
-  const data = JSON.stringify(msg);
-  if (wsConnections[sessionId]) {
-    wsConnections[sessionId].forEach((ws) => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(data);
-      }
-    });
-  }
-}
 
 // ======================================
 // START SERVER
