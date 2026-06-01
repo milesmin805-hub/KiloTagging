@@ -12,13 +12,7 @@ const multer = require("multer");
 const fs = require("fs");
 const crypto = require("crypto");
 const PDFDocument = require("pdfkit");
-const jwt = require("jsonwebtoken");
 const { Pool } = require("pg");
-
-// ======================================
-// CONFIG
-// ======================================
-const SECRET = "kilo-baseball-secret-key-change-in-production";
 
 // ======================================
 // DATABASE CONNECTION
