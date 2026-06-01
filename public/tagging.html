@@ -687,8 +687,9 @@
       } else if (selectedResult === "Single" || selectedResult === "Double" || selectedResult === "Triple" || selectedResult === "Home Run" || selectedResult === "Other Hit") {
         // Hit - no change
       } else if (selectedResult === "Ground Out" || selectedResult === "Fly Out" || selectedResult === "Pop Out" || selectedResult === "Error" || selectedResult === "Other Out") {
-        outs++;
-      }
+  outs++;
+  if (outs >= 3) outs = 0;  // Reset to 0 after 3 outs
+}
 
       totalPitches++;
       let innings = Math.floor(outs / 3);

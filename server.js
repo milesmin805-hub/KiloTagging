@@ -32,6 +32,8 @@ pool.on("error", (err) => {
 // MIDDLEWARE
 // ======================================
 app.use(express.static("public"));
+// Serve clip files
+app.use("/clips", express.static("clips"));
 app.use(express.json());
 
 // ======================================

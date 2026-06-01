@@ -92,7 +92,7 @@
     main {
       flex: 1;
       padding: 20px;
-      max-width: 1000px;
+      max-width: 1200px;
       margin: 0 auto;
       width: 100%;
       overflow-y: auto;
@@ -202,7 +202,7 @@
       background: rgba(15, 23, 42, 0.9);
       border: 1px solid rgba(148, 163, 184, 0.5);
       border-radius: 12px;
-      padding: 12px;
+      padding: 16px;
       text-align: center;
     }
 
@@ -217,7 +217,7 @@
       font-size: 28px;
       font-weight: 700;
       color: #22d3ee;
-      margin-top: 4px;
+      margin-top: 8px;
     }
 
     /* PITCH TABLE */
@@ -229,46 +229,62 @@
 
     .pitch-table thead {
       border-bottom: 2px solid rgba(148, 163, 184, 0.5);
+      background: rgba(56, 189, 248, 0.05);
     }
 
     .pitch-table th {
-      padding: 12px;
+      padding: 16px;
       text-align: left;
       font-weight: 600;
       color: #9ca3af;
       text-transform: uppercase;
       letter-spacing: 0.08em;
       font-size: 10px;
+      white-space: nowrap;
     }
 
     .pitch-table td {
-      padding: 12px;
+      padding: 16px;
       border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+      vertical-align: middle;
     }
 
     .pitch-table tbody tr:hover {
-      background: rgba(34, 211, 238, 0.05);
+      background: rgba(34, 211, 238, 0.08);
     }
 
     .pitch-number {
       font-weight: 600;
       color: #22d3ee;
-      width: 30px;
+      text-align: center;
+      width: 50px;
     }
 
     .pitch-type {
       font-weight: 500;
+      text-align: center;
+      width: 80px;
     }
 
     .pitch-zone {
       text-align: center;
       background: rgba(15, 23, 42, 0.5);
       border-radius: 6px;
-      padding: 4px 8px;
+      padding: 6px 12px;
+      width: 80px;
+      margin: 0 auto;
+    }
+
+    .pitch-mph {
+      text-align: center;
+      width: 80px;
+      font-weight: 500;
+      color: #fbbf24;
     }
 
     .pitch-result {
       text-align: center;
+      width: 120px;
     }
 
     .result-ball {
@@ -322,7 +338,7 @@
 
       .pitch-table th,
       .pitch-table td {
-        padding: 8px;
+        padding: 12px;
       }
 
       main {
@@ -400,13 +416,14 @@
                 <th>#</th>
                 <th>Type</th>
                 <th>Zone</th>
+                <th>MPH</th>
                 <th>Result</th>
                 <th>Clip</th>
               </tr>
             </thead>
             <tbody id="pitchTableBody">
               <tr>
-                <td colspan="5" style="text-align: center; color: #9ca3af;">
+                <td colspan="6" style="text-align: center; color: #9ca3af;">
                   No pitches recorded
                 </td>
               </tr>
@@ -513,18 +530,20 @@
 
       if (pitches.length === 0) {
         tbody.innerHTML =
-          '<tr><td colspan="5" style="text-align: center; color: #9ca3af;">No pitches recorded</td></tr>';
+          '<tr><td colspan="6" style="text-align: center; color: #9ca3af;">No pitches recorded</td></tr>';
       } else {
         tbody.innerHTML = pitches
           .map((pitch, index) => {
             const clipUrl = data.session.clips?.[pitch.pitchId];
             const resultClass = `result-${pitch.result.toLowerCase().replace(" ", "")}`;
+            const mph = pitch.mph ? `${pitch.mph}` : "—";
 
             return `
           <tr>
             <td class="pitch-number">${index + 1}</td>
             <td class="pitch-type">${pitch.pitchType || "—"}</td>
             <td class="pitch-zone">${pitch.zone || "Ball"}</td>
+            <td class="pitch-mph">${mph}</td>
             <td class="pitch-result ${resultClass}">${pitch.result}</td>
             <td>
               ${

@@ -394,27 +394,28 @@
     }
 
     // ===== START CAMERA STREAM =====
-    async function startCamera(deviceId) {
-      try {
-        if (currentStream) {
-          currentStream.getTracks().forEach((t) => t.stop());
-        }
-
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { deviceId: deviceId ? { exact: deviceId } : undefined },
-          audio: false
-        });
-
-        currentStream = stream;
-        preview.srcObject = stream;
-
-        // Setup recording when stream is ready
-        setupMediaRecorder();
-      } catch (err) {
-        console.error("Failed to start camera:", err);
-        alert("Could not access camera.");
-      }
+  async function startCamera(deviceId) {
+  try {
+    if (currentStream) {
+      currentStream.getTracks().forEach((t) => t.stop());
     }
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { 
+        deviceId: deviceId ? { exact: deviceId } : undefined,
+        facingMode: { ideal: "environment" }  // ← Add this line for back camera
+      },
+      audio: false
+    });
+
+    currentStream = stream;
+    preview.srcObject = stream;
+    setupMediaRecorder();
+  } catch (err) {
+    console.error("Failed to start camera:", err);
+    alert("Could not access camera.");
+  }
+}
 
     // ===== SETUP MEDIA RECORDER =====
     function setupMediaRecorder() {
