@@ -14,7 +14,7 @@ const fs = require("fs");
 // -------------------------------
 // STATIC FILES (IMPORTANT)
 // -------------------------------
-app.use(express.static(__dirname));   // Serve everything in project root
+app.use(express.static("public"));   // Serve everything in project root
 app.use(express.json());
 
 // -------------------------------
@@ -100,20 +100,21 @@ app.post("/uploadClip", upload.single("clip"), (req, res) => {
 // HTML ROUTES
 // -------------------------------
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "dashboard.html"));
+  res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
 
 app.get("/tagging", (req, res) => {
-  res.sendFile(path.join(__dirname, "tagging.html"));
+  res.sendFile(path.join(__dirname, "public", "tagging.html"));
 });
 
 app.get("/camera", (req, res) => {
-  res.sendFile(path.join(__dirname, "camera.html"));
+  res.sendFile(path.join(__dirname, "public", "camera.html"));
 });
 
 app.get("/device-manager", (req, res) => {
-  res.sendFile(path.join(__dirname, "device-manager.html"));
+  res.sendFile(path.join(__dirname, "public", "device-manager.html"));
 });
+
 
 // -------------------------------
 // START SERVER
