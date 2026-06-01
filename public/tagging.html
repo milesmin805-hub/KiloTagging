@@ -608,6 +608,17 @@
       dot.style.top = `${y * 100}%`;
       pitchArea.appendChild(dot);
       selectedZone = computeZone(x, y);
+
+      // START RECORDING when zone is clicked (5 seconds EARLY)
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        const pitchId = crypto.randomUUID();
+        ws.send(JSON.stringify({ 
+          type: "pitch-start", 
+          pitchId,
+          timestamp: Date.now(),
+          recordEarly: true
+        }));
+      }
     });
 
     function computeZone(x, y) {
@@ -671,10 +682,6 @@
       const pitchId = crypto.randomUUID();
       const mph = velocityValue.textContent !== "—" ? parseInt(velocityValue.textContent) : null;
 
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: "pitch-start", pitchId, timestamp: Date.now() }));
-      }
-
       if (selectedResult === "Ball") {
         totalBalls++; balls++;
         if (balls >= 4) { balls = 0; strikes = 0; }
@@ -725,9 +732,17 @@
 
       if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "pitch", ...pitchData }));
 
+      // Send pitch-end 5 seconds AFTER result is selected (5 sec recording after)
       setTimeout(() => {
-        if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "pitch-end", pitchId, timestamp: Date.now() }));
-      }, 500);
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ 
+            type: "pitch-end", 
+            pitchId, 
+            timestamp: Date.now(),
+            recordLate: true 
+          }));
+        }
+      }, 5000);
 
       selectedZone = null; selectedPitchType = null; selectedResult = null; selectedX = null; selectedY = null;
       document.querySelectorAll(".pitch-dot").forEach((d) => d.remove());
@@ -752,26 +767,46 @@
 
     document.getElementById("endSessionBtn").addEventListener("click", async () => {
       if (!confirm("End session and generate PDF report?")) return;
-      const res = await fetch(`/session/${sessionId}/close`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token })
-      });
-      const data = await res.json();
-      if (data.success) {
-        const pdfRes = await fetch(`/session/${sessionId}/download-pdf`, {
-          headers: { Authorization: `Bearer ${token}` }
+      
+      try {
+        console.log("Closing session:", sessionId);
+        
+        const res = await fetch(`/session/${sessionId}/close`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token })
         });
-        const blob = await pdfRes.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = "session.pdf";
-        link.click();
-        window.URL.revokeObjectURL(url);
-        setTimeout(() => { window.location.href = "/session-review.html"; }, 1000);
-      } else {
-        alert("Failed to end session");
+
+        const data = await res.json();
+        console.log("Close response:", data);
+
+        if (data.success) {
+          console.log("✅ Session closed, downloading PDF...");
+          
+          const pdfRes = await fetch(`/session/${sessionId}/download-pdf`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          
+          if (!pdfRes.ok) {
+            throw new Error("PDF download failed: " + pdfRes.statusText);
+          }
+          
+          const blob = await pdfRes.blob();
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = "session.pdf";
+          link.click();
+          window.URL.revokeObjectURL(url);
+          
+          setTimeout(() => { window.location.href = "/session-review.html"; }, 1000);
+        } else {
+          console.error("❌ Close failed:", data.error);
+          alert("❌ Failed to end session\n\nError: " + (data.error || "Unknown error") + "\n\nCheck browser console (F12) for details");
+        }
+      } catch (err) {
+        console.error("❌ End session error:", err);
+        alert("❌ Error: " + err.message);
       }
     });
 
@@ -792,67 +827,83 @@
 
     document.getElementById("connectRadarBtn").addEventListener("click", async () => {
       try {
+        console.log("Requesting Bluetooth device...");
+        
         const device = await navigator.bluetooth.requestDevice({
-          filters: [{ namePrefix: "Pocket" }],
-          optionalServices: ["battery_service", "device_information"]
+          acceptAllDevices: true,
+          optionalServices: [
+            "battery_service",
+            "0000180a-0000-1000-8000-00805f9b34fb",
+            "0000fff0-0000-1000-8000-00805f9b34fb"
+          ]
         });
 
-        console.log("Connecting to:", device.name);
-        const server = await device.gatt.connect();
-        
+        console.log("✅ Device selected:", device.name);
+        alert("Connecting to: " + device.name);
+
+        const gatt = await device.gatt.connect();
+        console.log("✅ GATT Connected");
+
+        const services = await gatt.getPrimaryServices();
+        console.log("📋 Available services:");
+        services.forEach(s => console.log("  -", s.uuid));
+
         try {
-          const service = await server.getPrimaryService("battery_service");
+          const service = await gatt.getPrimaryService("battery_service");
           const characteristic = await service.getCharacteristic("battery_level");
           
-          characteristic.startNotifications();
+          await characteristic.startNotifications();
           characteristic.addEventListener("characteristicvaluechanged", (event) => {
             const speed = event.target.value.getUint8(0);
-            velocityValue.textContent = speed;
-            console.log("Speed:", speed, "MPH");
-          });
-        } catch (e) {
-          console.log("GATT service not available, trying manufacturer data...");
-          throw e;
-        }
-
-        document.getElementById("connectRadarBtn").textContent = "✓ Radar Connected";
-        alert("✅ Radar connected!");
-        
-      } catch (err) {
-        console.log("GATT failed, trying manufacturer data method...");
-        
-        try {
-          const scan = await navigator.bluetooth.requestLEScan({
-            filters: [{ namePrefix: "Pocket" }],
-            keepRepeatedDevices: true
-          });
-
-          navigator.bluetooth.addEventListener("advertisementreceived", (event) => {
-            console.log("Packet received from:", event.device.name);
-            
-            if (event.manufacturerData) {
-              const data = event.manufacturerData.get(0xffff);
-              if (data && data.byteLength >= 3) {
-                const speed = data.getUint8(2);
-                if (speed > 0 && speed < 150) {
-                  velocityValue.textContent = speed;
-                  console.log("Speed:", speed, "MPH");
-                }
-              }
+            if (speed > 0 && speed < 150) {
+              velocityValue.textContent = speed;
+              console.log("🎯 Speed:", speed, "MPH");
             }
           });
-
-          document.getElementById("connectRadarBtn").textContent = "✓ Radar Scanning";
-          alert("✅ Radar scanning started! Stand near radar and throw pitches.");
           
-        } catch (err2) {
-          console.error("Both methods failed:", err, err2);
-          alert("⚠️ Could not connect to radar.\n\n" +
-            "Make sure:\n" +
-            "1. Using Safari (iOS) or Chrome (Android)\n" +
-            "2. Pocket Radar is powered ON\n" +
-            "3. Bluetooth is enabled\n" +
-            "4. Location permission is granted");
+          document.getElementById("connectRadarBtn").textContent = "✓ Radar Connected";
+          console.log("✅ Successfully listening for speed data!");
+          return;
+        } catch (e) {
+          console.log("⚠️ battery_service not available, trying first available service...");
+        }
+
+        for (const service of services) {
+          try {
+            const characteristics = await service.getCharacteristics();
+            for (const char of characteristics) {
+              if (char.properties.notify) {
+                console.log("📡 Trying characteristic:", char.uuid);
+                await char.startNotifications();
+                char.addEventListener("characteristicvaluechanged", (event) => {
+                  const value = event.target.value;
+                  if (value.byteLength > 0) {
+                    const speed = value.getUint8(0);
+                    if (speed > 0 && speed < 150) {
+                      velocityValue.textContent = speed;
+                      console.log("🎯 Speed:", speed, "MPH");
+                    }
+                  }
+                });
+                document.getElementById("connectRadarBtn").textContent = "✓ Radar Connected";
+                alert("✅ Radar connected! Throw a pitch to test.");
+                return;
+              }
+            }
+          } catch (e) {
+            console.log("Service error:", e.message);
+          }
+        }
+
+        alert("⚠️ Connected but no speed data found.\n\nCheck console (F12) for available services.\nYour radar might need a different setup.");
+
+      } catch (err) {
+        if (err.name === "NotFoundError") {
+          console.log("User cancelled Bluetooth selection");
+          alert("❌ You cancelled the device selection");
+        } else {
+          console.error("Bluetooth error:", err);
+          alert("❌ Bluetooth error: " + err.message + "\n\nMake sure:\n1. Using Safari (iOS) or Chrome (Android)\n2. Radar is powered ON\n3. Bluetooth is enabled");
         }
       }
     });

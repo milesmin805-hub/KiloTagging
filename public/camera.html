@@ -263,11 +263,11 @@
 
       <div class="info-box" style="margin-top: 12px;">
         <strong>How it works:</strong><br />
-        1. Tagger tags a pitch on the iPad<br />
+        1. Tagger clicks zone on strike zone<br />
         2. Camera automatically starts recording<br />
-        3. Tagger confirms the result<br />
-        4. Camera stops and uploads clip<br />
-        5. Clip is linked to that pitch
+        3. Tagger selects result<br />
+        4. Camera keeps recording 5 more seconds<br />
+        5. Clip is uploaded and linked to pitch
       </div>
     </div>
   </div>
@@ -394,28 +394,28 @@
     }
 
     // ===== START CAMERA STREAM =====
-  async function startCamera(deviceId) {
-  try {
-    if (currentStream) {
-      currentStream.getTracks().forEach((t) => t.stop());
+    async function startCamera(deviceId) {
+      try {
+        if (currentStream) {
+          currentStream.getTracks().forEach((t) => t.stop());
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { 
+            deviceId: deviceId ? { exact: deviceId } : undefined,
+            facingMode: { ideal: "environment" }
+          },
+          audio: false
+        });
+
+        currentStream = stream;
+        preview.srcObject = stream;
+        setupMediaRecorder();
+      } catch (err) {
+        console.error("Failed to start camera:", err);
+        alert("Could not access camera.");
+      }
     }
-
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { 
-        deviceId: deviceId ? { exact: deviceId } : undefined,
-        facingMode: { ideal: "environment" }  // ← Add this line for back camera
-      },
-      audio: false
-    });
-
-    currentStream = stream;
-    preview.srcObject = stream;
-    setupMediaRecorder();
-  } catch (err) {
-    console.error("Failed to start camera:", err);
-    alert("Could not access camera.");
-  }
-}
 
     // ===== SETUP MEDIA RECORDER =====
     function setupMediaRecorder() {
@@ -438,25 +438,36 @@
       };
     }
 
-    // ===== START RECORDING (called when tagger tags a pitch) =====
+    // ===== START RECORDING =====
     function startRecording(pitchId) {
-      if (!mediaRecorder || isRecording) return;
+      if (!mediaRecorder) {
+        console.warn("MediaRecorder not ready");
+        return;
+      }
+      
+      if (isRecording) {
+        console.warn("Already recording");
+        return;
+      }
 
       currentPitchId = pitchId;
       recordedChunks = [];
       mediaRecorder.start();
       isRecording = true;
 
-      recordingStatus.textContent = `🔴 Recording Pitch #${pitchId.slice(0, 8)}...`;
+      recordingStatus.textContent = `🔴 Recording (5 sec before + pitch + 5 sec after)...`;
       recordingStatus.classList.remove("disconnected");
       recordingStatus.classList.add("recording");
 
       console.log("Recording started for pitch:", pitchId);
     }
 
-    // ===== STOP RECORDING (called when pitch result is confirmed) =====
+    // ===== STOP RECORDING =====
     function stopRecording(pitchId) {
-      if (!mediaRecorder || !isRecording) return;
+      if (!mediaRecorder || !isRecording) {
+        console.warn("Not recording, cannot stop");
+        return;
+      }
 
       // Only stop if this is the current pitch
       if (pitchId !== currentPitchId) {
@@ -464,14 +475,17 @@
         return;
       }
 
-      mediaRecorder.stop();
-      isRecording = false;
+      // Wait a moment for the last frames to be recorded
+      setTimeout(() => {
+        mediaRecorder.stop();
+        isRecording = false;
 
-      recordingStatus.textContent = "⏳ Uploading clip...";
-      recordingStatus.classList.remove("recording");
-      recordingStatus.classList.add("disconnected");
+        recordingStatus.textContent = "⏳ Uploading clip...";
+        recordingStatus.classList.remove("recording");
+        recordingStatus.classList.add("disconnected");
 
-      console.log("Recording stopped for pitch:", pitchId);
+        console.log("Recording stopped for pitch:", pitchId);
+      }, 100);
     }
 
     // ===== UPLOAD CLIP =====
@@ -488,38 +502,53 @@
         const data = await response.json();
 
         if (data.url) {
-          // Link clip to pitch in session
-          await fetch(`/session/${sessionId}/link-clip`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token, pitchId, clipUrl: data.url })
-          });
+          recordingStatus.textContent = "⏳ Linking clip to pitch...";
 
-          // Send clip to tagger via WebSocket
-          if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(
-              JSON.stringify({
-                type: "clip",
-                pitchId: pitchId,
-                url: data.url,
-                timestamp: Date.now()
-              })
-            );
-          }
+          // WAIT 1.5 seconds for pitch to be saved in database before linking
+          setTimeout(async () => {
+            try {
+              const linkRes = await fetch(`/session/${sessionId}/link-clip`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ token, pitchId, clipUrl: data.url })
+              });
 
-          clipsRecorded++;
-          clipCountEl.textContent = clipsRecorded;
-          lastClipTimeEl.textContent = new Date().toLocaleTimeString();
+              const linkData = await linkRes.json();
+              
+              if (!linkData.success) {
+                console.error("Link clip error:", linkData.error);
+              }
 
-          recordingStatus.textContent = "✅ Clip uploaded and linked!";
-          recordingStatus.classList.remove("disconnected");
-          recordingStatus.classList.add("connected");
+              // Send clip to tagger via WebSocket
+              if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(
+                  JSON.stringify({
+                    type: "clip",
+                    pitchId: pitchId,
+                    url: data.url,
+                    timestamp: Date.now()
+                  })
+                );
+              }
 
-          setTimeout(() => {
-            recordingStatus.textContent = "⏳ Waiting for next pitch...";
-            recordingStatus.classList.remove("connected");
-            recordingStatus.classList.add("disconnected");
-          }, 3000);
+              clipsRecorded++;
+              clipCountEl.textContent = clipsRecorded;
+              lastClipTimeEl.textContent = new Date().toLocaleTimeString();
+
+              recordingStatus.textContent = "✅ Clip uploaded and linked!";
+              recordingStatus.classList.remove("disconnected");
+              recordingStatus.classList.add("connected");
+
+              setTimeout(() => {
+                recordingStatus.textContent = "⏳ Waiting for next pitch...";
+                recordingStatus.classList.remove("connected");
+                recordingStatus.classList.add("disconnected");
+              }, 3000);
+            } catch (err) {
+              console.error("Link clip error:", err);
+              recordingStatus.textContent = "❌ Failed to link clip";
+            }
+          }, 1500);
         }
       } catch (err) {
         console.error("Upload failed:", err);
