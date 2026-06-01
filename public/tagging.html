@@ -669,6 +669,8 @@
 
     async function savePitch() {
       const pitchId = crypto.randomUUID();
+      const mph = velocityValue.textContent !== "—" ? parseInt(velocityValue.textContent) : null;
+
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: "pitch-start", pitchId, timestamp: Date.now() }));
       }
@@ -687,9 +689,9 @@
       } else if (selectedResult === "Single" || selectedResult === "Double" || selectedResult === "Triple" || selectedResult === "Home Run" || selectedResult === "Other Hit") {
         // Hit - no change
       } else if (selectedResult === "Ground Out" || selectedResult === "Fly Out" || selectedResult === "Pop Out" || selectedResult === "Error" || selectedResult === "Other Out") {
-  outs++;
-  if (outs >= 3) outs = 0;  // Reset to 0 after 3 outs
-}
+        outs++;
+        if (outs >= 3) outs = 0;
+      }
 
       totalPitches++;
       let innings = Math.floor(outs / 3);
@@ -704,7 +706,17 @@
       totalBallsEl.textContent = totalBalls;
       totalStrikesEl.textContent = totalStrikes;
 
-      const pitchData = { pitchId, pitchType: selectedPitchType, zone: selectedZone, result: selectedResult, x: selectedX, y: selectedY, timestamp: Date.now() };
+      const pitchData = { 
+        pitchId, 
+        pitchType: selectedPitchType, 
+        zone: selectedZone, 
+        result: selectedResult, 
+        x: selectedX, 
+        y: selectedY,
+        mph: mph,
+        timestamp: Date.now() 
+      };
+
       await fetch(`/session/${sessionId}/pitch`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -780,17 +792,68 @@
 
     document.getElementById("connectRadarBtn").addEventListener("click", async () => {
       try {
-        const scan = await navigator.bluetooth.requestLEScan({
-          filters: [{ manufacturerData: { 0xffff: {} } }],
-          keepRepeatedDevices: true
+        const device = await navigator.bluetooth.requestDevice({
+          filters: [{ namePrefix: "Pocket" }],
+          optionalServices: ["battery_service", "device_information"]
         });
-        navigator.bluetooth.addEventListener("advertisementreceived", (event) => {
-          const data = event.manufacturerData.get(0xffff);
-          if (data) { const speed = data.getUint8(2); velocityValue.textContent = speed; }
-        });
-        alert("Radar connected!");
+
+        console.log("Connecting to:", device.name);
+        const server = await device.gatt.connect();
+        
+        try {
+          const service = await server.getPrimaryService("battery_service");
+          const characteristic = await service.getCharacteristic("battery_level");
+          
+          characteristic.startNotifications();
+          characteristic.addEventListener("characteristicvaluechanged", (event) => {
+            const speed = event.target.value.getUint8(0);
+            velocityValue.textContent = speed;
+            console.log("Speed:", speed, "MPH");
+          });
+        } catch (e) {
+          console.log("GATT service not available, trying manufacturer data...");
+          throw e;
+        }
+
+        document.getElementById("connectRadarBtn").textContent = "✓ Radar Connected";
+        alert("✅ Radar connected!");
+        
       } catch (err) {
-        alert("Radar connection failed. Use Safari on iPhone/iPad.");
+        console.log("GATT failed, trying manufacturer data method...");
+        
+        try {
+          const scan = await navigator.bluetooth.requestLEScan({
+            filters: [{ namePrefix: "Pocket" }],
+            keepRepeatedDevices: true
+          });
+
+          navigator.bluetooth.addEventListener("advertisementreceived", (event) => {
+            console.log("Packet received from:", event.device.name);
+            
+            if (event.manufacturerData) {
+              const data = event.manufacturerData.get(0xffff);
+              if (data && data.byteLength >= 3) {
+                const speed = data.getUint8(2);
+                if (speed > 0 && speed < 150) {
+                  velocityValue.textContent = speed;
+                  console.log("Speed:", speed, "MPH");
+                }
+              }
+            }
+          });
+
+          document.getElementById("connectRadarBtn").textContent = "✓ Radar Scanning";
+          alert("✅ Radar scanning started! Stand near radar and throw pitches.");
+          
+        } catch (err2) {
+          console.error("Both methods failed:", err, err2);
+          alert("⚠️ Could not connect to radar.\n\n" +
+            "Make sure:\n" +
+            "1. Using Safari (iOS) or Chrome (Android)\n" +
+            "2. Pocket Radar is powered ON\n" +
+            "3. Bluetooth is enabled\n" +
+            "4. Location permission is granted");
+        }
       }
     });
   </script>
