@@ -124,7 +124,6 @@
       margin-top: 4px;
     }
 
-    /* ===== STRIKE ZONE ===== */
     #pitchArea {
       width: 100%;
       max-width: 320px;
@@ -163,21 +162,6 @@
       border-color: rgba(34, 211, 238, 0.8);
     }
 
-    .zone-cell.active {
-      background: rgba(34, 211, 238, 0.3);
-      border-color: #22d3ee;
-    }
-
-    .zone-cell span {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 12px;
-      color: rgba(229, 231, 235, 0.5);
-      font-weight: 500;
-    }
-
     .pitch-dot {
       width: 16px;
       height: 16px;
@@ -191,7 +175,6 @@
       z-index: 10;
     }
 
-    /* ===== PITCH TYPE & RESULT BUTTONS ===== */
     .pill-row {
       display: flex;
       flex-wrap: wrap;
@@ -235,7 +218,6 @@
       font-weight: 500;
     }
 
-    /* ===== VELOCITY & CLIPS PANEL ===== */
     .velocity-display {
       border: 1px solid rgba(148, 163, 184, 0.5);
       background: rgba(15, 23, 42, 0.9);
@@ -303,7 +285,6 @@
       font-weight: 500;
     }
 
-    /* ===== GAME TRACKER (FOOTER) ===== */
     footer {
       border-top: 1px solid rgba(148, 163, 184, 0.3);
       background: radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.15), transparent 55%);
@@ -377,6 +358,66 @@
       background: rgba(239, 68, 68, 0.2);
       box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
     }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.95), #020617);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 500px;
+      text-align: center;
+    }
+
+    .modal-content h2 {
+      font-size: 20px;
+      margin-bottom: 24px;
+    }
+
+    .modal-buttons {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 12px;
+    }
+
+    .modal-btn {
+      padding: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      background: rgba(15, 23, 42, 0.9);
+      color: #e5e7eb;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.15s ease;
+    }
+
+    .modal-btn:hover {
+      border-color: rgba(56, 189, 248, 0.9);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+    }
+
+    .modal-btn.primary {
+      background: radial-gradient(circle at top left, #22d3ee, #0f172a);
+      border-color: rgba(56, 189, 248, 1);
+      color: #000;
+    }
   </style>
 </head>
 <body>
@@ -396,7 +437,6 @@
   </header>
 
   <main>
-    <!-- LEFT: STRIKEZONE -->
     <section class="card">
       <div class="card-title">
         Strikezone
@@ -418,71 +458,30 @@
       </div>
 
       <div>
-        <div class="card-title">
-          Pitch Type
-          <span>Select the pitch thrown</span>
-        </div>
+        <div class="card-title">Pitch Type<span>Select the pitch thrown</span></div>
         <div class="pill-row" id="pitchTypeRow">
-          <button class="pill" data-type="FB">
-            <span>Pitch</span>
-            <span>FB</span>
-          </button>
-          <button class="pill" data-type="SL">
-            <span>Pitch</span>
-            <span>SL</span>
-          </button>
-          <button class="pill" data-type="CH">
-            <span>Pitch</span>
-            <span>CH</span>
-          </button>
-          <button class="pill" data-type="CU">
-            <span>Pitch</span>
-            <span>CU</span>
-          </button>
-          <button class="pill" data-type="SI">
-            <span>Pitch</span>
-            <span>SI</span>
-          </button>
-          <button class="pill" data-type="CT">
-            <span>Pitch</span>
-            <span>CT</span>
-          </button>
+          <button class="pill" data-type="FB"><span>Pitch</span><span>FB</span></button>
+          <button class="pill" data-type="SL"><span>Pitch</span><span>SL</span></button>
+          <button class="pill" data-type="CH"><span>Pitch</span><span>CH</span></button>
+          <button class="pill" data-type="CU"><span>Pitch</span><span>CU</span></button>
+          <button class="pill" data-type="SI"><span>Pitch</span><span>SI</span></button>
+          <button class="pill" data-type="CT"><span>Pitch</span><span>CT</span></button>
         </div>
       </div>
 
       <div>
-        <div class="card-title">
-          Result
-          <span>What happened with the pitch</span>
-        </div>
+        <div class="card-title">Result<span>What happened with the pitch</span></div>
         <div class="pill-row" id="pitchResultRow">
-          <button class="pill" data-result="Ball">
-            <span>Result</span>
-            <span>Ball</span>
-          </button>
-          <button class="pill" data-result="Strike">
-            <span>Result</span>
-            <span>Strike</span>
-          </button>
-          <button class="pill" data-result="Foul">
-            <span>Result</span>
-            <span>Foul</span>
-          </button>
-          <button class="pill" data-result="In Play">
-            <span>Result</span>
-            <span>In Play</span>
-          </button>
+          <button class="pill" data-result="Ball"><span>Result</span><span>Ball</span></button>
+          <button class="pill" data-result="Strike"><span>Result</span><span>Strike</span></button>
+          <button class="pill" data-result="Foul"><span>Result</span><span>Foul</span></button>
+          <button class="pill" data-result="In Play"><span>Result</span><span>In Play</span></button>
         </div>
       </div>
     </section>
 
-    <!-- RIGHT: VELOCITY & CLIPS -->
     <section class="card">
-      <div class="card-title">
-        Velocity & Clips
-        <span>Live radar + incoming video</span>
-      </div>
-
+      <div class="card-title">Velocity & Clips<span>Live radar + incoming video</span></div>
       <div class="velocity-display">
         <div class="velocity-label">Live Velocity</div>
         <div class="velocity-value-row">
@@ -491,7 +490,6 @@
         </div>
         <button id="connectRadarBtn" class="btn btn-primary">Connect Radar</button>
       </div>
-
       <div>
         <div class="card-title">Incoming Clips <span><span id="clipCount">0</span> clips</span></div>
         <div id="clipsContainer" class="clips-list"></div>
@@ -499,76 +497,68 @@
     </section>
   </main>
 
-  <!-- FOOTER: GAME TRACKER -->
   <footer>
     <div class="tracker-grid">
-      <div class="tracker-pill">
-        <div class="tracker-label">Balls</div>
-        <div class="tracker-value" id="ballsCount">0</div>
-      </div>
-      <div class="tracker-pill">
-        <div class="tracker-label">Strikes</div>
-        <div class="tracker-value" id="strikesCount">0</div>
-      </div>
-      <div class="tracker-pill">
-        <div class="tracker-label">Outs</div>
-        <div class="tracker-value" id="outsCount">0</div>
-      </div>
-      <div class="tracker-pill">
-        <div class="tracker-label">IP</div>
-        <div class="tracker-value" id="inningsCount">0.0</div>
-      </div>
-      <div class="tracker-pill">
-        <div class="tracker-label">Total Pitches</div>
-        <div class="tracker-value" id="totalPitches">0</div>
-      </div>
-      <div class="tracker-pill">
-        <div class="tracker-label">Total Balls</div>
-        <div class="tracker-value" id="totalBalls">0</div>
-      </div>
-      <div class="tracker-pill">
-        <div class="tracker-label">Total Strikes</div>
-        <div class="tracker-value" id="totalStrikes">0</div>
-      </div>
-      <div class="tracker-pill">
-        <div class="tracker-label">Total Outs</div>
-        <div class="tracker-value" id="totalOuts">0</div>
-      </div>
+      <div class="tracker-pill"><div class="tracker-label">Balls</div><div class="tracker-value" id="ballsCount">0</div></div>
+      <div class="tracker-pill"><div class="tracker-label">Strikes</div><div class="tracker-value" id="strikesCount">0</div></div>
+      <div class="tracker-pill"><div class="tracker-label">Outs</div><div class="tracker-value" id="outsCount">0</div></div>
+      <div class="tracker-pill"><div class="tracker-label">IP</div><div class="tracker-value" id="inningsCount">0.0</div></div>
+      <div class="tracker-pill"><div class="tracker-label">Total Pitches</div><div class="tracker-value" id="totalPitches">0</div></div>
+      <div class="tracker-pill"><div class="tracker-label">Total Balls</div><div class="tracker-value" id="totalBalls">0</div></div>
+      <div class="tracker-pill"><div class="tracker-label">Total Strikes</div><div class="tracker-value" id="totalStrikes">0</div></div>
     </div>
-
     <div class="footer-buttons">
       <button id="endSessionBtn" class="btn btn-danger">End & Generate PDF</button>
       <button id="clearSessionBtn" class="btn">Clear Session</button>
     </div>
   </footer>
 
+  <div id="inPlayModal" class="modal">
+    <div class="modal-content">
+      <h2>In Play Result</h2>
+      <p style="color: #9ca3af; margin-bottom: 24px;">What happened?</p>
+      <div class="modal-buttons">
+        <button class="modal-btn primary" onclick="selectInPlayType('hit')">🎯 Hit</button>
+        <button class="modal-btn primary" onclick="selectInPlayType('out')">✖️ Out</button>
+        <button class="modal-btn primary" onclick="selectInPlayType('hbp')">👤 HBP</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="hitModal" class="modal">
+    <div class="modal-content">
+      <h2>Type of Hit</h2>
+      <div class="modal-buttons">
+        <button class="modal-btn" onclick="finishInPlay('Single')">Single</button>
+        <button class="modal-btn" onclick="finishInPlay('Double')">Double</button>
+        <button class="modal-btn" onclick="finishInPlay('Triple')">Triple</button>
+        <button class="modal-btn" onclick="finishInPlay('Home Run')">Home Run</button>
+        <button class="modal-btn" onclick="finishInPlay('Other Hit')">Other Hit</button>
+      </div>
+      <button class="modal-btn" style="margin-top: 12px;" onclick="closeModals()">← Back</button>
+    </div>
+  </div>
+
+  <div id="outModal" class="modal">
+    <div class="modal-content">
+      <h2>Type of Out</h2>
+      <div class="modal-buttons">
+        <button class="modal-btn" onclick="finishInPlay('Ground Out')">Ground Out</button>
+        <button class="modal-btn" onclick="finishInPlay('Fly Out')">Fly Out</button>
+        <button class="modal-btn" onclick="finishInPlay('Pop Out')">Pop Out</button>
+        <button class="modal-btn" onclick="finishInPlay('Error')">Error</button>
+        <button class="modal-btn" onclick="finishInPlay('Other Out')">Other Out</button>
+      </div>
+      <button class="modal-btn" style="margin-top: 12px;" onclick="closeModals()">← Back</button>
+    </div>
+  </div>
+
   <script>
-    // ===== STATE =====
-    let selectedZone = null;
-    let selectedX = null;
-    let selectedY = null;
-    let selectedPitchType = null;
-    let selectedResult = null;
-    let incomingClips = [];
-    let ws = null;
+    let selectedZone = null, selectedX = null, selectedY = null, selectedPitchType = null, selectedResult = null, incomingClips = [], ws = null;
+    let balls = 0, strikes = 0, outs = 0, totalPitches = 0, totalBalls = 0, totalStrikes = 0;
+    let token = null, userId = null, sessionId = null;
 
-    // ===== GAME TRACKER STATE =====
-    let balls = 0;
-    let strikes = 0;
-    let outs = 0;
-    let totalPitches = 0;
-    let totalBalls = 0;
-    let totalStrikes = 0;
-    let totalOuts = 0;
-
-    // ===== AUTH STATE =====
-    let token = null;
-    let userId = null;
-    let sessionId = null;
-
-    // ===== DOM ELEMENTS =====
     const pitchArea = document.getElementById("pitchArea");
-    const strikeZone = document.getElementById("strikeZone");
     const ballsCountEl = document.getElementById("ballsCount");
     const strikesCountEl = document.getElementById("strikesCount");
     const outsCountEl = document.getElementById("outsCount");
@@ -576,278 +566,208 @@
     const totalPitchesEl = document.getElementById("totalPitches");
     const totalBallsEl = document.getElementById("totalBalls");
     const totalStrikesEl = document.getElementById("totalStrikes");
-    const totalOutsEl = document.getElementById("totalOuts");
     const velocityValue = document.getElementById("velocityValue");
     const clipsContainer = document.getElementById("clipsContainer");
     const clipCount = document.getElementById("clipCount");
     const sessionInfo = document.getElementById("sessionInfo");
     const wsStatus = document.getElementById("wsStatus");
 
-    // ===== CHECK AUTH & SETUP =====
     window.addEventListener("load", () => {
       token = localStorage.getItem("token");
       userId = localStorage.getItem("userId");
       sessionId = localStorage.getItem("sessionId");
-
-      if (!token || !sessionId) {
-        window.location.href = "/session-select.html";
-        return;
-      }
-
+      if (!token || !sessionId) { window.location.href = "/session-select.html"; return; }
       sessionInfo.textContent = `Session ${sessionId.slice(0, 8)}...`;
-
-      // Connect WebSocket
       connectWebSocket();
     });
 
-    // ===== WEBSOCKET =====
     function connectWebSocket() {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       ws = new WebSocket(`${protocol}//${window.location.host}`);
-
       ws.addEventListener("open", () => {
         wsStatus.classList.add("connected");
-
-        // Join session
-        ws.send(
-          JSON.stringify({
-            type: "join-session",
-            sessionId,
-            userId,
-            device: "tagger"
-          })
-        );
+        ws.send(JSON.stringify({ type: "join-session", sessionId, userId, device: "tagger" }));
       });
-
-      ws.addEventListener("close", () => {
-        wsStatus.classList.remove("connected");
-      });
-
+      ws.addEventListener("close", () => { wsStatus.classList.remove("connected"); });
       ws.addEventListener("message", (event) => {
         const data = JSON.parse(event.data);
-
-        if (data.type === "velocity") {
-          velocityValue.textContent = Math.round(data.value);
-        }
-
-        if (data.type === "clip") {
-          addClip(data.url, data.pitchId);
-        }
+        if (data.type === "velocity") velocityValue.textContent = Math.round(data.value);
+        if (data.type === "clip") addClip(data.url, data.pitchId);
       });
     }
 
-    // ===== STRIKE ZONE CLICK =====
     pitchArea.addEventListener("click", (event) => {
       document.querySelectorAll(".pitch-dot").forEach((d) => d.remove());
-
       const rect = pitchArea.getBoundingClientRect();
       const x = (event.clientX - rect.left) / rect.width;
       const y = (event.clientY - rect.top) / rect.height;
-
-      selectedX = x;
-      selectedY = y;
-
+      selectedX = x; selectedY = y;
       const dot = document.createElement("div");
       dot.className = "pitch-dot";
       dot.style.left = `${x * 100}%`;
       dot.style.top = `${y * 100}%`;
       pitchArea.appendChild(dot);
-
       selectedZone = computeZone(x, y);
-      console.log("Zone:", selectedZone);
     });
 
     function computeZone(x, y) {
-      const zoneLeft = 0.2;
-      const zoneRight = 0.8;
-      const zoneTop = 0.2;
-      const zoneBottom = 0.8;
-
-      if (x < zoneLeft || x > zoneRight || y < zoneTop || y > zoneBottom) {
-        return null;
-      }
-
+      const zoneLeft = 0.2, zoneRight = 0.8, zoneTop = 0.2, zoneBottom = 0.8;
+      if (x < zoneLeft || x > zoneRight || y < zoneTop || y > zoneBottom) return null;
       const zx = Math.floor(((x - zoneLeft) / (zoneRight - zoneLeft)) * 3);
       const zy = Math.floor(((y - zoneTop) / (zoneBottom - zoneTop)) * 3);
       return zy * 3 + zx + 1;
     }
 
-    // ===== PITCH TYPE SELECTION =====
     document.querySelectorAll("#pitchTypeRow .pill").forEach((btn) => {
       btn.addEventListener("click", () => {
         const type = btn.dataset.type;
         selectedPitchType = selectedPitchType === type ? null : type;
-
         document.querySelectorAll("#pitchTypeRow .pill").forEach((b) => b.classList.remove("active"));
         if (selectedPitchType) btn.classList.add("active");
       });
     });
 
-    // ===== RESULT SELECTION =====
     document.querySelectorAll("#pitchResultRow .pill").forEach((btn) => {
       btn.addEventListener("click", () => {
         const result = btn.dataset.result;
         selectedResult = selectedResult === result ? null : result;
-
         document.querySelectorAll("#pitchResultRow .pill").forEach((b) => b.classList.remove("active"));
         if (selectedResult) btn.classList.add("active");
-
-        if (selectedResult && selectedPitchType && selectedZone !== undefined) {
-          savePitch();
+        if (selectedResult === "In Play") {
+          document.getElementById("inPlayModal").classList.add("show");
+          return;
         }
+        if (selectedResult && selectedPitchType && selectedZone !== undefined) savePitch();
       });
     });
 
-    // ===== SAVE PITCH =====
+    function selectInPlayType(type) {
+      if (type === 'hit') {
+        document.getElementById("inPlayModal").classList.remove("show");
+        document.getElementById("hitModal").classList.add("show");
+      } else if (type === 'out') {
+        document.getElementById("inPlayModal").classList.remove("show");
+        document.getElementById("outModal").classList.add("show");
+      } else if (type === 'hbp') {
+        closeModals();
+        selectedResult = "Hit By Pitch";
+        savePitch();
+      }
+    }
+
+    function finishInPlay(result) {
+      closeModals();
+      selectedResult = result;
+      savePitch();
+    }
+
+    function closeModals() {
+      document.getElementById("inPlayModal").classList.remove("show");
+      document.getElementById("hitModal").classList.remove("show");
+      document.getElementById("outModal").classList.remove("show");
+    }
+
     async function savePitch() {
       const pitchId = crypto.randomUUID();
-
-      // Signal camera to start recording
       if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(
-          JSON.stringify({
-            type: "pitch-start",
-            pitchId,
-            timestamp: Date.now()
-          })
-        );
+        ws.send(JSON.stringify({ type: "pitch-start", pitchId, timestamp: Date.now() }));
       }
 
-      // Update counts
       if (selectedResult === "Ball") {
-        totalBalls++;
-        balls++;
-        if (balls >= 4) {
-          balls = 0;
-          strikes = 0;
-        }
+        totalBalls++; balls++;
+        if (balls >= 4) { balls = 0; strikes = 0; }
       } else if (selectedResult === "Strike") {
-        totalStrikes++;
-        strikes++;
-        if (strikes >= 3) {
-          outs++;
-          strikes = 0;
-          balls = 0;
-        }
+        totalStrikes++; strikes++;
+        if (strikes >= 3) { outs++; strikes = 0; balls = 0; }
       } else if (selectedResult === "Foul") {
         totalStrikes++;
         if (strikes < 2) strikes++;
-      } else if (selectedResult === "In Play") {
-        totalStrikes++;
+      } else if (selectedResult === "Hit By Pitch") {
+        totalBalls++; balls = 0; strikes = 0;
+      } else if (selectedResult === "Single" || selectedResult === "Double" || selectedResult === "Triple" || selectedResult === "Home Run" || selectedResult === "Other Hit") {
+        // Hit - no change
+      } else if (selectedResult === "Ground Out" || selectedResult === "Fly Out" || selectedResult === "Pop Out" || selectedResult === "Error" || selectedResult === "Other Out") {
+        outs++;
       }
 
       totalPitches++;
+      let innings = Math.floor(outs / 3);
+      let inningPart = (outs % 3) / 10;
+      let ipValue = innings + inningPart;
 
-      // Update UI
       ballsCountEl.textContent = balls;
       strikesCountEl.textContent = strikes;
       outsCountEl.textContent = outs;
-      inningsCountEl.textContent = (outs / 3).toFixed(1);
+      inningsCountEl.textContent = ipValue.toFixed(1);
       totalPitchesEl.textContent = totalPitches;
       totalBallsEl.textContent = totalBalls;
       totalStrikesEl.textContent = totalStrikes;
-      totalOutsEl.textContent = totalOuts;
 
-      const pitchData = {
-        pitchId,
-        pitchType: selectedPitchType,
-        zone: selectedZone,
-        result: selectedResult,
-        x: selectedX,
-        y: selectedY,
-        timestamp: Date.now()
-      };
-
-      // Save pitch to server
+      const pitchData = { pitchId, pitchType: selectedPitchType, zone: selectedZone, result: selectedResult, x: selectedX, y: selectedY, timestamp: Date.now() };
       await fetch(`/session/${sessionId}/pitch`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, pitch: pitchData })
       });
 
-      // Broadcast pitch
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: "pitch", ...pitchData }));
-      }
+      if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "pitch", ...pitchData }));
 
-      // Signal camera to stop recording
       setTimeout(() => {
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(
-            JSON.stringify({
-              type: "pitch-end",
-              pitchId,
-              timestamp: Date.now()
-            })
-          );
-        }
+        if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "pitch-end", pitchId, timestamp: Date.now() }));
       }, 500);
 
-      // Reset UI
-      selectedZone = null;
-      selectedPitchType = null;
-      selectedResult = null;
-      selectedX = null;
-      selectedY = null;
-
+      selectedZone = null; selectedPitchType = null; selectedResult = null; selectedX = null; selectedY = null;
       document.querySelectorAll(".pitch-dot").forEach((d) => d.remove());
       document.querySelectorAll(".pill").forEach((p) => p.classList.remove("active"));
     }
 
-    // ===== ADD CLIP =====
     function addClip(url, pitchId) {
       const item = document.createElement("div");
       item.className = "clip-item";
-
       const name = document.createElement("div");
       name.className = "clip-name";
       name.textContent = pitchId ? `Pitch ${pitchId.slice(0, 8)}` : url.split("/").pop();
-
       const btn = document.createElement("button");
       btn.textContent = "Open";
       btn.addEventListener("click", () => window.open(url, "_blank"));
-
       item.appendChild(name);
       item.appendChild(btn);
       clipsContainer.prepend(item);
-
       incomingClips.push(url);
       clipCount.textContent = incomingClips.length;
     }
 
-    // ===== END SESSION & GENERATE PDF =====
     document.getElementById("endSessionBtn").addEventListener("click", async () => {
       if (!confirm("End session and generate PDF report?")) return;
-
       const res = await fetch(`/session/${sessionId}/close`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token })
       });
-
       const data = await res.json();
-
       if (data.success) {
-        // Download PDF
-        window.location.href = `/session/${sessionId}/download-pdf`;
-        
-        // Go to review page
-        setTimeout(() => {
-          window.location.href = "/session-review.html";
-        }, 1000);
+        const pdfRes = await fetch(`/session/${sessionId}/download-pdf`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const blob = await pdfRes.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "session.pdf";
+        link.click();
+        window.URL.revokeObjectURL(url);
+        setTimeout(() => { window.location.href = "/session-review.html"; }, 1000);
       } else {
         alert("Failed to end session");
       }
     });
 
-    // ===== CLEAR SESSION =====
     document.getElementById("clearSessionBtn").addEventListener("click", () => {
       balls = strikes = outs = 0;
-      totalPitches = totalBalls = totalStrikes = totalOuts = 0;
+      totalPitches = totalBalls = totalStrikes = 0;
       incomingClips = [];
       clipsContainer.innerHTML = "";
       clipCount.textContent = "0";
-
       ballsCountEl.textContent = "0";
       strikesCountEl.textContent = "0";
       outsCountEl.textContent = "0";
@@ -855,25 +775,18 @@
       totalPitchesEl.textContent = "0";
       totalBallsEl.textContent = "0";
       totalStrikesEl.textContent = "0";
-      totalOutsEl.textContent = "0";
     });
 
-    // ===== RADAR =====
     document.getElementById("connectRadarBtn").addEventListener("click", async () => {
       try {
         const scan = await navigator.bluetooth.requestLEScan({
           filters: [{ manufacturerData: { 0xffff: {} } }],
           keepRepeatedDevices: true
         });
-
         navigator.bluetooth.addEventListener("advertisementreceived", (event) => {
           const data = event.manufacturerData.get(0xffff);
-          if (data) {
-            const speed = data.getUint8(2);
-            velocityValue.textContent = speed;
-          }
+          if (data) { const speed = data.getUint8(2); velocityValue.textContent = speed; }
         });
-
         alert("Radar connected!");
       } catch (err) {
         alert("Radar connection failed. Use Safari on iPhone/iPad.");
