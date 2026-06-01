@@ -18,19 +18,6 @@ app.use(express.static(__dirname));   // Serve everything in project root
 app.use(express.json());
 
 // -------------------------------
-// SESSION STORE (NO WARNING)
-// -------------------------------
-const session = require("express-session");
-const FileStore = require("session-file-store")(session);
-
-app.use(session({
-  store: new FileStore(),
-  secret: "super-secret-key",
-  resave: false,
-  saveUninitialized: false
-}));
-
-// -------------------------------
 // DEVICE REGISTRY
 // -------------------------------
 const devices = {};   // deviceId → ws connection
