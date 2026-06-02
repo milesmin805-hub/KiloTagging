@@ -949,10 +949,18 @@ if (ws && ws.readyState === WebSocket.OPEN) {
       } else if (selectedResult === "Hit By Pitch") {
         totalBalls++; balls = 0; strikes = 0;
      } else if (selectedResult === "Single" || selectedResult === "Double" || selectedResult === "Triple" || selectedResult === "Home Run" || selectedResult === "Other Hit") {
-  // Hit - reset counts
+  // In Play Hit - counts as strike
+  totalStrikes++;
   balls = 0;
   strikes = 0;
-} else if (selectedResult === "Ground Out" || selectedResult === "Fly Out" || selectedResult === "Pop Out" || selectedResult === "Error" || selectedResult === "Other Out") {
+} else if (selectedResult === "Error") {
+  // Error - counts as strike, clear counts
+  totalStrikes++;
+  balls = 0;
+  strikes = 0;
+} else if (selectedResult === "Ground Out" || selectedResult === "Fly Out" || selectedResult === "Pop Out" || selectedResult === "Other Out") {
+  // In Play Out - counts as strike
+  totalStrikes++;
   outs++;
   if (outs >= 3) outs = 0;
   balls = 0;
