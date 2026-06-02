@@ -584,6 +584,9 @@ function generateSessionPDF(session) {
 
   doc.pipe(stream);
 
+  doc.image(path.join(__dirname, "public/images/logo.png"), 40, 30, { width: 120 });
+doc.moveDown(2);
+
   doc.fontSize(24).font("Helvetica-Bold").text("Kilo Baseball Report", { align: "center" });
   doc.fontSize(12).font("Helvetica").text(session.name, { align: "center" });
   doc.fontSize(10)
