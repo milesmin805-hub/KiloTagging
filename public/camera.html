@@ -339,12 +339,12 @@ function connectWebSocket() {
 
   console.log("Creating WebSocket:", ws);
 
-  ws.addEventListener("open", function() {
+ws.addEventListener("open", function() {
     console.log("✅ WebSocket OPEN");
     statusIndicator.textContent = "✅ WebSocket: Connected";
     statusIndicator.classList.remove("disconnected");
     statusIndicator.classList.add("connected");
-    debugLine.textContent = `Device: CAMERA | WS: ✅`;
+    debugLine.textContent = `Device: CAMERA | WS: ✅ | OPENED!`;  // Changed this line
 
     ws.send(JSON.stringify({
       type: "join-session",
