@@ -677,10 +677,11 @@
   </div>
 
   <script>
-    let selectedZone = null, selectedX = null, selectedY = null, selectedPitchType = null, selectedResult = null, incomingClips = [], ws = null;
-    let balls = 0, strikes = 0, outs = 0, totalPitches = 0, totalBalls = 0, totalStrikes = 0;
-    let token = null, userId = null, sessionId = null;
-    let sessionPitches = [];
+  let selectedZone = null, selectedX = null, selectedY = null, selectedPitchType = null, selectedResult = null, incomingClips = [], ws = null;
+let currentPitchId = null;
+let balls = 0, strikes = 0, outs = 0, totalPitches = 0, totalBalls = 0, totalStrikes = 0;
+let token = null, userId = null, sessionId = null;
+let sessionPitches = [];
 
     const pitchArea = document.getElementById("pitchArea");
     const ballsCountEl = document.getElementById("ballsCount");
@@ -846,32 +847,32 @@
       }
     }
 
-    pitchArea.addEventListener("click", (event) => {
-      document.querySelectorAll(".pitch-dot").forEach((d) => d.remove());
-      const rect = pitchArea.getBoundingClientRect();
-      const x = (event.clientX - rect.left) / rect.width;
-      const y = (event.clientY - rect.top) / rect.height;
-      selectedX = x; selectedY = y;
-      const dot = document.createElement("div");
-      dot.className = "pitch-dot";
-      dot.style.left = `${x * 100}%`;
-      dot.style.top = `${y * 100}%`;
-      pitchArea.appendChild(dot);
-      selectedZone = computeZone(x, y);
+   pitchArea.addEventListener("click", (event) => {
+  document.querySelectorAll(".pitch-dot").forEach((d) => d.remove());
+  const rect = pitchArea.getBoundingClientRect();
+  const x = (event.clientX - rect.left) / rect.width;
+  const y = (event.clientY - rect.top) / rect.height;
+  selectedX = x; selectedY = y;
+  const dot = document.createElement("div");
+  dot.className = "pitch-dot";
+  dot.style.left = `${x * 100}%`;
+  dot.style.top = `${y * 100}%`;
+  pitchArea.appendChild(dot);
+  selectedZone = computeZone(x, y);
 
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        const pitchId = crypto.randomUUID();
-        console.log("📤 Sending pitch-start:", pitchId);
-        ws.send(JSON.stringify({ 
-          type: "pitch-start", 
-          pitchId,
-          timestamp: Date.now(),
-          recordEarly: true
-        }));
-      } else {
-        console.warn("⚠️ WebSocket not open");
-      }
-    });
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    currentPitchId = crypto.randomUUID();  // CHANGE: Store it globally
+    console.log("📤 Sending pitch-start:", currentPitchId);
+    ws.send(JSON.stringify({ 
+      type: "pitch-start", 
+      pitchId: currentPitchId,  // CHANGE: Use the stored one
+      timestamp: Date.now(),
+      recordEarly: true
+    }));
+  } else {
+    console.warn("⚠️ WebSocket not open");
+  }
+});
 
     function computeZone(x, y) {
       const zoneLeft = 0.2, zoneRight = 0.8, zoneTop = 0.2, zoneBottom = 0.8;
@@ -931,8 +932,8 @@
     }
 
     async function savePitch() {
-      const pitchId = crypto.randomUUID();
-      const mph = velocityValue.textContent !== "—" ? parseInt(velocityValue.textContent) : null;
+  const pitchId = currentPitchId || crypto.randomUUID();  // CHANGE: Use stored pitchId
+  const mph = velocityValue.textContent !== "—" ? parseInt(velocityValue.textContent) : null;
 
       if (selectedResult === "Ball") {
         totalBalls++; balls++;
