@@ -734,6 +734,21 @@ wss.on("connection", (ws) => {
       clients[sessionId][deviceType] = ws;
 
       console.log(`✅ ${deviceType} joined ${sessionId.slice(0, 8)}`);
+      
+      // TEST: Send hello message to camera after 1 second
+  if (device === "camera") {
+    setTimeout(() => {
+      try {
+        ws.send(JSON.stringify({
+          type: "hello",
+          message: "Server says hello"
+        }));
+        console.log("📤 Sent HELLO to camera");
+      } catch (err) {
+        console.error("Failed to send hello:", err);
+      }
+    }, 1000);
+  }
       return;
     }
 
