@@ -351,15 +351,16 @@
         debugLine.textContent = `Device: CAMERA | WS: ❌`;
       });
 
-      ws.addEventListener("message", (event) => {
-        const data = JSON.parse(event.data);
-        console.log("📨 Camera received message type:", data.type);
+ws.addEventListener("message", (event) => {
+  const data = JSON.parse(event.data);
+  debugLine.textContent = `Device: CAMERA | WS: ✅ | Got: ${data.type}`;
+  console.log("📨 Camera received message type:", data.type);
 
-        if (data.type === "pitch-start") {
-          console.log("🎬 pitch-start received, starting recording for:", data.pitchId);
-          currentPitchId = data.pitchId;
-          startRecording(data.pitchId);
-        }
+  if (data.type === "pitch-start") {
+    console.log("🎬 pitch-start received, starting recording for:", data.pitchId);
+    currentPitchId = data.pitchId;
+    startRecording(data.pitchId);
+  }
 
         if (data.type === "pitch-end") {
           console.log("⏹️ pitch-end received, stopping recording for:", data.pitchId);
