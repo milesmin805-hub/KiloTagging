@@ -860,19 +860,21 @@ let sessionPitches = [];
   pitchArea.appendChild(dot);
   selectedZone = computeZone(x, y);
 
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    currentPitchId = crypto.randomUUID();  // CHANGE: Store it globally
-    console.log("📤 Sending pitch-start:", currentPitchId);
-    ws.send(JSON.stringify({ 
-      type: "pitch-start", 
-      pitchId: currentPitchId,  // CHANGE: Use the stored one
-      timestamp: Date.now(),
-      recordEarly: true
-    }));
-  } else {
-    console.warn("⚠️ WebSocket not open");
-  }
-});
+if (ws && ws.readyState === WebSocket.OPEN) {
+  currentPitchId = crypto.randomUUID();
+  debugLine.textContent = `Device: TAGGER | WS: ✅ | Sent pitch-start`;
+  console.log("📤 Sending pitch-start:", currentPitchId);
+  ws.send(JSON.stringify({ 
+    type: "pitch-start", 
+    pitchId: currentPitchId,
+    timestamp: Date.now(),
+    recordEarly: true
+  }));
+} else {
+  debugLine.textContent = `Device: TAGGER | WS: ❌ | Can't send`;
+  console.warn("⚠️ WebSocket not open");
+}
+    });
 
     function computeZone(x, y) {
       const zoneLeft = 0.2, zoneRight = 0.8, zoneTop = 0.2, zoneBottom = 0.8;
