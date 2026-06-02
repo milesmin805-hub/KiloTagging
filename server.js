@@ -740,13 +740,22 @@ wss.on("connection", (ws) => {
     if (!sessionId) return;
 
     // Pitch messages: tagger → camera
-    if (msg.type === "pitch-start" || msg.type === "pitch-end" || msg.type === "pitch") {
-      const camera = clients[sessionId]?.camera;
-      if (camera && camera.readyState === WebSocket.OPEN) {
-        camera.send(raw);
-      }
-      return;
-    }
+   if (msg.type === "pitch-start" || msg.type === "pitch-end" || msg.type === "pitch") {
+  const camera = clients[sessionId]?.camera;
+  console.log(`🔍 Routing ${msg.type} to camera:`, {
+    sessionId: sessionId?.slice(0, 8),
+    cameraExists: !!camera,
+    cameraReadyState: camera?.readyState,
+    availableDevices: Object.keys(clients[sessionId] || {})
+  });
+  if (camera && camera.readyState === WebSocket.OPEN) {
+    camera.send(raw);
+    console.log(`✅ Routed ${msg.type}`);
+  } else {
+    console.warn(`❌ Cannot route ${msg.type}: camera not available or not open`);
+  }
+  return;
+}
 
     // Clips: camera → tagger
     if (msg.type === "clip") {
