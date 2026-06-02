@@ -185,10 +185,19 @@ app.post("/auth/login", async (req, res) => {
       return res.json({ success: false, error: "Invalid credentials" });
     }
 
-    const token = generateToken();
-    await pool.query("UPDATE users SET token = $1 WHERE id = $2", [token, user.id]);
+   // Check if user already has a token (reuse it if they do)
+const existingToken = await pool.query(
+  "SELECT token FROM users WHERE id = $1",
+  [user.id]
+);
+const token = existingToken.rows[0]?.token || generateToken();
 
-    res.json({ success: true, token, userId: user.id, email });
+// Only update if we generated a new token
+if (!existingToken.rows[0]) {
+  await pool.query("UPDATE users SET token = $1 WHERE id = $2", [token, user.id]);
+}
+
+res.json({ success: true, token, userId: user.id, email });
   } catch (err) {
     console.error("Login error:", err);
     res.json({ success: false, error: "Login failed" });
