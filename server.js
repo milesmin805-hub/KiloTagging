@@ -185,19 +185,19 @@ app.post("/auth/login", async (req, res) => {
       return res.json({ success: false, error: "Invalid credentials" });
     }
 
-   // Check if user already has a token (reuse it if they do)
-const existingToken = await pool.query(
-  "SELECT token FROM users WHERE id = $1",
-  [user.id]
-);
-const token = existingToken.rows[0]?.token || generateToken();
+    // Check if user already has a token (reuse it if they do)
+    const existingToken = await pool.query(
+      "SELECT token FROM users WHERE id = $1",
+      [user.id]
+    );
+    const token = existingToken.rows[0]?.token || generateToken();
 
-// Only update if we generated a new token
-if (!existingToken.rows[0]) {
-  await pool.query("UPDATE users SET token = $1 WHERE id = $2", [token, user.id]);
-}
+    // Only update if we generated a new token
+    if (!existingToken.rows[0]) {
+      await pool.query("UPDATE users SET token = $1 WHERE id = $2", [token, user.id]);
+    }
 
-res.json({ success: true, token, userId: user.id, email });
+    res.json({ success: true, token, userId: user.id, email });
   } catch (err) {
     console.error("Login error:", err);
     res.json({ success: false, error: "Login failed" });
@@ -736,41 +736,41 @@ wss.on("connection", (ws) => {
       console.log(`✅ ${deviceType} joined ${sessionId.slice(0, 8)}`);
       
       // TEST: Send hello message to camera after 1 second
-  if (device === "camera") {
-    setTimeout(() => {
-      try {
-        ws.send(JSON.stringify({
-          type: "hello",
-          message: "Server says hello"
-        }));
-        console.log("📤 Sent HELLO to camera");
-      } catch (err) {
-        console.error("Failed to send hello:", err);
+      if (deviceType === "camera") {
+        setTimeout(() => {
+          try {
+            ws.send(JSON.stringify({
+              type: "hello",
+              message: "Server says hello"
+            }));
+            console.log("📤 Sent HELLO to camera");
+          } catch (err) {
+            console.error("Failed to send hello:", err);
+          }
+        }, 1000);
       }
-    }, 1000);
-  }
       return;
     }
 
     if (!sessionId) return;
 
     // Pitch messages: tagger → camera
-   if (msg.type === "pitch-start" || msg.type === "pitch-end" || msg.type === "pitch") {
-  const camera = clients[sessionId]?.camera;
-  console.log(`🔍 Routing ${msg.type} to camera:`, {
-    sessionId: sessionId?.slice(0, 8),
-    cameraExists: !!camera,
-    cameraReadyState: camera?.readyState,
-    availableDevices: Object.keys(clients[sessionId] || {})
-  });
-  if (camera && camera.readyState === WebSocket.OPEN) {
-    camera.send(raw);
-    console.log(`✅ Routed ${msg.type}`);
-  } else {
-    console.warn(`❌ Cannot route ${msg.type}: camera not available or not open`);
-  }
-  return;
-}
+    if (msg.type === "pitch-start" || msg.type === "pitch-end" || msg.type === "pitch") {
+      const camera = clients[sessionId]?.camera;
+      console.log(`🔍 Routing ${msg.type} to camera:`, {
+        sessionId: sessionId?.slice(0, 8),
+        cameraExists: !!camera,
+        cameraReadyState: camera?.readyState,
+        availableDevices: Object.keys(clients[sessionId] || {})
+      });
+      if (camera && camera.readyState === WebSocket.OPEN) {
+        camera.send(raw);
+        console.log(`✅ Routed ${msg.type}`);
+      } else {
+        console.warn(`❌ Cannot route ${msg.type}: camera not available or not open`);
+      }
+      return;
+    }
 
     // Clips: camera → tagger
     if (msg.type === "clip") {
