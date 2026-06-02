@@ -256,7 +256,7 @@ app.get("/session/list", async (req, res) => {
 
 app.get("/session/:sessionId", async (req, res) => {
   const { sessionId } = req.params;
-  const token = req.headers.authorization?.split(" ")[1];
+  const token = req.headers.authorization?.split(" ")[1] || req.query.token;
   const user = await verifyToken(token);
 
   if (!user) {
