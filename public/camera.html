@@ -306,6 +306,17 @@
     const sessionInfo = document.getElementById("sessionInfo");
     const debugLine = document.getElementById("debugLine");
 
+        const messageLog = [];
+    const logBox = document.createElement("div");
+    logBox.style.cssText = "position:fixed;bottom:0;left:0;right:0;background:#000;color:#0f0;font-size:10px;padding:4px;max-height:100px;overflow-y:auto;font-family:monospace;z-index:9999;";
+    document.body.appendChild(logBox);
+
+    function addLog(msg) {
+      messageLog.push(msg);
+      if (messageLog.length > 10) messageLog.shift();
+      logBox.textContent = messageLog.join("\n");
+    }
+
     window.addEventListener("load", () => {
       token = localStorage.getItem("token");
       userId = localStorage.getItem("userId");
@@ -346,6 +357,7 @@
 
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
+        addLog(`📨 Got: ${data.type}`);
         debugLine.textContent = `Device: CAMERA | WS: ✅ | Got: ${data.type}`;
         console.log("📨 Camera received message type:", data.type);
 
