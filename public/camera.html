@@ -64,7 +64,15 @@
     }
 
     .session-info {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
       font-size: 12px;
+      color: #9ca3af;
+    }
+
+    .debug-line {
+      font-size: 10px;
       color: #9ca3af;
     }
 
@@ -220,7 +228,10 @@
         <div class="subtitle">Baseball Pitch Recording</div>
       </div>
     </div>
-    <div class="session-info" id="sessionInfo"></div>
+    <div class="session-info">
+      <div id="sessionInfo"></div>
+      <div class="debug-line" id="debugLine"></div>
+    </div>
   </header>
 
   <div class="container">
@@ -281,12 +292,10 @@
     let clipsRecorded = 0;
     let ws = null;
 
-    // ===== AUTH STATE =====
     let token = null;
     let userId = null;
     let sessionId = null;
 
-    // ===== DOM ELEMENTS =====
     const preview = document.getElementById("preview");
     const cameraSelect = document.getElementById("cameraSelect");
     const initCameraBtn = document.getElementById("initCameraBtn");
@@ -295,8 +304,8 @@
     const clipCountEl = document.getElementById("clipCount");
     const lastClipTimeEl = document.getElementById("lastClipTime");
     const sessionInfo = document.getElementById("sessionInfo");
+    const debugLine = document.getElementById("debugLine");
 
-    // ===== CHECK AUTH & SETUP =====
     window.addEventListener("load", () => {
       token = localStorage.getItem("token");
       userId = localStorage.getItem("userId");
@@ -307,13 +316,12 @@
         return;
       }
 
-      sessionInfo.textContent = `Session ${sessionId.slice(0, 8)}...`;
+      sessionInfo.textContent = `Session: ${sessionId.slice(0, 8)}`;
+      debugLine.textContent = `Device: CAMERA`;
 
-      // Connect WebSocket
       connectWebSocket();
     });
 
-    // ===== WEBSOCKET CONNECTION =====
     function connectWebSocket() {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       ws = new WebSocket(`${protocol}//${window.location.host}`);
@@ -322,8 +330,8 @@
         statusIndicator.textContent = "✅ WebSocket: Connected";
         statusIndicator.classList.remove("disconnected");
         statusIndicator.classList.add("connected");
+        debugLine.textContent = `Device: CAMERA | WS: ✅`;
 
-        // Join session
         ws.send(
           JSON.stringify({
             type: "join-session",
@@ -333,32 +341,37 @@
           })
         );
 
-        console.log("Camera device identified");
+        console.log("✅ Camera WebSocket opened, sent join-session with device: camera");
       });
 
       ws.addEventListener("close", () => {
         statusIndicator.textContent = "❌ WebSocket: Disconnected";
         statusIndicator.classList.add("disconnected");
         statusIndicator.classList.remove("connected");
+        debugLine.textContent = `Device: CAMERA | WS: ❌`;
       });
 
       ws.addEventListener("message", (event) => {
         const data = JSON.parse(event.data);
+        console.log("📨 Camera received message type:", data.type);
 
-        // Listen for pitch start from tagger
         if (data.type === "pitch-start") {
+          console.log("🎬 pitch-start received, starting recording for:", data.pitchId);
           currentPitchId = data.pitchId;
           startRecording(data.pitchId);
         }
 
-        // Listen for pitch end from tagger
         if (data.type === "pitch-end") {
+          console.log("⏹️ pitch-end received, stopping recording for:", data.pitchId);
           stopRecording(data.pitchId);
         }
       });
+
+      ws.addEventListener("error", (err) => {
+        console.error("❌ WebSocket error:", err);
+      });
     }
 
-    // ===== CAMERA PERMISSION =====
     async function requestCameraPermission() {
       try {
         await navigator.mediaDevices.getUserMedia({ video: true });
@@ -370,7 +383,6 @@
       }
     }
 
-    // ===== LOAD CAMERA DEVICES =====
     async function loadCameras() {
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
@@ -393,7 +405,6 @@
       }
     }
 
-    // ===== START CAMERA STREAM =====
     async function startCamera(deviceId) {
       try {
         if (currentStream) {
@@ -417,7 +428,6 @@
       }
     }
 
-    // ===== SETUP MEDIA RECORDER =====
     function setupMediaRecorder() {
       if (!currentStream) return;
 
@@ -438,7 +448,6 @@
       };
     }
 
-    // ===== START RECORDING =====
     function startRecording(pitchId) {
       if (!mediaRecorder) {
         console.warn("MediaRecorder not ready");
@@ -455,27 +464,24 @@
       mediaRecorder.start();
       isRecording = true;
 
-      recordingStatus.textContent = `🔴 Recording (5 sec before + pitch + 5 sec after)...`;
+      recordingStatus.textContent = `🔴 Recording...`;
       recordingStatus.classList.remove("disconnected");
       recordingStatus.classList.add("recording");
 
-      console.log("Recording started for pitch:", pitchId);
+      console.log("🎥 Recording started for pitch:", pitchId);
     }
 
-    // ===== STOP RECORDING =====
     function stopRecording(pitchId) {
       if (!mediaRecorder || !isRecording) {
         console.warn("Not recording, cannot stop");
         return;
       }
 
-      // Only stop if this is the current pitch
       if (pitchId !== currentPitchId) {
         console.warn("Pitch ID mismatch:", pitchId, currentPitchId);
         return;
       }
 
-      // Wait a moment for the last frames to be recorded
       setTimeout(() => {
         mediaRecorder.stop();
         isRecording = false;
@@ -488,25 +494,28 @@
       }, 100);
     }
 
-    // ===== UPLOAD CLIP =====
     async function uploadClip(blob, pitchId) {
       try {
         const formData = new FormData();
         formData.append("clip", blob, `clip_${pitchId.slice(0, 8)}.webm`);
 
+        console.log("📤 Uploading clip...");
+        
         const response = await fetch("/uploadClip", {
           method: "POST",
           body: formData
         });
 
         const data = await response.json();
+        console.log("Upload response:", data);
 
         if (data.url) {
-          recordingStatus.textContent = "⏳ Linking clip to pitch...";
+          recordingStatus.textContent = "⏳ Linking clip...";
 
-          // WAIT 1.5 seconds for pitch to be saved in database before linking
           setTimeout(async () => {
             try {
+              console.log("🔗 Linking clip to pitch:", pitchId);
+              
               const linkRes = await fetch(`/session/${sessionId}/link-clip`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -514,28 +523,33 @@
               });
 
               const linkData = await linkRes.json();
+              console.log("Link response:", linkData);
               
               if (!linkData.success) {
-                console.error("Link clip error:", linkData.error);
+                console.error("Link failed:", linkData.error);
+                recordingStatus.textContent = "❌ Link clip failed";
+                return;
               }
 
-              // Send clip to tagger via WebSocket
+              console.log("✅ Clip linked, sending via WebSocket...");
+
               if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(
-                  JSON.stringify({
-                    type: "clip",
-                    pitchId: pitchId,
-                    url: data.url,
-                    timestamp: Date.now()
-                  })
-                );
+                ws.send(JSON.stringify({
+                  type: "clip",
+                  pitchId: pitchId,
+                  url: data.url,
+                  timestamp: Date.now()
+                }));
+                console.log("📤 Clip message sent via WebSocket");
+              } else {
+                console.error("❌ WebSocket not open, state:", ws?.readyState);
               }
 
               clipsRecorded++;
               clipCountEl.textContent = clipsRecorded;
               lastClipTimeEl.textContent = new Date().toLocaleTimeString();
 
-              recordingStatus.textContent = "✅ Clip uploaded and linked!";
+              recordingStatus.textContent = "✅ Clip done!";
               recordingStatus.classList.remove("disconnected");
               recordingStatus.classList.add("connected");
 
@@ -544,20 +558,20 @@
                 recordingStatus.classList.remove("connected");
                 recordingStatus.classList.add("disconnected");
               }, 3000);
+
             } catch (err) {
-              console.error("Link clip error:", err);
-              recordingStatus.textContent = "❌ Failed to link clip";
+              console.error("❌ Link clip error:", err);
+              recordingStatus.textContent = "❌ Link failed";
             }
-          }, 1500);
+          }, 500);
         }
       } catch (err) {
-        console.error("Upload failed:", err);
+        console.error("❌ Upload error:", err);
         recordingStatus.textContent = "❌ Upload failed";
         recordingStatus.classList.add("disconnected");
       }
     }
 
-    // ===== BUTTON HANDLERS =====
     initCameraBtn.addEventListener("click", async () => {
       const hasPermission = await requestCameraPermission();
       if (hasPermission) {
@@ -570,7 +584,6 @@
       startCamera(e.target.value);
     });
 
-    // Auto-request permission on load
     window.addEventListener("load", async () => {
       const hasPermission = await requestCameraPermission();
       if (hasPermission) {

@@ -62,6 +62,8 @@
       align-items: center;
       gap: 16px;
       font-size: 12px;
+      flex-direction: column;
+      align-items: flex-end;
     }
 
     .ws-status {
@@ -81,6 +83,11 @@
     @keyframes pulse {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.5; }
+    }
+
+    .debug-line {
+      font-size: 10px;
+      color: #9ca3af;
     }
 
     main {
@@ -518,8 +525,11 @@
     </div>
 
     <div class="session-info">
-      <span class="ws-status" id="wsStatus"></span>
-      <span id="sessionInfo"></span>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="ws-status" id="wsStatus"></span>
+        <span id="sessionInfo"></span>
+      </div>
+      <div class="debug-line" id="debugLine"></div>
     </div>
   </header>
 
@@ -687,13 +697,15 @@
     const previousPitchesContainer = document.getElementById("previousPitchesContainer");
     const sessionInfo = document.getElementById("sessionInfo");
     const wsStatus = document.getElementById("wsStatus");
+    const debugLine = document.getElementById("debugLine");
 
     window.addEventListener("load", () => {
       token = localStorage.getItem("token");
       userId = localStorage.getItem("userId");
       sessionId = localStorage.getItem("sessionId");
       if (!token || !sessionId) { window.location.href = "/session-select.html"; return; }
-      sessionInfo.textContent = `Session ${sessionId.slice(0, 8)}...`;
+      sessionInfo.textContent = `Session: ${sessionId.slice(0, 8)}`;
+      debugLine.textContent = `Device: TAGGER`;
       connectWebSocket();
       loadSessionPitches();
     });
@@ -703,13 +715,21 @@
       ws = new WebSocket(`${protocol}//${window.location.host}`);
       ws.addEventListener("open", () => {
         wsStatus.classList.add("connected");
+        debugLine.textContent = `Device: TAGGER | WS: ✅`;
         ws.send(JSON.stringify({ type: "join-session", sessionId, userId, device: "tagger" }));
+        console.log("✅ Tagger WebSocket opened");
       });
-      ws.addEventListener("close", () => { wsStatus.classList.remove("connected"); });
+      ws.addEventListener("close", () => { 
+        wsStatus.classList.remove("connected");
+        debugLine.textContent = `Device: TAGGER | WS: ❌`;
+      });
       ws.addEventListener("message", (event) => {
         const data = JSON.parse(event.data);
         if (data.type === "velocity") velocityValue.textContent = Math.round(data.value);
         if (data.type === "clip") addClip(data.url, data.pitchId);
+      });
+      ws.addEventListener("error", (err) => {
+        console.error("WebSocket error:", err);
       });
     }
 
@@ -736,9 +756,7 @@
 
     async function loadSessionPitches() {
       try {
-        const res = await fetch(`/session/${sessionId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await fetch(`/session/${sessionId}?token=${token}`);
         const data = await res.json();
         if (data.pitches) {
           sessionPitches = data.pitches;
@@ -843,12 +861,15 @@
 
       if (ws && ws.readyState === WebSocket.OPEN) {
         const pitchId = crypto.randomUUID();
+        console.log("📤 Sending pitch-start:", pitchId);
         ws.send(JSON.stringify({ 
           type: "pitch-start", 
           pitchId,
           timestamp: Date.now(),
           recordEarly: true
         }));
+      } else {
+        console.warn("⚠️ WebSocket not open");
       }
     });
 
@@ -968,6 +989,7 @@
 
       setTimeout(() => {
         if (ws && ws.readyState === WebSocket.OPEN) {
+          console.log("📤 Sending pitch-end:", pitchId);
           ws.send(JSON.stringify({ 
             type: "pitch-end", 
             pitchId, 
@@ -1002,8 +1024,6 @@
       if (!confirm("End session and generate PDF report?")) return;
       
       try {
-        console.log("Closing session:", sessionId);
-        
         const res = await fetch(`/session/${sessionId}/close`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1011,17 +1031,14 @@
         });
 
         const data = await res.json();
-        console.log("Close response:", data);
 
         if (data.success) {
-          console.log("✅ Session closed, downloading PDF...");
-          
           const pdfRes = await fetch(`/session/${sessionId}/download-pdf`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           
           if (!pdfRes.ok) {
-            throw new Error("PDF download failed: " + pdfRes.statusText);
+            throw new Error("PDF download failed");
           }
           
           const blob = await pdfRes.blob();
@@ -1034,12 +1051,10 @@
           
           setTimeout(() => { window.location.href = "/session-review.html"; }, 1000);
         } else {
-          console.error("❌ Close failed:", data.error);
-          alert("❌ Failed to end session\n\nError: " + (data.error || "Unknown error") + "\n\nCheck browser console (F12) for details");
+          alert("Failed to end session: " + data.error);
         }
       } catch (err) {
-        console.error("❌ End session error:", err);
-        alert("❌ Error: " + err.message);
+        alert("Error: " + err.message);
       }
     });
 
@@ -1060,8 +1075,6 @@
 
     document.getElementById("connectRadarBtn").addEventListener("click", async () => {
       try {
-        console.log("Requesting Bluetooth device...");
-        
         const device = await navigator.bluetooth.requestDevice({
           acceptAllDevices: true,
           optionalServices: [
@@ -1071,15 +1084,8 @@
           ]
         });
 
-        console.log("✅ Device selected:", device.name);
-        alert("Connecting to: " + device.name);
-
         const gatt = await device.gatt.connect();
-        console.log("✅ GATT Connected");
-
         const services = await gatt.getPrimaryServices();
-        console.log("📋 Available services:");
-        services.forEach(s => console.log("  -", s.uuid));
 
         try {
           const service = await gatt.getPrimaryService("battery_service");
@@ -1090,15 +1096,13 @@
             const speed = event.target.value.getUint8(0);
             if (speed > 0 && speed < 150) {
               velocityValue.textContent = speed;
-              console.log("🎯 Speed:", speed, "MPH");
             }
           });
           
           document.getElementById("connectRadarBtn").textContent = "✓ Radar Connected";
-          console.log("✅ Successfully listening for speed data!");
           return;
         } catch (e) {
-          console.log("⚠️ battery_service not available, trying first available service...");
+          // Try other services
         }
 
         for (const service of services) {
@@ -1106,7 +1110,6 @@
             const characteristics = await service.getCharacteristics();
             for (const char of characteristics) {
               if (char.properties.notify) {
-                console.log("📡 Trying characteristic:", char.uuid);
                 await char.startNotifications();
                 char.addEventListener("characteristicvaluechanged", (event) => {
                   const value = event.target.value;
@@ -1114,30 +1117,22 @@
                     const speed = value.getUint8(0);
                     if (speed > 0 && speed < 150) {
                       velocityValue.textContent = speed;
-                      console.log("🎯 Speed:", speed, "MPH");
                     }
                   }
                 });
                 document.getElementById("connectRadarBtn").textContent = "✓ Radar Connected";
-                alert("✅ Radar connected! Throw a pitch to test.");
                 return;
               }
             }
           } catch (e) {
-            console.log("Service error:", e.message);
+            // Continue
           }
         }
 
-        alert("⚠️ Connected but no speed data found.\n\nCheck console (F12) for available services.\nYour radar might need a different setup.");
+        alert("Could not find radar speed data");
 
       } catch (err) {
-        if (err.name === "NotFoundError") {
-          console.log("User cancelled Bluetooth selection");
-          alert("❌ You cancelled the device selection");
-        } else {
-          console.error("Bluetooth error:", err);
-          alert("❌ Bluetooth error: " + err.message + "\n\nMake sure:\n1. Using Safari (iOS) or Chrome (Android)\n2. Radar is powered ON\n3. Bluetooth is enabled");
-        }
+        alert("Bluetooth error: " + err.message);
       }
     });
   </script>
