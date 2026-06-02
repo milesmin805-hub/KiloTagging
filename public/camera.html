@@ -322,56 +322,51 @@
       connectWebSocket();
     });
 
-    function connectWebSocket() {
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      ws = new WebSocket(`${protocol}//${window.location.host}`);
+ws.onopen = () => {
+    statusIndicator.textContent = "✅ WebSocket: Connected";
+    statusIndicator.classList.remove("disconnected");
+    statusIndicator.classList.add("connected");
+    debugLine.textContent = `Device: CAMERA | WS: ✅`;
 
-      ws.addEventListener("open", () => {
-        statusIndicator.textContent = "✅ WebSocket: Connected";
-        statusIndicator.classList.remove("disconnected");
-        statusIndicator.classList.add("connected");
-        debugLine.textContent = `Device: CAMERA | WS: ✅`;
+    ws.send(
+      JSON.stringify({
+        type: "join-session",
+        sessionId,
+        userId,
+        device: "camera"
+      })
+    );
 
-        ws.send(
-          JSON.stringify({
-            type: "join-session",
-            sessionId,
-            userId,
-            device: "camera"
-          })
-        );
+    console.log("✅ Camera WebSocket opened, sent join-session with device: camera");
+  };
 
-        console.log("✅ Camera WebSocket opened, sent join-session with device: camera");
-      });
+  ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    debugLine.textContent = `Device: CAMERA | WS: ✅ | Got: ${data.type}`;
+    console.log("📨 Camera received message type:", data.type);
 
-      ws.addEventListener("close", () => {
-        statusIndicator.textContent = "❌ WebSocket: Disconnected";
-        statusIndicator.classList.add("disconnected");
-        statusIndicator.classList.remove("connected");
-        debugLine.textContent = `Device: CAMERA | WS: ❌`;
-      });
-
-ws.addEventListener("message", (event) => {
-  const data = JSON.parse(event.data);
-  debugLine.textContent = `Device: CAMERA | WS: ✅ | Got: ${data.type}`;
-  console.log("📨 Camera received message type:", data.type);
-
-  if (data.type === "pitch-start") {
-    console.log("🎬 pitch-start received, starting recording for:", data.pitchId);
-    currentPitchId = data.pitchId;
-    startRecording(data.pitchId);
-  }
-
-        if (data.type === "pitch-end") {
-          console.log("⏹️ pitch-end received, stopping recording for:", data.pitchId);
-          stopRecording(data.pitchId);
-        }
-      });
-
-      ws.addEventListener("error", (err) => {
-        console.error("❌ WebSocket error:", err);
-      });
+    if (data.type === "pitch-start") {
+      console.log("🎬 pitch-start received, starting recording for:", data.pitchId);
+      currentPitchId = data.pitchId;
+      startRecording(data.pitchId);
     }
+
+    if (data.type === "pitch-end") {
+      console.log("⏹️ pitch-end received, stopping recording for:", data.pitchId);
+      stopRecording(data.pitchId);
+    }
+  };
+
+  ws.onerror = (err) => {
+    console.error("❌ WebSocket error:", err);
+  };
+
+  ws.onclose = () => {
+    statusIndicator.textContent = "❌ WebSocket: Disconnected";
+    statusIndicator.classList.add("disconnected");
+    statusIndicator.classList.remove("connected");
+    debugLine.textContent = `Device: CAMERA | WS: ❌`;
+  };
 
     async function requestCameraPermission() {
       try {
