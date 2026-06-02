@@ -946,12 +946,16 @@ let sessionPitches = [];
         if (strikes < 2) strikes++;
       } else if (selectedResult === "Hit By Pitch") {
         totalBalls++; balls = 0; strikes = 0;
-      } else if (selectedResult === "Single" || selectedResult === "Double" || selectedResult === "Triple" || selectedResult === "Home Run" || selectedResult === "Other Hit") {
-        // Hit - no change
-      } else if (selectedResult === "Ground Out" || selectedResult === "Fly Out" || selectedResult === "Pop Out" || selectedResult === "Error" || selectedResult === "Other Out") {
-        outs++;
-        if (outs >= 3) outs = 0;
-      }
+     } else if (selectedResult === "Single" || selectedResult === "Double" || selectedResult === "Triple" || selectedResult === "Home Run" || selectedResult === "Other Hit") {
+  // Hit - reset counts
+  balls = 0;
+  strikes = 0;
+} else if (selectedResult === "Ground Out" || selectedResult === "Fly Out" || selectedResult === "Pop Out" || selectedResult === "Error" || selectedResult === "Other Out") {
+  outs++;
+  if (outs >= 3) outs = 0;
+  balls = 0;
+  strikes = 0;
+}
 
       totalPitches++;
       updateInnings();
