@@ -182,6 +182,32 @@
       z-index: 10;
     }
 
+    .target-dot {
+      width: 16px;
+      height: 16px;
+      background: #3b82f6;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      position: absolute;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.8);
+      z-index: 10;
+    }
+
+    .dot-indicator {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(0, 0, 0, 0.6);
+      color: #e5e7eb;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      z-index: 5;
+    }
+
     .pill-row {
       display: flex;
       flex-wrap: wrap;
@@ -677,8 +703,10 @@
   </div>
 
   <script>
-  let selectedZone = null, selectedX = null, selectedY = null, selectedPitchType = null, selectedResult = null, incomingClips = [], ws = null;
+let selectedZone = null, selectedX = null, selectedY = null, selectedPitchType = null, selectedResult = null, incomingClips = [], ws = null;
 let currentPitchId = null;
+let targetX = null, targetY = null;
+let dotStep = 0;
 let balls = 0, strikes = 0, outs = 0, totalPitches = 0, totalBalls = 0, totalStrikes = 0;
 let token = null, userId = null, sessionId = null;
 let sessionPitches = [];
@@ -734,19 +762,41 @@ let sessionPitches = [];
       });
     }
 
-    function adjustCount(type, delta) {
-      if (type === 'balls') {
-        balls = Math.max(0, Math.min(3, balls + delta));
-        ballsCountEl.textContent = balls;
-      } else if (type === 'strikes') {
-        strikes = Math.max(0, Math.min(2, strikes + delta));
-        strikesCountEl.textContent = strikes;
-      } else if (type === 'outs') {
-        outs = Math.max(0, outs + delta);
-        outsCountEl.textContent = outs;
-        updateInnings();
-      }
-    }
+function adjustCount(type, delta) {
+  if (type === 'balls') {
+    balls = Math.max(0, Math.min(3, balls + delta));
+    ballsCountEl.textContent = balls;
+  } else if (type === 'strikes') {
+    strikes = Math.max(0, Math.min(2, strikes + delta));
+    strikesCountEl.textContent = strikes;
+  } else if (type === 'outs') {
+    outs = Math.max(0, outs + delta);
+    outsCountEl.textContent = outs;
+    updateInnings();
+  }
+  sendCountUpdate();
+}
+
+function sendCountUpdate() {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({
+      type: "count-update",
+      balls: balls,
+      strikes: strikes,
+      outs: outs,
+      totalPitches: totalPitches,
+      totalBalls: totalBalls,
+      totalStrikes: totalStrikes,
+      innings: calculateInnings()
+    }));
+  }
+}
+
+function calculateInnings() {
+  let innings = Math.floor(outs / 3);
+  let inningPart = (outs % 3) / 10;
+  return innings + inningPart;
+}
 
     function updateInnings() {
       let innings = Math.floor(outs / 3);
@@ -847,34 +897,64 @@ let sessionPitches = [];
       }
     }
 
-   pitchArea.addEventListener("click", (event) => {
-  document.querySelectorAll(".pitch-dot").forEach((d) => d.remove());
+pitchArea.addEventListener("click", (event) => {
   const rect = pitchArea.getBoundingClientRect();
   const x = (event.clientX - rect.left) / rect.width;
   const y = (event.clientY - rect.top) / rect.height;
-  selectedX = x; selectedY = y;
-  const dot = document.createElement("div");
-  dot.className = "pitch-dot";
-  dot.style.left = `${x * 100}%`;
-  dot.style.top = `${y * 100}%`;
-  pitchArea.appendChild(dot);
-  selectedZone = computeZone(x, y);
 
-if (ws && ws.readyState === WebSocket.OPEN) {
-  currentPitchId = crypto.randomUUID();
-  debugLine.textContent = `Device: TAGGER | WS: ✅ | Sent pitch-start`;
-  console.log("📤 Sending pitch-start:", currentPitchId);
-  ws.send(JSON.stringify({ 
-    type: "pitch-start", 
-    pitchId: currentPitchId,
-    timestamp: Date.now(),
-    recordEarly: true
-  }));
-} else {
-  debugLine.textContent = `Device: TAGGER | WS: ❌ | Can't send`;
-  console.warn("⚠️ WebSocket not open");
-}
-    });
+  if (dotStep === 0) {
+    // Place RED dot (actual pitch)
+    document.querySelectorAll(".pitch-dot, .target-dot").forEach((d) => d.remove());
+    selectedX = x;
+    selectedY = y;
+    const dot = document.createElement("div");
+    dot.className = "pitch-dot";
+    dot.style.left = `${x * 100}%`;
+    dot.style.top = `${y * 100}%`;
+    pitchArea.appendChild(dot);
+    selectedZone = computeZone(x, y);
+    dotStep = 1;
+    updateDotIndicator();
+
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      currentPitchId = crypto.randomUUID();
+      debugLine.textContent = `Device: TAGGER | WS: ✅ | Sent pitch-start`;
+      console.log("📤 Sending pitch-start:", currentPitchId);
+      ws.send(JSON.stringify({ 
+        type: "pitch-start", 
+        pitchId: currentPitchId,
+        timestamp: Date.now(),
+        recordEarly: true
+      }));
+    } else {
+      debugLine.textContent = `Device: TAGGER | WS: ❌ | Can't send`;
+      console.warn("⚠️ WebSocket not open");
+    }
+
+  } else if (dotStep === 1) {
+    // Place BLUE dot (target/catcher setup)
+    targetX = x;
+    targetY = y;
+    const dot = document.createElement("div");
+    dot.className = "target-dot";
+    dot.style.left = `${x * 100}%`;
+    dot.style.top = `${y * 100}%`;
+    pitchArea.appendChild(dot);
+    dotStep = 2;
+    updateDotIndicator();
+
+  } else if (dotStep === 2) {
+    // Clear both dots, reset
+    document.querySelectorAll(".pitch-dot, .target-dot").forEach((d) => d.remove());
+    selectedX = null;
+    selectedY = null;
+    targetX = null;
+    targetY = null;
+    selectedZone = null;
+    dotStep = 0;
+    updateDotIndicator();
+  }
+});
 
     function computeZone(x, y) {
       const zoneLeft = 0.2, zoneRight = 0.8, zoneTop = 0.2, zoneBottom = 0.8;
@@ -906,6 +986,24 @@ if (ws && ws.readyState === WebSocket.OPEN) {
         if (selectedResult && selectedPitchType && selectedZone !== undefined) savePitch();
       });
     });
+
+    function updateDotIndicator() {
+  let existing = document.querySelector(".dot-indicator");
+  if (existing) existing.remove();
+
+  const indicator = document.createElement("div");
+  indicator.className = "dot-indicator";
+  
+  if (dotStep === 0) {
+    indicator.textContent = "Click for Red (Pitch)";
+  } else if (dotStep === 1) {
+    indicator.textContent = "Click for Blue (Target)";
+  } else if (dotStep === 2) {
+    indicator.textContent = "Click to Clear";
+  }
+  
+  pitchArea.appendChild(indicator);
+}
 
     function selectInPlayType(type) {
       if (type === 'hit') {
@@ -977,16 +1075,18 @@ if (ws && ws.readyState === WebSocket.OPEN) {
       totalBallsEl.textContent = totalBalls;
       totalStrikesEl.textContent = totalStrikes;
 
-      const pitchData = { 
-        pitchId, 
-        pitchType: selectedPitchType, 
-        zone: selectedZone, 
-        result: selectedResult, 
-        x: selectedX, 
-        y: selectedY,
-        mph: mph,
-        timestamp: Date.now() 
-      };
+     const pitchData = { 
+  pitchId, 
+  pitchType: selectedPitchType, 
+  zone: selectedZone, 
+  result: selectedResult, 
+  x: selectedX, 
+  y: selectedY,
+  target_x: targetX,
+  target_y: targetY,
+  mph: mph,
+  timestamp: Date.now() 
+};
 
       const saveRes = await fetch(`/session/${sessionId}/pitch`, {
         method: "POST",
@@ -1014,6 +1114,8 @@ if (ws && ws.readyState === WebSocket.OPEN) {
         }
       }, 5000);
 
+            sendCountUpdate();
+            
       selectedZone = null; selectedPitchType = null; selectedResult = null; selectedX = null; selectedY = null;
       document.querySelectorAll(".pitch-dot").forEach((d) => d.remove());
       document.querySelectorAll(".pill").forEach((p) => p.classList.remove("active"));
