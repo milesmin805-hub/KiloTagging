@@ -1024,7 +1024,8 @@ if (ws && ws.readyState === WebSocket.OPEN) {
       item.className = "clip-item";
       const name = document.createElement("div");
       name.className = "clip-name";
-      name.textContent = pitchId ? `Pitch ${pitchId.slice(0, 8)}` : url.split("/").pop();
+      const clipNumber = incomingClips.length + 1;
+name.textContent = `Pitch ${clipNumber}`;
       const btn = document.createElement("button");
       btn.textContent = "Open";
       btn.addEventListener("click", () => window.open(url, "_blank"));
