@@ -767,7 +767,7 @@ wss.on("connection", (ws) => {
         availableDevices: Object.keys(clients[sessionId] || {})
       });
       if (camera && camera.readyState === WebSocket.OPEN) {
-        camera.send(raw);
+        camera.send(JSON.stringify(msg));
         console.log(`✅ Routed ${msg.type}`);
       } else {
         console.warn(`❌ Cannot route ${msg.type}: camera not available or not open`);
@@ -779,7 +779,7 @@ wss.on("connection", (ws) => {
     if (msg.type === "clip") {
       const tagger = clients[sessionId]?.tagger;
       if (tagger && tagger.readyState === WebSocket.OPEN) {
-        tagger.send(raw);
+        tagger.send(JSON.stringify(msg));
         console.log(`✅ Clip routed to tagger`);
       }
       return;
@@ -789,7 +789,7 @@ wss.on("connection", (ws) => {
     if (msg.type === "velocity") {
       const tagger = clients[sessionId]?.tagger;
       if (tagger && tagger.readyState === WebSocket.OPEN) {
-        tagger.send(raw);
+        tagger.send(JSON.stringify(msg));
       }
     }
   });
