@@ -283,6 +283,10 @@
     </div>
   </div>
 
+  <div id="countFooter" style="position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.4); color: #e5e7eb; padding: 6px 12px; font-size: 12px; text-align: center; font-family: monospace; border-top: 1px solid rgba(148, 163, 184, 0.3); z-index: 100;">
+    Waiting for count data...
+  </div>
+
   <script>
     let currentStream = null;
     let mediaRecorder = null;
@@ -354,6 +358,10 @@
 
         if (data.type === "pitch-end") {
           stopRecording(data.pitchId);
+        }
+
+         if (data.type === "count-update") {
+          updateCountFooter(data);
         }
       });
 
@@ -589,6 +597,12 @@
         initCameraBtn.style.display = "none";
       }
     });
+
+     function updateCountFooter(data) {
+      const footer = document.getElementById("countFooter");
+      const ip = data.innings ? data.innings.toFixed(1) : "0.0";
+      footer.textContent = `${data.balls}-${data.strikes} | ${data.outs} Out${data.outs === 1 ? '' : 's'} | IP: ${ip} | TP: ${data.totalPitches} | TB: ${data.totalBalls} | TS: ${data.totalStrikes}`;
+    }
   </script>
 </body>
 </html>

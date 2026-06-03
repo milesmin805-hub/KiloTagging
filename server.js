@@ -75,8 +75,16 @@ async function initializeDatabase() {
       );
     `);
 
-    await pool.query(`
+await pool.query(`
       ALTER TABLE pitches ADD COLUMN IF NOT EXISTS mph INTEGER DEFAULT NULL;
+    `);
+
+    await pool.query(`
+      ALTER TABLE pitches ADD COLUMN IF NOT EXISTS target_x DECIMAL(5,3) DEFAULT NULL;
+    `);
+
+    await pool.query(`
+      ALTER TABLE pitches ADD COLUMN IF NOT EXISTS target_y DECIMAL(5,3) DEFAULT NULL;
     `);
 
     await pool.query(`
@@ -300,17 +308,31 @@ app.get("/session/:sessionId", async (req, res) => {
       clips[clip.pitch_id] = clip.url;
     });
 
-    const pitches = pitchesResult.rows.map((pitch) => ({
-      id: pitch.id,
-      pitchId: pitch.id,
-      pitchType: pitch.pitch_type,
-      zone: pitch.zone,
-      result: pitch.result,
-      x: pitch.x,
-      y: pitch.y,
-      mph: pitch.mph,
-      timestamp: new Date(pitch.created_at).getTime()
-    }));
+const pitches = pitchesResult.rows.map((pitch) => {
+  let distance = null;
+  if (pitch.x !== null && pitch.y !== null && pitch.target_x !== null && pitch.target_y !== null) {
+    const pixelDistance = Math.sqrt(
+      Math.pow(pitch.x - pitch.target_x, 2) + Math.pow(pitch.y - pitch.target_y, 2)
+    );
+    const STRIKEZONE_WIDTH_PX = 192;
+    const INCHES_PER_PIXEL = 17 / STRIKEZONE_WIDTH_PX;
+    distance = Math.round(pixelDistance * INCHES_PER_PIXEL * 10) / 10;
+  }
+  return {
+    id: pitch.id,
+    pitchId: pitch.id,
+    pitchType: pitch.pitch_type,
+    zone: pitch.zone,
+    result: pitch.result,
+    x: pitch.x,
+    y: pitch.y,
+    target_x: pitch.target_x,
+    target_y: pitch.target_y,
+    distance: distance,
+    mph: pitch.mph,
+    timestamp: new Date(pitch.created_at).getTime()
+  };
+});
 
     res.json({
       success: true,
@@ -349,21 +371,23 @@ app.post("/session/:sessionId/pitch", async (req, res) => {
       return res.json({ success: false, error: "Session not found" });
     }
 
-    const result = await pool.query(
-      `INSERT INTO pitches (id, session_id, pitch_type, zone, result, x, y, mph)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       RETURNING *`,
-      [
-        pitch.pitchId,
-        sessionId,
-        pitch.pitchType,
-        pitch.zone,
-        pitch.result,
-        pitch.x,
-        pitch.y,
-        pitch.mph || null
-      ]
-    );
+const result = await pool.query(
+  `INSERT INTO pitches (id, session_id, pitch_type, zone, result, x, y, target_x, target_y, mph)
+   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+   RETURNING *`,
+  [
+    pitch.pitchId,
+    sessionId,
+    pitch.pitchType,
+    pitch.zone,
+    pitch.result,
+    pitch.x,
+    pitch.y,
+    pitch.target_x || null,
+    pitch.target_y || null,
+    pitch.mph || null
+  ]
+);
 
     const savedPitch = result.rows[0];
     res.json({ 
@@ -401,7 +425,7 @@ app.patch("/session/:sessionId/pitch/:pitchId", async (req, res) => {
       return res.json({ success: false, error: "Session not found" });
     }
 
-    const allowedFields = ["pitch_type", "zone", "result", "x", "y", "mph"];
+  const allowedFields = ["pitch_type", "zone", "result", "x", "y", "target_x", "target_y", "mph"];
     const updateClause = [];
     const values = [];
     let paramCount = 1;
@@ -542,10 +566,11 @@ app.post("/session/:sessionId/close", async (req, res) => {
       [sessionId]
     );
 
-    const pitchesResult = await pool.query(
-      "SELECT id, pitch_type, zone, result, mph FROM pitches WHERE session_id = $1 ORDER BY created_at ASC",
-      [sessionId]
-    );
+const pitchesResult = await pool.query(
+  `SELECT id, pitch_type, zone, result, x, y, target_x, target_y, mph, created_at
+   FROM pitches WHERE session_id = $1 ORDER BY created_at ASC`,
+  [sessionId]
+);
 
     const clipsResult = await pool.query(
       "SELECT pitch_id FROM clips WHERE session_id = $1",
@@ -619,14 +644,15 @@ function generateSessionPDF(session) {
   doc.fontSize(14).font("Helvetica-Bold").text("Pitch Details", { underline: true });
   doc.moveDown(0.5);
 
-  const tableTop = doc.y;
-  doc.fontSize(9).font("Helvetica-Bold")
-    .text("#", 50, tableTop)
-    .text("Type", 90, tableTop)
-    .text("Zone", 140, tableTop)
-    .text("Result", 190, tableTop)
-    .text("MPH", 300, tableTop)
-    .text("Location", 340, tableTop);
+const tableTop = doc.y;
+doc.fontSize(9).font("Helvetica-Bold")
+  .text("#", 50, tableTop)
+  .text("Type", 90, tableTop)
+  .text("Zone", 140, tableTop)
+  .text("Result", 190, tableTop)
+  .text("Accuracy", 260, tableTop)
+  .text("MPH", 310, tableTop)
+  .text("Location", 360, tableTop);
 
   doc.moveTo(50, tableTop + 18).lineTo(550, tableTop + 18).stroke();
 
@@ -639,14 +665,26 @@ function generateSessionPDF(session) {
       yPos = 50;
     }
 
-    doc.text(String(index + 1), 50, yPos);
+doc.text(String(index + 1), 50, yPos);
     doc.text(pitch.pitch_type || "—", 90, yPos);
     doc.text(pitch.zone ? String(pitch.zone) : "Ball", 140, yPos);
     doc.text(pitch.result || "—", 190, yPos);
-    doc.text(pitch.mph ? String(pitch.mph) : "—", 300, yPos);
+
+    // Calculate distance
+    let distance = "—";
+    if (pitch.x !== null && pitch.y !== null && pitch.target_x !== null && pitch.target_y !== null) {
+      const pixelDistance = Math.sqrt(
+        Math.pow(pitch.x - pitch.target_x, 2) + Math.pow(pitch.y - pitch.target_y, 2)
+      );
+      const STRIKEZONE_WIDTH_PX = 192;
+      const INCHES_PER_PIXEL = 17 / STRIKEZONE_WIDTH_PX;
+      distance = (Math.round(pixelDistance * INCHES_PER_PIXEL * 10) / 10) + '"';
+    }
+    doc.text(distance, 260, yPos);
+    doc.text(pitch.mph ? String(pitch.mph) : "—", 310, yPos);
 
     // Draw strikezone visualization
-    drawStrikezonePDF(doc, 340, yPos, 50, 70, pitch.x, pitch.y);
+    drawStrikezonePDF(doc, 360, yPos, 50, 70, pitch.x, pitch.y);
 
     yPos += 15;
   });
@@ -813,11 +851,21 @@ wss.on("connection", (ws) => {
     }
 
     // Velocity: camera → tagger
+// Velocity: camera → tagger
     if (msg.type === "velocity") {
       const tagger = clients[sessionId]?.tagger;
       if (tagger && tagger.readyState === WebSocket.OPEN) {
         tagger.send(JSON.stringify(msg));
       }
+    }
+
+    // Count updates: tagger → camera
+    if (msg.type === "count-update") {
+      const camera = clients[sessionId]?.camera;
+      if (camera && camera.readyState === WebSocket.OPEN) {
+        camera.send(JSON.stringify(msg));
+      }
+      return;
     }
   });
 
