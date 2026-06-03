@@ -465,6 +465,8 @@ app.patch("/session/:sessionId/pitch/:pitchId", async (req, res) => {
   }
 });
 
+
+
 app.delete("/session/:sessionId/pitch/:pitchId", async (req, res) => {
   const { sessionId, pitchId } = req.params;
   const { token } = req.body;
@@ -500,6 +502,38 @@ app.delete("/session/:sessionId/pitch/:pitchId", async (req, res) => {
 
   } catch (err) {
     console.error("Error deleting pitch:", err);
+    res.json({ success: false, error: err.message });
+  }
+});
+
+app.delete("/session/:sessionId", async (req, res) => {
+  const { sessionId } = req.params;
+  const { token } = req.body;
+  const user = await verifyToken(token);
+
+  if (!user) {
+    return res.json({ success: false, error: "Invalid token" });
+  }
+
+  try {
+    const sessionCheck = await pool.query(
+      "SELECT id FROM sessions WHERE id = $1 AND user_id = $2",
+      [sessionId, user.id]
+    );
+
+    if (sessionCheck.rows.length === 0) {
+      return res.json({ success: false, error: "Session not found" });
+    }
+
+    await pool.query("DELETE FROM clips WHERE session_id = $1", [sessionId]);
+    await pool.query("DELETE FROM pitches WHERE session_id = $1", [sessionId]);
+    await pool.query("DELETE FROM sessions WHERE id = $1", [sessionId]);
+
+    console.log("✅ Session deleted:", sessionId);
+    res.json({ success: true });
+
+  } catch (err) {
+    console.error("Error deleting session:", err);
     res.json({ success: false, error: err.message });
   }
 });

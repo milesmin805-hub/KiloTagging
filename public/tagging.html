@@ -1114,13 +1114,16 @@ pitchArea.addEventListener("click", (event) => {
         }
       }, 5000);
 
-            sendCountUpdate();
+sendCountUpdate();
             
       selectedZone = null; selectedPitchType = null; selectedResult = null; selectedX = null; selectedY = null;
-      document.querySelectorAll(".pitch-dot").forEach((d) => d.remove());
+      targetX = null; targetY = null;
+      dotStep = 0;
+      document.querySelectorAll(".pitch-dot, .target-dot").forEach((d) => d.remove());
+      updateDotIndicator();
       document.querySelectorAll(".pill").forEach((p) => p.classList.remove("active"));
     }
-
+    
     function addClip(url, pitchId) {
       const item = document.createElement("div");
       item.className = "clip-item";
