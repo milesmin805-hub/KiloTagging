@@ -419,11 +419,12 @@
                 <th>MPH</th>
                 <th>Result</th>
                 <th>Clip</th>
+                <th>Location</th>
               </tr>
             </thead>
             <tbody id="pitchTableBody">
               <tr>
-                <td colspan="6" style="text-align: center; color: #9ca3af;">
+                <td colspan="7" style="text-align: center; color: #9ca3af;">
                   No pitches recorded
                 </td>
               </tr>
@@ -530,13 +531,14 @@
 
       if (pitches.length === 0) {
         tbody.innerHTML =
-          '<tr><td colspan="6" style="text-align: center; color: #9ca3af;">No pitches recorded</td></tr>';
+          '<tr><td colspan="7" style="text-align: center; color: #9ca3af;">No pitches recorded</td></tr>';
       } else {
         tbody.innerHTML = pitches
           .map((pitch, index) => {
             const clipUrl = data.session.clips?.[pitch.pitchId];
             const resultClass = `result-${pitch.result.toLowerCase().replace(" ", "")}`;
             const mph = pitch.mph ? `${pitch.mph}` : "—";
+            const strikezone = generateStrikezoneSVG(pitch.x, pitch.y);
 
             return `
           <tr>
@@ -552,6 +554,9 @@
                   : "—"
               }
             </td>
+            <td style="text-align: center;">
+              ${strikezone}
+            </td>
           </tr>
         `;
           })
@@ -561,6 +566,32 @@
       // Switch views
       document.getElementById("sessionsView").classList.add("hidden");
       document.getElementById("detailView").classList.remove("hidden");
+    }
+
+    // ===== GENERATE STRIKEZONE SVG =====
+    function generateStrikezoneSVG(x, y, width = 80, height = 110) {
+      if (x === null || y === null || x === undefined || y === undefined) {
+        return '<svg width="80" height="110" style="background:#000;border-radius:4px;"></svg>';
+      }
+
+      const dotX = x * width;
+      const dotY = y * height;
+
+      return `
+        <svg width="${width}" height="${height}" style="background:#000;border-radius:4px;border:1px solid #444;">
+          <!-- Strikezone grid -->
+          <line x1="${width * 0.2}" y1="0" x2="${width * 0.2}" y2="${height}" stroke="#666" stroke-width="1"/>
+          <line x1="${width * 0.8}" y1="0" x2="${width * 0.8}" y2="${height}" stroke="#666" stroke-width="1"/>
+          <line x1="0" y1="${height * 0.2}" x2="${width}" y2="${height * 0.2}" stroke="#666" stroke-width="1"/>
+          <line x1="0" y1="${height * 0.8}" x2="${width}" y2="${height * 0.8}" stroke="#666" stroke-width="1"/>
+          
+          <!-- Strikezone border -->
+          <rect x="${width * 0.2}" y="${height * 0.2}" width="${width * 0.6}" height="${height * 0.6}" fill="none" stroke="#22d3ee" stroke-width="1.5"/>
+          
+          <!-- Pitch dot -->
+          <circle cx="${dotX}" cy="${dotY}" r="4" fill="#ef4444" stroke="#fff" stroke-width="1.5"/>
+        </svg>
+      `;
     }
 
     // ===== DOWNLOAD PDF =====

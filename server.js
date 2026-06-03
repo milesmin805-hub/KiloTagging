@@ -584,8 +584,12 @@ function generateSessionPDF(session) {
 
   doc.pipe(stream);
 
-  doc.image(path.join(__dirname, "public/images/kilo-page.png"), 40, 30, { width: 120 });
-doc.moveDown(2);
+  try {
+    doc.image(path.join(__dirname, "public/images/kilo-page.png"), 40, 30, { width: 120 });
+  } catch (err) {
+    console.error("Logo image not found:", err);
+  }
+  doc.moveDown(2);
 
   doc.fontSize(24).font("Helvetica-Bold").text("Kilo Baseball Report", { align: "center" });
   doc.fontSize(12).font("Helvetica").text(session.name, { align: "center" });
@@ -616,18 +620,19 @@ doc.moveDown(2);
   doc.moveDown(0.5);
 
   const tableTop = doc.y;
-  doc.fontSize(10).font("Helvetica-Bold")
+  doc.fontSize(9).font("Helvetica-Bold")
     .text("#", 50, tableTop)
     .text("Type", 90, tableTop)
     .text("Zone", 140, tableTop)
     .text("Result", 190, tableTop)
-    .text("MPH", 300, tableTop);
+    .text("MPH", 300, tableTop)
+    .text("Location", 340, tableTop);
 
   doc.moveTo(50, tableTop + 18).lineTo(550, tableTop + 18).stroke();
 
   let yPos = tableTop + 28;
 
-  doc.fontSize(9).font("Helvetica");
+  doc.fontSize(8).font("Helvetica");
   session.pitches.forEach((pitch, index) => {
     if (yPos > 700) {
       doc.addPage();
@@ -640,10 +645,32 @@ doc.moveDown(2);
     doc.text(pitch.result || "—", 190, yPos);
     doc.text(pitch.mph ? String(pitch.mph) : "—", 300, yPos);
 
+    // Draw strikezone visualization
+    drawStrikezonePDF(doc, 340, yPos, 50, 70, pitch.x, pitch.y);
+
     yPos += 15;
   });
 
   doc.end();
+}
+
+// Helper function to draw strikezone on PDF
+function drawStrikezonePDF(doc, x, y, width, height, pitchX, pitchY) {
+  // Strikezone border
+  doc.rect(x + width * 0.2, y + height * 0.2, width * 0.6, height * 0.6).stroke("#0099FF");
+
+  // Grid lines
+  doc.moveTo(x + width * 0.2, y).lineTo(x + width * 0.2, y + height).stroke("#666666");
+  doc.moveTo(x + width * 0.8, y).lineTo(x + width * 0.8, y + height).stroke("#666666");
+  doc.moveTo(x, y + height * 0.2).lineTo(x + width, y + height * 0.2).stroke("#666666");
+  doc.moveTo(x, y + height * 0.8).lineTo(x + width, y + height * 0.8).stroke("#666666");
+
+  // Pitch dot
+  if (pitchX !== null && pitchX !== undefined && pitchY !== null && pitchY !== undefined) {
+    const dotX = x + pitchX * width;
+    const dotY = y + pitchY * height;
+    doc.circle(dotX, dotY, 2.5).fill("#FF4444");
+  }
 }
 
 app.get("/session/:sessionId/download-pdf", async (req, res) => {
