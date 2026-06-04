@@ -580,7 +580,7 @@ app.post("/session/:sessionId/close", async (req, res) => {
 
 // Return immediately to user
     res.json({ success: true, message: "Session closed." });
-    
+
   } catch (err) {
     console.error("Close session error:", err);
     res.json({ success: false, error: "Failed to close session" });
@@ -923,6 +923,16 @@ wss.on("connection", (ws) => {
         console.log(`✅ start-recording sent to camera`);
       } else {
         console.warn(`❌ Cannot route start-recording`);
+      }
+      return;
+    }
+    
+        // Stop recording: tagger → camera
+    if (msg.type === "stop-recording") {
+      const camera = clients[sessionId]?.camera;
+      if (camera && camera.readyState === WebSocket.OPEN) {
+        camera.send(JSON.stringify(msg));
+        console.log(`✅ stop-recording sent to camera`);
       }
       return;
     }
