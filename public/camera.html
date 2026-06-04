@@ -495,10 +495,14 @@ mediaRecorder.onstop = async () => {
 
   console.log("🎥 Recording started for pitch:", pitchId);
 
-  // Auto-stop after 9 seconds (6 before + 3 after)
-  setTimeout(() => {
-    stopRecording(pitchId);
-  }, TOTAL_CLIP_DURATION);
+ // Auto-stop after 9 seconds (6 before + 3 after)
+const stopTimer = setTimeout(() => {
+  stopRecording(pitchId);
+}, TOTAL_CLIP_DURATION);
+
+// Store timer ID to cancel if pitch-end arrives early
+currentPitchId = pitchId;
+window.currentStopTimer = stopTimer;
 }
 
 function stopRecording(pitchId) {
@@ -506,6 +510,12 @@ function stopRecording(pitchId) {
     console.warn("Not recording, cannot stop");
     return;
   }
+
+  // Clear auto-stop timer
+if (window.currentStopTimer) {
+  clearTimeout(window.currentStopTimer);
+  window.currentStopTimer = null;
+}
 
   if (pitchId !== currentPitchId) {
     console.warn("Pitch ID mismatch:", pitchId, currentPitchId);
