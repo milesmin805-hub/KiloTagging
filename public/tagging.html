@@ -1034,6 +1034,16 @@ function updateDotIndicator() {
     console.log("🔵 savePitch() called");
   const pitchId = currentPitchId || crypto.randomUUID();  // CHANGE: Use stored pitchId
 
+   // Send stop-recording signal to camera
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    console.log("📤 Sending stop-recording for pitch:", pitchId);
+    ws.send(JSON.stringify({
+      type: "stop-recording",
+      pitchId: pitchId,
+      timestamp: Date.now()
+    }));
+  }
+  
   const mph = velocityValue.textContent !== "—" ? parseInt(velocityValue.textContent) : null;
 
       if (selectedResult === "Ball") {

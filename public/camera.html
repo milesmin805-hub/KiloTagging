@@ -350,13 +350,17 @@
         }));
       });
 
-      ws.addEventListener("message", function(event) {
+ws.addEventListener("message", function(event) {
         console.log("🔔 MESSAGE RECEIVED:", event.data);
         const data = JSON.parse(event.data);
         debugLine.textContent = `Device: CAMERA | WS: ✅`;
 
         if (data.type === "start-recording") {
           startRecording(data.pitchId);
+        }
+
+        if (data.type === "stop-recording") {
+          stopRecording(data.pitchId);
         }
 
         if (data.type === "count-update") {
