@@ -1,0 +1,2 @@
+buildpacks:
+  - url: https://github.com/heroku-community/heroku-buildpack-ffmpeg.git
