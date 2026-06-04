@@ -578,9 +578,9 @@ app.post("/session/:sessionId/close", async (req, res) => {
     // Return immediately to user
     res.json({ success: true, message: "Session closed. Clips processing in background..." });
 
-    // Start background job (don't wait for it)
-    processSessionClipsInBackground(sessionId, user.id);
-
+// Return immediately to user
+    res.json({ success: true, message: "Session closed." });
+    
   } catch (err) {
     console.error("Close session error:", err);
     res.json({ success: false, error: "Failed to close session" });

@@ -904,8 +904,33 @@ pitchArea.addEventListener("click", (event) => {
   const y = (event.clientY - rect.top) / rect.height;
 
   if (dotStep === 0) {
-    // Place RED dot (actual pitch)
+    // Place BLUE dot first (catcher setup/target)
     document.querySelectorAll(".pitch-dot, .target-dot").forEach((d) => d.remove());
+    targetX = x;
+    targetY = y;
+    const dot = document.createElement("div");
+    dot.className = "target-dot";
+    dot.style.left = `${x * 100}%`;
+    dot.style.top = `${y * 100}%`;
+    pitchArea.appendChild(dot);
+    dotStep = 1;
+    updateDotIndicator();
+
+    // Generate pitch ID and send start-recording
+    currentPitchId = crypto.randomUUID();
+    clipStartTime = Date.now();
+    
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      console.log("📤 Sending start-recording for pitch:", currentPitchId);
+      ws.send(JSON.stringify({
+        type: "start-recording",
+        pitchId: currentPitchId,
+        timestamp: Date.now()
+      }));
+    }
+
+  } else if (dotStep === 1) {
+    // Place RED dot second (actual pitch location)
     selectedX = x;
     selectedY = y;
     const dot = document.createElement("div");
@@ -914,21 +939,6 @@ pitchArea.addEventListener("click", (event) => {
     dot.style.top = `${y * 100}%`;
     pitchArea.appendChild(dot);
     selectedZone = computeZone(x, y);
-    dotStep = 1;
-    updateDotIndicator();
-
-currentPitchId = crypto.randomUUID();
-clipStartTime = Date.now();
-
-  } else if (dotStep === 1) {
-    // Place BLUE dot (target/catcher setup)
-    targetX = x;
-    targetY = y;
-    const dot = document.createElement("div");
-    dot.className = "target-dot";
-    dot.style.left = `${x * 100}%`;
-    dot.style.top = `${y * 100}%`;
-    pitchArea.appendChild(dot);
     dotStep = 2;
     updateDotIndicator();
 
@@ -976,7 +986,7 @@ clipStartTime = Date.now();
       });
     });
 
-    function updateDotIndicator() {
+function updateDotIndicator() {
   let existing = document.querySelector(".dot-indicator");
   if (existing) existing.remove();
 
@@ -984,9 +994,9 @@ clipStartTime = Date.now();
   indicator.className = "dot-indicator";
   
   if (dotStep === 0) {
-    indicator.textContent = "Click for Red (Pitch)";
-  } else if (dotStep === 1) {
     indicator.textContent = "Click for Blue (Target)";
+  } else if (dotStep === 1) {
+    indicator.textContent = "Click for Red (Pitch)";
   } else if (dotStep === 2) {
     indicator.textContent = "Click to Clear";
   }
@@ -1023,19 +1033,6 @@ clipStartTime = Date.now();
     async function savePitch() {
     console.log("🔵 savePitch() called");
   const pitchId = currentPitchId || crypto.randomUUID();  // CHANGE: Use stored pitchId
-    
-  // Send start-recording signal to camera
-
-  if (ws && ws.readyState === WebSocket.OPEN) {
-  console.log("📤 Sending start-recording for pitch:", pitchId);
-  ws.send(JSON.stringify({
-    type: "start-recording",
-    pitchId: pitchId,
-    timestamp: Date.now()
-  }));
-} else {
-  console.warn("⚠️ WebSocket not open when trying to send start-recording");
-}
 
   const mph = velocityValue.textContent !== "—" ? parseInt(velocityValue.textContent) : null;
 
@@ -1107,18 +1104,6 @@ const pitchData = {
       }
 
       if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "pitch", ...pitchData }));
-
-      setTimeout(() => {
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          console.log("📤 Sending pitch-end:", pitchId);
-          ws.send(JSON.stringify({ 
-            type: "pitch-end", 
-            pitchId, 
-            timestamp: Date.now(),
-            recordLate: true 
-          }));
-        }
-      }, 5000);
 
 sendCountUpdate();
             

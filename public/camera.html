@@ -274,11 +274,10 @@
 
       <div class="info-box" style="margin-top: 12px;">
         <strong>How it works:</strong><br />
-        1. Tagger clicks zone on strike zone<br />
+        1. Tagger selects result<br />
         2. Camera automatically starts recording<br />
-        3. Tagger selects result<br />
-        4. Camera keeps recording 5 more seconds<br />
-        5. Clip is uploaded and linked to pitch
+        3. Records for 15 seconds<br />
+        4. Clip is uploaded and linked to pitch
       </div>
     </div>
   </div>
@@ -310,8 +309,7 @@
     const sessionInfo = document.getElementById("sessionInfo");
     const debugLine = document.getElementById("debugLine");
 
-    window.addEventListener("load", () => {
-
+    window.addEventListener("load", async () => {
       token = localStorage.getItem("token");
       userId = localStorage.getItem("userId");
       sessionId = localStorage.getItem("sessionId");
@@ -325,6 +323,12 @@
       debugLine.textContent = `Device: CAMERA`;
 
       connectWebSocket();
+
+      const hasPermission = await requestCameraPermission();
+      if (hasPermission) {
+        await loadCameras();
+        initCameraBtn.style.display = "none";
+      }
     });
 
     function connectWebSocket() {
@@ -349,20 +353,15 @@
       ws.addEventListener("message", function(event) {
         console.log("🔔 MESSAGE RECEIVED:", event.data);
         const data = JSON.parse(event.data);
-        debugLine.textContent = `Device: CAMERA | WS: ✅ `;
+        debugLine.textContent = `Device: CAMERA | WS: ✅`;
 
-        if (data.type === "pitch-start") {
-          currentPitchId = data.pitchId;
+        if (data.type === "start-recording") {
           startRecording(data.pitchId);
         }
 
-         if (data.type === "count-update") {
+        if (data.type === "count-update") {
           updateCountFooter(data);
         }
-
-              if (data.type === "start-recording") {
-    startRecording(data.pitchId);
-  }
       });
 
       ws.addEventListener("error", function(err) {
@@ -434,7 +433,7 @@
       }
     }
 
-function setupMediaRecorder() {
+    function setupMediaRecorder() {
       if (!currentStream) return;
 
       mediaRecorder = new MediaRecorder(currentStream, {
@@ -447,55 +446,56 @@ function setupMediaRecorder() {
         }
       };
 
-mediaRecorder.onstop = async () => {
-  const blob = new Blob(recordedChunks, { type: "video/webm" });
-  await uploadClip(blob, currentPitchId);
-  recordedChunks = [];
-};
+      mediaRecorder.onstop = async () => {
+        const blob = new Blob(recordedChunks, { type: "video/webm" });
+        await uploadClip(blob, currentPitchId);
+        recordedChunks = [];
+      };
     }
-function startRecording(pitchId) {
-  if (!mediaRecorder || mediaRecorder.state === "recording") {
-    console.warn("Already recording");
-    return;
-  }
 
-  currentPitchId = pitchId;
-  recordedChunks = [];
-  isRecording = true;
+    function startRecording(pitchId) {
+      if (!mediaRecorder || mediaRecorder.state === "recording") {
+        console.warn("Already recording");
+        return;
+      }
 
-  mediaRecorder.start(100);
-  recordingStatus.textContent = `🔴 Recording (15 sec)...`;
-  recordingStatus.classList.remove("disconnected");
-  recordingStatus.classList.add("recording");
+      currentPitchId = pitchId;
+      recordedChunks = [];
+      isRecording = true;
 
-  console.log("🎥 Recording started for pitch:", pitchId);
+      mediaRecorder.start(100);
+      recordingStatus.textContent = `🔴 Recording (15 sec)...`;
+      recordingStatus.classList.remove("disconnected");
+      recordingStatus.classList.add("recording");
 
-  // Auto-stop after 15 seconds
-  setTimeout(() => {
-    stopRecording(pitchId);
-  }, 15000);
-}
+      console.log("🎥 Recording started for pitch:", pitchId);
 
-function stopRecording(pitchId) {
-  if (!mediaRecorder || !isRecording) {
-    console.warn("Not recording, cannot stop");
-    return;
-  }
+      // Auto-stop after 15 seconds
+      setTimeout(() => {
+        stopRecording(pitchId);
+      }, 15000);
+    }
 
-  if (pitchId !== currentPitchId) {
-    console.warn("Pitch ID mismatch:", pitchId, currentPitchId);
-    return;
-  }
+    function stopRecording(pitchId) {
+      if (!mediaRecorder || !isRecording) {
+        console.warn("Not recording, cannot stop");
+        return;
+      }
 
-  isRecording = false;
-  mediaRecorder.stop();
+      if (pitchId !== currentPitchId) {
+        console.warn("Pitch ID mismatch:", pitchId, currentPitchId);
+        return;
+      }
 
-  recordingStatus.textContent = "⏳ Uploading clip...";
-  recordingStatus.classList.remove("recording");
-  recordingStatus.classList.add("disconnected");
+      isRecording = false;
+      mediaRecorder.stop();
 
-  console.log("✅ Recording stopped for pitch:", pitchId);
-}
+      recordingStatus.textContent = "⏳ Uploading clip...";
+      recordingStatus.classList.remove("recording");
+      recordingStatus.classList.add("disconnected");
+
+      console.log("✅ Recording stopped for pitch:", pitchId);
+    }
 
     async function uploadClip(blob, pitchId) {
       try {
@@ -510,12 +510,13 @@ function stopRecording(pitchId) {
         });
 
         const data = await response.json();
-console.log("Upload response:", data);
+        console.log("Upload response:", data);
 
-if (!response.ok) {
-  console.error("Upload HTTP error:", response.status, data);
-  return;
-}
+        if (!response.ok) {
+          console.error("Upload HTTP error:", response.status, data);
+          recordingStatus.textContent = "❌ Upload failed";
+          return;
+        }
 
         if (data.url) {
           recordingStatus.textContent = "⏳ Linking clip...";
@@ -592,15 +593,7 @@ if (!response.ok) {
       startCamera(e.target.value);
     });
 
-    window.addEventListener("load", async () => {
-      const hasPermission = await requestCameraPermission();
-      if (hasPermission) {
-        await loadCameras();
-        initCameraBtn.style.display = "none";
-      }
-    });
-
-     function updateCountFooter(data) {
+    function updateCountFooter(data) {
       const footer = document.getElementById("countFooter");
       const ip = data.innings ? data.innings.toFixed(1) : "0.0";
       footer.textContent = `${data.balls}-${data.strikes} | ${data.outs} Out${data.outs === 1 ? '' : 's'} | IP: ${ip} | TP: ${data.totalPitches} | TB: ${data.totalBalls} | TS: ${data.totalStrikes}`;
