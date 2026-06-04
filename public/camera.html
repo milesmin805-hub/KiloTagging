@@ -363,12 +363,12 @@
          if (data.type === "count-update") {
           updateCountFooter(data);
         }
-      });
 
-      if (data.type === "start-recording") {
+              if (data.type === "start-recording") {
     startRecording(data.pitchId);
   }
-  
+      });
+
       ws.addEventListener("error", function(err) {
         console.error("❌ WebSocket ERROR:", err);
         statusIndicator.textContent = "❌ WebSocket Error";
