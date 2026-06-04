@@ -876,6 +876,24 @@ wss.on("connection", (ws) => {
       }
       return;
     }
+
+ // Start recording: tagger → camera
+    if (msg.type === "start-recording") {
+      console.log(`🔍 Routing start-recording to camera:`, {
+        sessionId: sessionId?.slice(0, 8),
+        cameraExists: !!clients[sessionId]?.camera,
+        cameraReadyState: clients[sessionId]?.camera?.readyState,
+        availableDevices: Object.keys(clients[sessionId] || {})
+      });
+      const camera = clients[sessionId]?.camera;
+      if (camera && camera.readyState === WebSocket.OPEN) {
+        camera.send(JSON.stringify(msg));
+        console.log(`✅ start-recording sent to camera`);
+      } else {
+        console.warn(`❌ Cannot route start-recording`);
+      }
+      return;
+    }
   });
 
   ws.on("close", () => {
