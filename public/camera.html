@@ -545,7 +545,12 @@ if (window.currentStopTimer) {
         });
 
         const data = await response.json();
-        console.log("Upload response:", response);
+console.log("Upload response:", data);
+
+if (!response.ok) {
+  console.error("Upload HTTP error:", response.status, data);
+  return;
+}
 
         if (data.url) {
           recordingStatus.textContent = "⏳ Linking clip...";
