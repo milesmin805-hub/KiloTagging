@@ -1032,6 +1032,17 @@ clipStartTime = Date.now();
     }));
   }
 
+  if (ws && ws.readyState === WebSocket.OPEN) {
+  console.log("📤 Sending start-recording for pitch:", pitchId);
+  ws.send(JSON.stringify({
+    type: "start-recording",
+    pitchId: pitchId,
+    timestamp: Date.now()
+  }));
+} else {
+  console.warn("⚠️ WebSocket not open when trying to send start-recording");
+}
+
   const mph = velocityValue.textContent !== "—" ? parseInt(velocityValue.textContent) : null;
 
       if (selectedResult === "Ball") {
