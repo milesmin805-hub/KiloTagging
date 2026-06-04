@@ -363,6 +363,38 @@ const pitches = pitchesResult.rows.map((pitch) => {
   }
 });
 
+app.post("/session/:sessionId/close", async (req, res) => {
+  const { sessionId } = req.params;
+  const { token } = req.body;
+  const user = await verifyToken(token);
+
+  if (!user) {
+    return res.json({ success: false, error: "Invalid token" });
+  }
+
+  try {
+    const sessionCheck = await pool.query(
+      "SELECT id FROM sessions WHERE id = $1 AND user_id = $2",
+      [sessionId, user.id]
+    );
+
+    if (sessionCheck.rows.length === 0) {
+      return res.json({ success: false, error: "Session not found" });
+    }
+
+    await pool.query(
+      "UPDATE sessions SET is_closed = TRUE, closed_at = CURRENT_TIMESTAMP WHERE id = $1",
+      [sessionId]
+    );
+
+    res.json({ success: true, message: "Session closed." });
+
+  } catch (err) {
+    console.error("Close session error:", err);
+    res.json({ success: false, error: "Failed to close session" });
+  }
+});
+
 app.post("/session/:sessionId/pitch", async (req, res) => {
   const { sessionId } = req.params;
   const { token, pitch } = req.body;
@@ -926,7 +958,7 @@ wss.on("connection", (ws) => {
       }
       return;
     }
-    
+
         // Stop recording: tagger → camera
     if (msg.type === "stop-recording") {
       const camera = clients[sessionId]?.camera;

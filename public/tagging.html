@@ -1043,7 +1043,7 @@ function updateDotIndicator() {
       timestamp: Date.now()
     }));
   }
-  
+
   const mph = velocityValue.textContent !== "—" ? parseInt(velocityValue.textContent) : null;
 
       if (selectedResult === "Ball") {
@@ -1142,8 +1142,8 @@ name.textContent = `Pitch ${clipNumber}`;
       clipCount.textContent = incomingClips.length;
     }
 
-    document.getElementById("endSessionBtn").addEventListener("click", async () => {
-      if (!confirm("End session and generate PDF report?")) return;
+document.getElementById("endSessionBtn").addEventListener("click", async () => {
+      if (!confirm("End session?")) return;
       
       try {
         const res = await fetch(`/session/${sessionId}/close`, {
@@ -1155,23 +1155,7 @@ name.textContent = `Pitch ${clipNumber}`;
         const data = await res.json();
 
         if (data.success) {
-          const pdfRes = await fetch(`/session/${sessionId}/download-pdf`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          
-          if (!pdfRes.ok) {
-            throw new Error("PDF download failed");
-          }
-          
-          const blob = await pdfRes.blob();
-          const url = window.URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.href = url;
-          link.download = "session.pdf";
-          link.click();
-          window.URL.revokeObjectURL(url);
-          
-          setTimeout(() => { window.location.href = "/session-review.html"; }, 1000);
+          window.location.href = "/session-review.html";
         } else {
           alert("Failed to end session: " + data.error);
         }
