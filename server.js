@@ -13,6 +13,7 @@ const fs = require("fs");
 const crypto = require("crypto");
 const PDFDocument = require("pdfkit");
 const { Pool } = require("pg");
+const ffmpeg = require("fluent-ffmpeg");
 
 // ======================================
 // DATABASE CONNECTION
@@ -293,7 +294,7 @@ app.get("/session/:sessionId", async (req, res) => {
     const session = sessionResult.rows[0];
 
     const pitchesResult = await pool.query(
-      `SELECT id, pitch_type, zone, result, x, y, mph, created_at
+      `SELECT id, pitch_type, zone, result, x, y, target_x, target_y,mph, created_at
        FROM pitches WHERE session_id = $1 ORDER BY created_at ASC`,
       [sessionId]
     );
@@ -718,9 +719,9 @@ doc.text(String(index + 1), 50, yPos);
     doc.text(pitch.mph ? String(pitch.mph) : "—", 310, yPos);
 
     // Draw strikezone visualization
-    drawStrikezonePDF(doc, 360, yPos, 50, 70, pitch.x, pitch.y);
+    
 
-    yPos += 15;
+    yPos += 10;
   });
 
   doc.end();
@@ -747,9 +748,9 @@ function drawStrikezonePDF(doc, x, y, width, height, pitchX, pitchY) {
 
 app.get("/session/:sessionId/download-pdf", async (req, res) => {
   const { sessionId } = req.params;
-  const token = req.headers.authorization?.split(" ")[1];
+const token = req.headers.authorization?.split(" ")[1] || req.query.token;
   const user = await verifyToken(token);
-
+p
   if (!user) {
     return res.json({ success: false, error: "Invalid token" });
   }
@@ -795,8 +796,24 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 app.post("/uploadClip", upload.single("clip"), (req, res) => {
-  const url = "/clips/" + req.file.filename;
-  res.json({ url });
+  const webmPath = req.file.path;
+  const mp4Filename = req.file.filename.replace(".webm", ".mp4");
+  const mp4Path = path.join(__dirname, "clips", mp4Filename);
+
+  // Convert WebM to MP4
+  ffmpeg(webmPath)
+    .output(mp4Path)
+    .on("end", () => {
+      // Delete the WebM file after conversion
+      fs.unlinkSync(webmPath);
+      console.log("✅ Converted to MP4:", mp4Filename);
+      res.json({ url: "/clips/" + mp4Filename });
+    })
+    .on("error", (err) => {
+      console.error("FFmpeg error:", err);
+      res.json({ success: false, error: err.message });
+    })
+    .run();
 });
 
 app.get("/", (req, res) => {

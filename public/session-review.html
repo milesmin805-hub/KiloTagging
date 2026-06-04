@@ -418,13 +418,14 @@
                 <th>Zone</th>
                 <th>MPH</th>
                 <th>Result</th>
+                <th>Accuracy</th>
                 <th>Clip</th>
                 <th>Location</th>
               </tr>
             </thead>
             <tbody id="pitchTableBody">
               <tr>
-                <td colspan="7" style="text-align: center; color: #9ca3af;">
+                <td colspan="8" style="text-align: center; color: #9ca3af;">
                   No pitches recorded
                 </td>
               </tr>
@@ -549,8 +550,8 @@ document.getElementById("sessionsList").innerHTML = data.sessions
             <td class="pitch-type">${pitch.pitchType || "—"}</td>
             <td class="pitch-zone">${pitch.zone || "Ball"}</td>
             <td class="pitch-mph">${mph}</td>
-            <td class="pitch-result ${resultClass}">${pitch.result}</td>
-            <td style="text-align: center;">${pitch.distance ? pitch.distance + '"' : "—"}</td>
+            <td<td>${pitch.result}</td>
+            <td style="text-align: center;">${pitch.distance !== null && pitch.distance !== undefined ? pitch.distance.toFixed(1) + '"' : "—"}</td>
             <td>
               ${
                 clipUrl
@@ -660,7 +661,7 @@ function generateStrikezoneSVG(x, y, width = 80, height = 110, targetX = null, t
       a.click();
       document.body.removeChild(a);
     }
-    
+
   </script>
 </body>
 </html>
