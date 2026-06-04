@@ -1021,6 +1021,7 @@ clipStartTime = Date.now();
     }
 
     async function savePitch() {
+    console.log("🔵 savePitch() called");
   const pitchId = currentPitchId || crypto.randomUUID();  // CHANGE: Use stored pitchId
     
   // Send start-recording signal to camera
