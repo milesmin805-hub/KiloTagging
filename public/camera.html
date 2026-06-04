@@ -488,11 +488,6 @@ mediaRecorder.onstop = async () => {
   currentPitchId = pitchId;
   recordedChunks = [];
   isRecording = true;
-  
-  // Start continuous recording (if not already)
-  if (mediaRecorder.state === "inactive") {
-    mediaRecorder.start(100); // Capture every 100ms
-  }
 
   recordingStatus.textContent = `🔴 Recording (9 sec clip)...`;
   recordingStatus.classList.remove("disconnected");
