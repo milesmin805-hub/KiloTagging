@@ -730,6 +730,18 @@ session.pitches.forEach((pitch, index) => {
 });
 
   doc.end();
+
+  return new Promise((resolve, reject) => {
+    stream.on('finish', () => {
+      console.log("✅ PDF generated:", session.sessionId);
+      resolve();
+    });
+
+    stream.on('error', (err) => {
+      console.error("PDF generation error:", err);
+      reject(err);
+    });
+  });
 }
 
 // Helper function to draw strikezone on PDF
