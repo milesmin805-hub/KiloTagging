@@ -542,7 +542,7 @@
 </head>
 <body>
   <header>
-    <div class="brand">
+    <div class="brand" onclick="goHome()" style="cursor: pointer;">
       <img src="/images/kilo-page.png" alt="Kilo Baseball" style="width: 40px; height: auto; border-radius: 4px;">
       <div class="brand-text">
         <div class="title">Kilo Tagger</div>
@@ -728,6 +728,10 @@ let sessionPitches = [];
     const sessionInfo = document.getElementById("sessionInfo");
     const wsStatus = document.getElementById("wsStatus");
     const debugLine = document.getElementById("debugLine");
+
+    function goHome() {
+  window.location.href = "/session-select.html";
+}
 
     window.addEventListener("load", () => {
       token = localStorage.getItem("token");

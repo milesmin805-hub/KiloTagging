@@ -221,7 +221,7 @@
 </head>
 <body>
   <header>
-    <div class="brand">
+    <div class="brand" onclick="goHome()" style="cursor: pointer;">
       <img src="/images/kilo-page.png" alt="Kilo Baseball" style="width: 40px; height: auto; border-radius: 4px;">
       <div class="brand-text">
         <div class="title">Kilo Camera</div>
@@ -308,6 +308,10 @@
     const lastClipTimeEl = document.getElementById("lastClipTime");
     const sessionInfo = document.getElementById("sessionInfo");
     const debugLine = document.getElementById("debugLine");
+
+    function goHome() {
+  window.location.href = "/session-select.html";
+}
 
     window.addEventListener("load", async () => {
       token = localStorage.getItem("token");

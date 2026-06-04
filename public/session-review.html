@@ -348,8 +348,8 @@
   </style>
 </head>
 <body>
-  <header>
-    <div class="brand">
+<header>
+    <div class="brand" onclick="goHome()" style="cursor: pointer;">
       <div class="brand-mark">📊</div>
       <div class="brand-text">
         <div class="title">Kilo Review</div>
@@ -439,6 +439,10 @@
   <script>
     let currentSessionId = null;
     let currentSession = null;
+
+   function goHome() {
+  window.location.href = "/session-select.html";
+} 
 
     // ===== AUTH CHECK =====
     window.addEventListener("load", () => {
