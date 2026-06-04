@@ -774,6 +774,38 @@ app.post("/uploadClip", upload.single("clip"), (req, res) => {
     .run();
 });
 
+app.post("/session/:sessionId/link-clip", async (req, res) => {
+  const { sessionId } = req.params;
+  const { token, pitchId, clipUrl } = req.body;
+  const user = await verifyToken(token);
+
+  if (!user) {
+    return res.json({ success: false, error: "Invalid token" });
+  }
+
+  try {
+    const sessionCheck = await pool.query(
+      "SELECT id FROM sessions WHERE id = $1 AND user_id = $2",
+      [sessionId, user.id]
+    );
+
+    if (sessionCheck.rows.length === 0) {
+      return res.json({ success: false, error: "Session not found" });
+    }
+
+    const clipId = crypto.randomUUID();
+    await pool.query(
+      "INSERT INTO clips (id, session_id, pitch_id, url) VALUES ($1, $2, $3, $4)",
+      [clipId, sessionId, pitchId, clipUrl]
+    );
+
+    res.json({ success: true, clipId });
+  } catch (err) {
+    console.error("Link clip error:", err);
+    res.json({ success: false, error: "Failed to link clip" });
+  }
+});
+
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
