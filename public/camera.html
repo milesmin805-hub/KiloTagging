@@ -365,6 +365,10 @@
         }
       });
 
+      if (data.type === "start-recording") {
+    startRecording(data.pitchId);
+  }
+  
       ws.addEventListener("error", function(err) {
         console.error("❌ WebSocket ERROR:", err);
         statusIndicator.textContent = "❌ WebSocket Error";
