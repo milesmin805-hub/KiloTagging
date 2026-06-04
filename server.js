@@ -375,7 +375,7 @@ app.post("/session/:sessionId/close", async (req, res) => {
 
   try {
     const sessionCheck = await pool.query(
-      "SELECT id FROM sessions WHERE id = $1 AND user_id = $2",
+      "SELECT id, name FROM sessions WHERE id = $1 AND user_id = $2",
       [sessionId, user.id]
     );
 
@@ -383,10 +383,27 @@ app.post("/session/:sessionId/close", async (req, res) => {
       return res.json({ success: false, error: "Session not found" });
     }
 
+    // Get pitches for PDF
+    const pitchesResult = await pool.query(
+      "SELECT * FROM pitches WHERE session_id = $1 ORDER BY created_at ASC",
+      [sessionId]
+    );
+
+    // Update session status
     await pool.query(
       "UPDATE sessions SET is_closed = TRUE, closed_at = CURRENT_TIMESTAMP WHERE id = $1",
       [sessionId]
     );
+
+    // Generate PDF
+    const session = {
+      sessionId,
+      name: sessionCheck.rows[0].name,
+      createdAt: sessionCheck.rows[0].created_at,
+      pitches: pitchesResult.rows
+    };
+
+    generateSessionPDF(session);
 
     res.json({ success: true, message: "Session closed." });
 
