@@ -456,10 +456,7 @@ mediaRecorder.onstop = async () => {
   await uploadClip(blob, currentPitchId);
   recordedChunks = [];
 };
-
-      mediaRecorder.start(100); // Start continuous recording
     }
-
 function startRecording(pitchId) {
   if (!mediaRecorder || mediaRecorder.state === "recording") {
     console.warn("Already recording");
