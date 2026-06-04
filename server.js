@@ -320,11 +320,12 @@ app.get("/session/:sessionId", async (req, res) => {
 const pitches = pitchesResult.rows.map((pitch) => {
   let distance = null;
   if (pitch.x !== null && pitch.y !== null && pitch.target_x !== null && pitch.target_y !== null) {
-    const pixelDistance = Math.sqrt(
-      Math.pow(pitch.x - pitch.target_x, 2) + Math.pow(pitch.y - pitch.target_y, 2)
-    );
     const STRIKEZONE_WIDTH_PX = 192;
     const INCHES_PER_PIXEL = 17 / STRIKEZONE_WIDTH_PX;
+    const pixelDistance = Math.sqrt(
+      Math.pow((pitch.x - pitch.target_x) * STRIKEZONE_WIDTH_PX, 2) + 
+      Math.pow((pitch.y - pitch.target_y) * STRIKEZONE_WIDTH_PX, 2)
+    );
     distance = Math.round(pixelDistance * INCHES_PER_PIXEL * 10) / 10;
   }
   return {
@@ -671,48 +672,45 @@ function generateSessionPDF(session) {
 
 const tableTop = doc.y;
 doc.fontSize(9).font("Helvetica-Bold")
-  .text("#", 50, tableTop)
-  .text("Type", 90, tableTop)
-  .text("Zone", 140, tableTop)
-  .text("Result", 190, tableTop)
-  .text("Accuracy", 260, tableTop)
-  .text("MPH", 310, tableTop)
-  .text("Location", 360, tableTop);
+  .text("#", 50, tableTop, { width: 40, align: "center" })
+  .text("Type", 95, tableTop, { width: 50, align: "center" })
+  .text("Zone", 150, tableTop, { width: 50, align: "center" })
+  .text("Result", 205, tableTop, { width: 60, align: "center" })
+  .text("Accuracy", 270, tableTop, { width: 50, align: "center" })
+  .text("MPH", 325, tableTop, { width: 50, align: "center" });
 
-  doc.moveTo(50, tableTop + 18).lineTo(550, tableTop + 18).stroke();
+doc.moveTo(50, tableTop + 18).lineTo(520, tableTop + 18).stroke();
 
-  let yPos = tableTop + 28;
+let yPos = tableTop + 28;
 
-  doc.fontSize(8).font("Helvetica");
-  session.pitches.forEach((pitch, index) => {
-    if (yPos > 700) {
-      doc.addPage();
-      yPos = 50;
-    }
+doc.fontSize(8).font("Helvetica");
+session.pitches.forEach((pitch, index) => {
+  if (yPos > 700) {
+    doc.addPage();
+    yPos = 50;
+  }
 
-doc.text(String(index + 1), 50, yPos);
-    doc.text(pitch.pitch_type || "—", 90, yPos);
-    doc.text(pitch.zone ? String(pitch.zone) : "Ball", 140, yPos);
-    doc.text(pitch.result || "—", 190, yPos);
+  doc.text(String(index + 1), 50, yPos, { width: 40, align: "center" });
+  doc.text(pitch.pitch_type || "—", 95, yPos, { width: 50, align: "center" });
+  doc.text(pitch.zone ? String(pitch.zone) : "Ball", 150, yPos, { width: 50, align: "center" });
+  doc.text(pitch.result || "—", 205, yPos, { width: 60, align: "center" });
 
-    // Calculate distance
-    let distance = "—";
-    if (pitch.x !== null && pitch.y !== null && pitch.target_x !== null && pitch.target_y !== null) {
-      const pixelDistance = Math.sqrt(
-        Math.pow(pitch.x - pitch.target_x, 2) + Math.pow(pitch.y - pitch.target_y, 2)
-      );
-      const STRIKEZONE_WIDTH_PX = 192;
-      const INCHES_PER_PIXEL = 17 / STRIKEZONE_WIDTH_PX;
-      distance = (Math.round(pixelDistance * INCHES_PER_PIXEL * 10) / 10) + '"';
-    }
-    doc.text(distance, 260, yPos);
-    doc.text(pitch.mph ? String(pitch.mph) : "—", 310, yPos);
+  // Calculate distance
+  let distance = "—";
+  if (pitch.x !== null && pitch.y !== null && pitch.target_x !== null && pitch.target_y !== null) {
+    const STRIKEZONE_WIDTH_PX = 192;
+    const INCHES_PER_PIXEL = 17 / STRIKEZONE_WIDTH_PX;
+    const pixelDistance = Math.sqrt(
+      Math.pow((pitch.x - pitch.target_x) * STRIKEZONE_WIDTH_PX, 2) + 
+      Math.pow((pitch.y - pitch.target_y) * STRIKEZONE_WIDTH_PX, 2)
+    );
+    distance = (Math.round(pixelDistance * INCHES_PER_PIXEL * 10) / 10) + '"';
+  }
+  doc.text(distance, 270, yPos, { width: 50, align: "center" });
+  doc.text(pitch.mph ? String(pitch.mph) : "—", 325, yPos, { width: 50, align: "center" });
 
-    // Draw strikezone visualization
-    
-
-    yPos += 10;
-  });
+  yPos += 10;
+});
 
   doc.end();
 }

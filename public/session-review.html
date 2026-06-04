@@ -544,22 +544,22 @@ document.getElementById("sessionsList").innerHTML = data.sessions
             const mph = pitch.mph ? `${pitch.mph}` : "—";
            const strikezone = generateStrikezoneSVG(pitch.x, pitch.y, 80, 110, pitch.target_x, pitch.target_y);
 
-            return `
+        return `
           <tr>
             <td class="pitch-number">${index + 1}</td>
             <td class="pitch-type">${pitch.pitchType || "—"}</td>
             <td class="pitch-zone">${pitch.zone || "Ball"}</td>
             <td class="pitch-mph">${mph}</td>
-            <td<td>${pitch.result}</td>
-            <td style="text-align: center;">${pitch.distance !== null && pitch.distance !== undefined ? pitch.distance.toFixed(1) + '"' : "—"}</td>
-            <td>
+            <td style="width: 100px; text-align: center;">${pitch.result}</td>
+            <td style="width: 90px; text-align: center;">${pitch.distance !== null && pitch.distance !== undefined ? pitch.distance.toFixed(1) + '"' : "—"}</td>
+            <td style="width: 120px; text-align: center;">
               ${
                 clipUrl
                  ? `<a class="clip-link" href="${clipUrl}" target="_blank">📹 Watch</a> <button onclick="downloadClip('${clipUrl}')" style="padding: 4px 8px; font-size: 10px; background: #22d3ee; border: none; border-radius: 4px; cursor: pointer; color: #000; font-weight: 500; margin-left: 4px;">⬇️</button>`
                   : "—"
               }
             </td>
-            <td style="text-align: center;">
+            <td style="width: 100px; text-align: center;">
               ${strikezone}
             </td>
           </tr>
