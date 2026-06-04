@@ -1024,13 +1024,6 @@ clipStartTime = Date.now();
   const pitchId = currentPitchId || crypto.randomUUID();  // CHANGE: Use stored pitchId
     
   // Send start-recording signal to camera
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({
-      type: "start-recording",
-      pitchId: pitchId,
-      timestamp: Date.now()
-    }));
-  }
 
   if (ws && ws.readyState === WebSocket.OPEN) {
   console.log("📤 Sending start-recording for pitch:", pitchId);
