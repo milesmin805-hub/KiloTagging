@@ -468,16 +468,11 @@ ws.addEventListener("message", function(event) {
       isRecording = true;
 
       mediaRecorder.start(100);
-      recordingStatus.textContent = `🔴 Recording (15 sec)...`;
+      recordingStatus.textContent = `🔴 Recording...`;
       recordingStatus.classList.remove("disconnected");
       recordingStatus.classList.add("recording");
 
       console.log("🎥 Recording started for pitch:", pitchId);
-
-      // Auto-stop after 15 seconds
-      setTimeout(() => {
-        stopRecording(pitchId);
-      }, 15000);
     }
 
     function stopRecording(pitchId) {
