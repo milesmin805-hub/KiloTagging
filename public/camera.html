@@ -299,14 +299,7 @@
     let token = null;
     let userId = null;
     let sessionId = null;
-    let recordingBuffer = []; // Rolling buffer of chunks with timestamps
-    let isBuffering = false; // Currently in 6-second pre-record phase
-    let bufferStartTime = null;
-    let totalRecordedTime = 0;
-    const BUFFER_DURATION = 6000; // 6 seconds BEFORE pitch
-    const POST_DURATION = 3000;   // 3 seconds AFTER pitch
-    const TOTAL_CLIP_DURATION = BUFFER_DURATION + POST_DURATION; // 9 seconds total
-
+    
     const preview = document.getElementById("preview");
     const cameraSelect = document.getElementById("cameraSelect");
     const initCameraBtn = document.getElementById("initCameraBtn");
@@ -441,46 +434,30 @@
       }
     }
 
-    function setupMediaRecorder() {
+function setupMediaRecorder() {
       if (!currentStream) return;
 
       mediaRecorder = new MediaRecorder(currentStream, {
         mimeType: "video/webm;codecs=vp9"
       });
 
-mediaRecorder.ondataavailable = (event) => {
-  if (event.data.size > 0) {
-    const chunk = {
-      data: event.data,
-      timestamp: Date.now()
-    };
-    recordingBuffer.push(chunk);
-    
-    // Keep only last 6 seconds of buffer
-    const now = Date.now();
-    recordingBuffer = recordingBuffer.filter(c => (now - c.timestamp) < BUFFER_DURATION);
-  }
-};
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunks.push(event.data);
+        }
+      };
 
 mediaRecorder.onstop = async () => {
-  // Combine all chunks from buffer + newly recorded
-  const allChunks = recordingBuffer.map(c => c.data).concat(recordedChunks);
-  const blob = new Blob(allChunks, { type: "video/webm" });
+  const blob = new Blob(recordedChunks, { type: "video/webm" });
   await uploadClip(blob, currentPitchId);
   recordedChunks = [];
-  recordingBuffer = [];
 };
 
-      mediaRecorder.start(100); // Start continuous buffering
+      mediaRecorder.start(100); // Start continuous recording
     }
 
- function startRecording(pitchId) {
-  if (!mediaRecorder) {
-    console.warn("MediaRecorder not ready");
-    return;
-  }
-  
-  if (isRecording) {
+function startRecording(pitchId) {
+  if (!mediaRecorder || mediaRecorder.state === "recording") {
     console.warn("Already recording");
     return;
   }
@@ -489,20 +466,17 @@ mediaRecorder.onstop = async () => {
   recordedChunks = [];
   isRecording = true;
 
-  recordingStatus.textContent = `🔴 Recording (9 sec clip)...`;
+  mediaRecorder.start(100);
+  recordingStatus.textContent = `🔴 Recording (15 sec)...`;
   recordingStatus.classList.remove("disconnected");
   recordingStatus.classList.add("recording");
 
   console.log("🎥 Recording started for pitch:", pitchId);
 
- // Auto-stop after 9 seconds (6 before + 3 after)
-const stopTimer = setTimeout(() => {
-  stopRecording(pitchId);
-}, TOTAL_CLIP_DURATION);
-
-// Store timer ID to cancel if pitch-end arrives early
-currentPitchId = pitchId;
-window.currentStopTimer = stopTimer;
+  // Auto-stop after 15 seconds
+  setTimeout(() => {
+    stopRecording(pitchId);
+  }, 15000);
 }
 
 function stopRecording(pitchId) {
@@ -510,12 +484,6 @@ function stopRecording(pitchId) {
     console.warn("Not recording, cannot stop");
     return;
   }
-
-  // Clear auto-stop timer
-if (window.currentStopTimer) {
-  clearTimeout(window.currentStopTimer);
-  window.currentStopTimer = null;
-}
 
   if (pitchId !== currentPitchId) {
     console.warn("Pitch ID mismatch:", pitchId, currentPitchId);

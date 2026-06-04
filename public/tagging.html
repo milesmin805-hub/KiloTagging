@@ -705,6 +705,7 @@
   <script>
 let selectedZone = null, selectedX = null, selectedY = null, selectedPitchType = null, selectedResult = null, incomingClips = [], ws = null;
 let currentPitchId = null;
+let clipStartTime = null;  // NEW
 let targetX = null, targetY = null;
 let dotStep = 0;
 let balls = 0, strikes = 0, outs = 0, totalPitches = 0, totalBalls = 0, totalStrikes = 0;
@@ -920,12 +921,13 @@ pitchArea.addEventListener("click", (event) => {
       currentPitchId = crypto.randomUUID();
       debugLine.textContent = `Device: TAGGER | WS: ✅ | Sent pitch-start`;
       console.log("📤 Sending pitch-start:", currentPitchId);
-      ws.send(JSON.stringify({ 
-        type: "pitch-start", 
-        pitchId: currentPitchId,
-        timestamp: Date.now(),
-        recordEarly: true
-      }));
+      clipStartTime = Date.now();  // NEW - capture start time
+ws.send(JSON.stringify({ 
+    type: "pitch-start", 
+    pitchId: currentPitchId,
+    timestamp: clipStartTime,
+    recordEarly: true
+}));
     } else {
       debugLine.textContent = `Device: TAGGER | WS: ❌ | Can't send`;
       console.warn("⚠️ WebSocket not open");
@@ -1033,6 +1035,16 @@ pitchArea.addEventListener("click", (event) => {
 
     async function savePitch() {
   const pitchId = currentPitchId || crypto.randomUUID();  // CHANGE: Use stored pitchId
+    
+  // Send start-recording signal to camera
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({
+      type: "start-recording",
+      pitchId: pitchId,
+      timestamp: Date.now()
+    }));
+  }
+
   const mph = velocityValue.textContent !== "—" ? parseInt(velocityValue.textContent) : null;
 
       if (selectedResult === "Ball") {
@@ -1075,7 +1087,7 @@ pitchArea.addEventListener("click", (event) => {
       totalBallsEl.textContent = totalBalls;
       totalStrikesEl.textContent = totalStrikes;
 
-     const pitchData = { 
+const pitchData = { 
   pitchId, 
   pitchType: selectedPitchType, 
   zone: selectedZone, 
@@ -1084,6 +1096,8 @@ pitchArea.addEventListener("click", (event) => {
   y: selectedY,
   target_x: targetX,
   target_y: targetY,
+  clip_start_time: clipStartTime,  // NEW
+  clip_end_time: Date.now(),        // NEW
   mph: mph,
   timestamp: Date.now() 
 };
@@ -1123,7 +1137,7 @@ sendCountUpdate();
       updateDotIndicator();
       document.querySelectorAll(".pill").forEach((p) => p.classList.remove("active"));
     }
-    
+
     function addClip(url, pitchId) {
       const item = document.createElement("div");
       item.className = "clip-item";

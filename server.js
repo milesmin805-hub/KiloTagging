@@ -88,6 +88,14 @@ await pool.query(`
       ALTER TABLE pitches ADD COLUMN IF NOT EXISTS target_y DECIMAL(5,3) DEFAULT NULL;
     `);
 
+await pool.query(`
+  ALTER TABLE pitches ADD COLUMN IF NOT EXISTS clip_start_time BIGINT DEFAULT NULL;
+`);
+
+await pool.query(`
+  ALTER TABLE pitches ADD COLUMN IF NOT EXISTS clip_end_time BIGINT DEFAULT NULL;
+`);
+
     await pool.query(`
       CREATE TABLE IF NOT EXISTS clips (
         id UUID PRIMARY KEY,
@@ -329,6 +337,8 @@ const pitches = pitchesResult.rows.map((pitch) => {
     y: pitch.y,
     target_x: pitch.target_x,
     target_y: pitch.target_y,
+    clip_start_time: pitch.clip_start_time,
+    clip_end_time: pitch.clip_end_time,
     distance: distance,
     mph: pitch.mph,
     timestamp: new Date(pitch.created_at).getTime()
@@ -373,8 +383,8 @@ app.post("/session/:sessionId/pitch", async (req, res) => {
     }
 
 const result = await pool.query(
-  `INSERT INTO pitches (id, session_id, pitch_type, zone, result, x, y, target_x, target_y, mph)
-   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+  `INSERT INTO pitches (id, session_id, pitch_type, zone, result, x, y, target_x, target_y, clip_start_time, clip_end_time, mph)
+   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
    RETURNING *`,
   [
     pitch.pitchId,
@@ -386,6 +396,8 @@ const result = await pool.query(
     pitch.y,
     pitch.target_x || null,
     pitch.target_y || null,
+    pitch.clip_start_time || null,
+    pitch.clip_end_time || null,
     pitch.mph || null
   ]
 );
@@ -539,39 +551,6 @@ app.delete("/session/:sessionId", async (req, res) => {
   }
 });
 
-app.post("/session/:sessionId/link-clip", async (req, res) => {
-  const { sessionId } = req.params;
-  const { token, pitchId, clipUrl } = req.body;
-  const user = await verifyToken(token);
-
-  if (!user) {
-    return res.json({ success: false, error: "Invalid token" });
-  }
-
-  try {
-    const sessionCheck = await pool.query(
-      "SELECT id FROM sessions WHERE id = $1 AND user_id = $2",
-      [sessionId, user.id]
-    );
-
-    if (sessionCheck.rows.length === 0) {
-      return res.json({ success: false, error: "Session not found" });
-    }
-
-    const clipId = crypto.randomUUID();
-    await pool.query(
-      "INSERT INTO clips (id, session_id, pitch_id, url) VALUES ($1, $2, $3, $4)",
-      [clipId, sessionId, pitchId, clipUrl]
-    );
-
-    console.log("✅ Clip linked:", pitchId);
-    res.json({ success: true });
-  } catch (err) {
-    console.error("Link clip error:", err);
-    res.json({ success: false, error: "Failed to link clip" });
-  }
-});
-
 app.post("/session/:sessionId/close", async (req, res) => {
   const { sessionId } = req.params;
   const { token } = req.body;
@@ -596,33 +575,12 @@ app.post("/session/:sessionId/close", async (req, res) => {
       [sessionId]
     );
 
-    const sessionResult = await pool.query(
-      "SELECT id, name, created_at FROM sessions WHERE id = $1",
-      [sessionId]
-    );
+    // Return immediately to user
+    res.json({ success: true, message: "Session closed. Clips processing in background..." });
 
-const pitchesResult = await pool.query(
-  `SELECT id, pitch_type, zone, result, x, y, target_x, target_y, mph, created_at
-   FROM pitches WHERE session_id = $1 ORDER BY created_at ASC`,
-  [sessionId]
-);
+    // Start background job (don't wait for it)
+    processSessionClipsInBackground(sessionId, user.id);
 
-    const clipsResult = await pool.query(
-      "SELECT pitch_id FROM clips WHERE session_id = $1",
-      [sessionId]
-    );
-
-    const session = {
-      sessionId: sessionResult.rows[0].id,
-      name: sessionResult.rows[0].name,
-      createdAt: sessionResult.rows[0].created_at,
-      pitches: pitchesResult.rows,
-      clips: clipsResult.rows
-    };
-
-    generateSessionPDF(session);
-
-    res.json({ success: true });
   } catch (err) {
     console.error("Close session error:", err);
     res.json({ success: false, error: "Failed to close session" });
