@@ -500,12 +500,15 @@ ws.addEventListener("message", function(event) {
       console.log("✅ Recording stopped for pitch:", pitchId);
     }
 
-    async function uploadClip(blob, pitchId) {
+async function uploadClip(blob, pitchId) {
       try {
         const formData = new FormData();
         formData.append("clip", blob, `clip_${pitchId.slice(0, 8)}.webm`);
 
-        console.log("📤 Uploading clip...");
+        // Capture count text from footer
+        const countText = document.getElementById("countFooter").textContent;
+        formData.append("countText", countText);
+        console.log("📤 Uploading clip with count:", countText);
         
         const response = await fetch("/uploadClip", {
           method: "POST",

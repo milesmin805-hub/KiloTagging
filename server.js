@@ -819,18 +819,37 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+function buildDrawtextFilter(countText) {
+  // Escape single quotes for FFmpeg
+  const escapedText = countText.replace(/'/g, "\\'");
+  
+  // Build drawtext filter - white text centered at bottom
+  const filter = `drawtext=text='${escapedText}':x=(w-text_w)/2:y=h-30:fontsize=14:fontcolor=white`;
+  
+  console.log("🎬 Drawtext filter:", filter);
+  return filter;
+}
+
 app.post("/uploadClip", upload.single("clip"), (req, res) => {
   const webmPath = req.file.path;
   const mp4Filename = req.file.filename.replace(".webm", ".mp4");
   const mp4Path = path.join(__dirname, "clips", mp4Filename);
+  
+  // Get count text from FormData
+  const countText = req.body.countText || "No count data";
+  console.log("📊 Count text received:", countText);
 
-  // Convert WebM to MP4
+  // Build and apply drawtext filter
+  const drawtextFilter = buildDrawtextFilter(countText);
+
+  // Convert WebM to MP4 with text overlay
   ffmpeg(webmPath)
     .videoCodec('libx264')
     .audioCodec('aac')
     .videoBitrate('2500k')
     .audioBitrate('128k')
     .preset('fast')
+    .videoFilters(drawtextFilter)
     .output(mp4Path)
     .on("end", () => {
       // Delete the WebM file after conversion
