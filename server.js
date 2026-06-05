@@ -820,8 +820,11 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 function buildDrawtextFilter(countText) {
+  // Clean up text - remove newlines, trim whitespace
+  const cleanText = countText.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+  
   // Escape single quotes for FFmpeg
-  const escapedText = countText.replace(/'/g, "\\'");
+  const escapedText = cleanText.replace(/'/g, "\\'");
   
   // Build drawtext filter - white text centered at bottom
   const filter = `drawtext=text='${escapedText}':x=(w-text_w)/2:y=h-30:fontsize=14:fontcolor=white`;
