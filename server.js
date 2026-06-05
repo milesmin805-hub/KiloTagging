@@ -726,10 +726,8 @@ session.pitches.forEach((pitch, index) => {
   doc.text(distance, 270, yPos, { width: 50, align: "center" });
   doc.text(pitch.mph ? String(pitch.mph) : "—", 325, yPos, { width: 50, align: "center" });
 
-  yPos += 10;
+yPos += 10;
 });
-
-  doc.end();
 
   return new Promise((resolve, reject) => {
     stream.on('finish', () => {
@@ -741,6 +739,8 @@ session.pitches.forEach((pitch, index) => {
       console.error("PDF generation error:", err);
       reject(err);
     });
+
+    doc.end();
   });
 }
 
