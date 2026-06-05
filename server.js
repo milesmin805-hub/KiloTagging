@@ -403,7 +403,7 @@ app.post("/session/:sessionId/close", async (req, res) => {
       pitches: pitchesResult.rows
     };
 
-    generateSessionPDF(session);
+  await generateSessionPDF(session);
 
     res.json({ success: true, message: "Session closed." });
 
