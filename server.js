@@ -848,7 +848,7 @@ app.post("/uploadClip", upload.single("clip"), (req, res) => {
     .audioCodec('aac')
     .videoBitrate('2500k')
     .audioBitrate('128k')
-    .preset('fast')
+    .option('-preset fast')
     .videoFilters(drawtextFilter)
     .output(mp4Path)
     .on("end", () => {
