@@ -765,11 +765,11 @@ function drawStrikezonePDF(doc, x, y, width, height, pitchX, pitchY) {
 
 app.get("/session/:sessionId/download-pdf", async (req, res) => {
   const { sessionId } = req.params;
-const token = req.headers.authorization?.split(" ")[1] || req.query.token;
+  const token = req.headers.authorization?.split(" ")[1] || req.query.token;
   const user = await verifyToken(token);
-p
+
   if (!user) {
-    return res.json({ success: false, error: "Invalid token" });
+    return res.status(401).json({ success: false, error: "Invalid token" });
   }
 
   try {
@@ -779,19 +779,26 @@ p
     );
 
     if (sessionCheck.rows.length === 0) {
-      return res.json({ success: false, error: "Session not found" });
+      return res.status(404).json({ success: false, error: "Session not found" });
     }
 
     const pdfPath = path.join(__dirname, "pdfs", `${sessionId}.pdf`);
+    console.log("Checking PDF at:", pdfPath);
 
     if (!fs.existsSync(pdfPath)) {
-      return res.json({ success: false, error: "PDF not found" });
+      console.error("PDF file not found:", pdfPath);
+      return res.status(404).json({ success: false, error: "PDF not found" });
     }
 
-    res.download(pdfPath, `${sessionCheck.rows[0].name}.pdf`);
+    res.download(pdfPath, `${sessionCheck.rows[0].name}.pdf`, (err) => {
+      if (err) {
+        console.error("Download error:", err);
+        res.status(500).json({ success: false, error: "Download failed" });
+      }
+    });
   } catch (err) {
     console.error("Download PDF error:", err);
-    res.json({ success: false, error: "Failed to download PDF" });
+    res.status(500).json({ success: false, error: "Failed to download PDF" });
   }
 });
 
