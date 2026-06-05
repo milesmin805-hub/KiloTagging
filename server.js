@@ -826,6 +826,11 @@ app.post("/uploadClip", upload.single("clip"), (req, res) => {
 
   // Convert WebM to MP4
   ffmpeg(webmPath)
+    .videoCodec('libx264')
+    .audioCodec('aac')
+    .videoBitrate('2500k')
+    .audioBitrate('128k')
+    .preset('fast')
     .output(mp4Path)
     .on("end", () => {
       // Delete the WebM file after conversion
