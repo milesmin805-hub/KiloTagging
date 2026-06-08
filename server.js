@@ -14,7 +14,7 @@ const crypto = require("crypto");
 const PDFDocument = require("pdfkit");
 const { Pool } = require("pg");
 const ffmpeg = require("fluent-ffmpeg");
-
+ 
 // ======================================
 // DATABASE CONNECTION
 // ======================================
@@ -24,18 +24,18 @@ const pool = new Pool({
     rejectUnauthorized: false
   }
 });
-
+ 
 pool.on("error", (err) => {
   console.error("Unexpected error on idle client", err);
 });
-
+ 
 // ======================================
 // MIDDLEWARE
 // ======================================
 app.use(express.static("public"));
 app.use("/clips", express.static("clips"));
 app.use(express.json());
-
+ 
 // ======================================
 // INITIALIZE DATABASE
 // ======================================
@@ -50,7 +50,7 @@ async function initializeDatabase() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-
+ 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS sessions (
         id UUID PRIMARY KEY,
@@ -61,7 +61,7 @@ async function initializeDatabase() {
         is_closed BOOLEAN DEFAULT FALSE
       );
     `);
-
+ 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS pitches (
         id UUID PRIMARY KEY,
@@ -75,27 +75,27 @@ async function initializeDatabase() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-
+ 
 await pool.query(`
       ALTER TABLE pitches ADD COLUMN IF NOT EXISTS mph INTEGER DEFAULT NULL;
     `);
-
+ 
     await pool.query(`
       ALTER TABLE pitches ADD COLUMN IF NOT EXISTS target_x DECIMAL(5,3) DEFAULT NULL;
     `);
-
+ 
     await pool.query(`
       ALTER TABLE pitches ADD COLUMN IF NOT EXISTS target_y DECIMAL(5,3) DEFAULT NULL;
     `);
-
+ 
 await pool.query(`
   ALTER TABLE pitches ADD COLUMN IF NOT EXISTS clip_start_time BIGINT DEFAULT NULL;
 `);
-
+ 
 await pool.query(`
   ALTER TABLE pitches ADD COLUMN IF NOT EXISTS clip_end_time BIGINT DEFAULT NULL;
 `);
-
+ 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS clips (
         id UUID PRIMARY KEY,
@@ -105,26 +105,26 @@ await pool.query(`
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-
+ 
     console.log("✅ Database initialized");
   } catch (err) {
     console.error("Database init error:", err);
   }
 }
-
+ 
 initializeDatabase();
-
+ 
 // ======================================
 // HELPER FUNCTIONS
 // ======================================
 function generateToken() {
   return crypto.randomBytes(32).toString("hex");
 }
-
+ 
 function hashPassword(password) {
   return crypto.createHash("sha256").update(password).digest("hex");
 }
-
+ 
 async function verifyToken(token) {
   try {
     const result = await pool.query(
@@ -137,123 +137,123 @@ async function verifyToken(token) {
     return null;
   }
 }
-
+ 
 // ======================================
 // AUTH ENDPOINTS
 // ======================================
 app.post("/auth/signup", async (req, res) => {
   const { email, password, confirmPassword } = req.body;
-
+ 
   if (!email || !password || !confirmPassword) {
     return res.json({ success: false, error: "Missing fields" });
   }
-
+ 
   if (password !== confirmPassword) {
     return res.json({ success: false, error: "Passwords don't match" });
   }
-
+ 
   if (password.length < 6) {
     return res.json({ success: false, error: "Password too short" });
   }
-
+ 
   try {
     const existing = await pool.query("SELECT id FROM users WHERE email = $1", [email]);
     if (existing.rows.length > 0) {
       return res.json({ success: false, error: "Email already exists" });
     }
-
+ 
     const userId = crypto.randomUUID();
     const token = generateToken();
     const passwordHash = hashPassword(password);
-
+ 
     await pool.query(
       "INSERT INTO users (id, email, password_hash, token) VALUES ($1, $2, $3, $4)",
       [userId, email, passwordHash, token]
     );
-
+ 
     res.json({ success: true, token, userId, email });
   } catch (err) {
     console.error("Signup error:", err);
     res.json({ success: false, error: "Signup failed" });
   }
 });
-
+ 
 app.post("/auth/login", async (req, res) => {
   const { email, password } = req.body;
-
+ 
   if (!email || !password) {
     return res.json({ success: false, error: "Missing fields" });
   }
-
+ 
   try {
     const result = await pool.query(
       "SELECT id, password_hash FROM users WHERE email = $1",
       [email]
     );
-
+ 
     if (result.rows.length === 0) {
       return res.json({ success: false, error: "Invalid credentials" });
     }
-
+ 
     const user = result.rows[0];
     const passwordHash = hashPassword(password);
-
+ 
     if (user.password_hash !== passwordHash) {
       return res.json({ success: false, error: "Invalid credentials" });
     }
-
+ 
     // Check if user already has a token (reuse it if they do)
     const existingToken = await pool.query(
       "SELECT token FROM users WHERE id = $1",
       [user.id]
     );
     const token = existingToken.rows[0]?.token || generateToken();
-
+ 
     // Only update if we generated a new token
     if (!existingToken.rows[0]) {
       await pool.query("UPDATE users SET token = $1 WHERE id = $2", [token, user.id]);
     }
-
+ 
     res.json({ success: true, token, userId: user.id, email });
   } catch (err) {
     console.error("Login error:", err);
     res.json({ success: false, error: "Login failed" });
   }
 });
-
+ 
 // ======================================
 // SESSION ENDPOINTS
 // ======================================
 app.post("/session/create", async (req, res) => {
   const { token, name } = req.body;
   const user = await verifyToken(token);
-
+ 
   if (!user) {
     return res.json({ success: false, error: "Invalid token" });
   }
-
+ 
   try {
     const sessionId = crypto.randomUUID();
     await pool.query(
       "INSERT INTO sessions (id, user_id, name) VALUES ($1, $2, $3)",
       [sessionId, user.id, name || `Session ${new Date().toLocaleDateString()}`]
     );
-
+ 
     res.json({ success: true, sessionId });
   } catch (err) {
     console.error("Create session error:", err);
     res.json({ success: false, error: "Failed to create session" });
   }
 });
-
+ 
 app.get("/session/list", async (req, res) => {
   const token = req.headers.authorization?.split(" ")[1];
   const user = await verifyToken(token);
-
+ 
   if (!user) {
     return res.json({ success: false, error: "Invalid token" });
   }
-
+ 
   try {
     const result = await pool.query(
       `SELECT s.id, s.name, s.created_at, s.is_closed, COUNT(p.id) as pitch_count
@@ -264,7 +264,7 @@ app.get("/session/list", async (req, res) => {
        ORDER BY s.created_at DESC`,
       [user.id]
     );
-
+ 
     const sessions = result.rows.map((row) => ({
       sessionId: row.id,
       name: row.name,
@@ -272,51 +272,51 @@ app.get("/session/list", async (req, res) => {
       closed: row.is_closed,
       pitches: Array(row.pitch_count).fill({})
     }));
-
+ 
     res.json({ success: true, sessions });
   } catch (err) {
     console.error("List sessions error:", err);
     res.json({ success: false, error: "Failed to list sessions" });
   }
 });
-
+ 
 app.get("/session/:sessionId", async (req, res) => {
   const { sessionId } = req.params;
   const token = req.headers.authorization?.split(" ")[1] || req.query.token;
   const user = await verifyToken(token);
-
+ 
   if (!user) {
     return res.json({ success: false, error: "Invalid token" });
   }
-
+ 
   try {
     const sessionResult = await pool.query(
       "SELECT id, name, created_at, is_closed FROM sessions WHERE id = $1 AND user_id = $2",
       [sessionId, user.id]
     );
-
+ 
     if (sessionResult.rows.length === 0) {
       return res.json({ success: false, error: "Session not found" });
     }
-
+ 
     const session = sessionResult.rows[0];
-
+ 
     const pitchesResult = await pool.query(
       `SELECT id, pitch_type, zone, result, x, y, target_x, target_y,mph, created_at
        FROM pitches WHERE session_id = $1 ORDER BY created_at ASC`,
       [sessionId]
     );
-
+ 
     const clipsResult = await pool.query(
       "SELECT pitch_id, url FROM clips WHERE session_id = $1",
       [sessionId]
     );
-
+ 
     const clips = {};
     clipsResult.rows.forEach((clip) => {
       clips[clip.pitch_id] = clip.url;
     });
-
+ 
 const pitches = pitchesResult.rows.map((pitch) => {
   let distance = null;
   if (pitch.x !== null && pitch.y !== null && pitch.target_x !== null && pitch.target_y !== null) {
@@ -345,7 +345,7 @@ const pitches = pitchesResult.rows.map((pitch) => {
     timestamp: new Date(pitch.created_at).getTime()
   };
 });
-
+ 
     res.json({
       success: true,
       session: {
@@ -363,38 +363,38 @@ const pitches = pitchesResult.rows.map((pitch) => {
     res.json({ success: false, error: "Failed to get session" });
   }
 });
-
+ 
 app.post("/session/:sessionId/close", async (req, res) => {
   const { sessionId } = req.params;
   const { token } = req.body;
   const user = await verifyToken(token);
-
+ 
   if (!user) {
     return res.json({ success: false, error: "Invalid token" });
   }
-
+ 
   try {
     const sessionCheck = await pool.query(
       "SELECT id, name FROM sessions WHERE id = $1 AND user_id = $2",
       [sessionId, user.id]
     );
-
+ 
     if (sessionCheck.rows.length === 0) {
       return res.json({ success: false, error: "Session not found" });
     }
-
+ 
     // Get pitches for PDF
     const pitchesResult = await pool.query(
       "SELECT * FROM pitches WHERE session_id = $1 ORDER BY created_at ASC",
       [sessionId]
     );
-
+ 
     // Update session status
     await pool.query(
       "UPDATE sessions SET is_closed = TRUE, closed_at = CURRENT_TIMESTAMP WHERE id = $1",
       [sessionId]
     );
-
+ 
     // Generate PDF
     const session = {
       sessionId,
@@ -402,36 +402,36 @@ app.post("/session/:sessionId/close", async (req, res) => {
       createdAt: sessionCheck.rows[0].created_at,
       pitches: pitchesResult.rows
     };
-
+ 
   await generateSessionPDF(session);
-
+ 
     res.json({ success: true, message: "Session closed." });
-
+ 
   } catch (err) {
     console.error("Close session error:", err);
     res.json({ success: false, error: "Failed to close session" });
   }
 });
-
+ 
 app.post("/session/:sessionId/pitch", async (req, res) => {
   const { sessionId } = req.params;
   const { token, pitch } = req.body;
   const user = await verifyToken(token);
-
+ 
   if (!user) {
     return res.json({ success: false, error: "Invalid token" });
   }
-
+ 
   try {
     const sessionCheck = await pool.query(
       "SELECT id FROM sessions WHERE id = $1 AND user_id = $2",
       [sessionId, user.id]
     );
-
+ 
     if (sessionCheck.rows.length === 0) {
       return res.json({ success: false, error: "Session not found" });
     }
-
+ 
 const result = await pool.query(
   `INSERT INTO pitches (id, session_id, pitch_type, zone, result, x, y, target_x, target_y, clip_start_time, clip_end_time, mph)
    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
@@ -451,7 +451,7 @@ const result = await pool.query(
     pitch.mph || null
   ]
 );
-
+ 
     const savedPitch = result.rows[0];
     res.json({ 
       success: true, 
@@ -468,31 +468,31 @@ const result = await pool.query(
     res.json({ success: false, error: "Failed to save pitch" });
   }
 });
-
+ 
 app.patch("/session/:sessionId/pitch/:pitchId", async (req, res) => {
   const { sessionId, pitchId } = req.params;
   const { token, updates } = req.body;
   const user = await verifyToken(token);
-
+ 
   if (!user) {
     return res.json({ success: false, error: "Invalid token" });
   }
-
+ 
   try {
     const sessionCheck = await pool.query(
       "SELECT id FROM sessions WHERE id = $1 AND user_id = $2",
       [sessionId, user.id]
     );
-
+ 
     if (sessionCheck.rows.length === 0) {
       return res.json({ success: false, error: "Session not found" });
     }
-
+ 
   const allowedFields = ["pitch_type", "zone", "result", "x", "y", "target_x", "target_y", "mph"];
     const updateClause = [];
     const values = [];
     let paramCount = 1;
-
+ 
     for (const [key, value] of Object.entries(updates)) {
       if (allowedFields.includes(key)) {
         updateClause.push(`${key} = $${paramCount}`);
@@ -500,11 +500,11 @@ app.patch("/session/:sessionId/pitch/:pitchId", async (req, res) => {
         paramCount++;
       }
     }
-
+ 
     if (updateClause.length === 0) {
       return res.json({ success: false, error: "No valid fields to update" });
     }
-
+ 
     values.push(pitchId);
     const query = `
       UPDATE pitches 
@@ -512,181 +512,181 @@ app.patch("/session/:sessionId/pitch/:pitchId", async (req, res) => {
       WHERE id = $${paramCount}
       RETURNING *
     `;
-
+ 
     const result = await pool.query(query, values);
-
+ 
     if (result.rows.length === 0) {
       return res.json({ success: false, error: "Pitch not found" });
     }
-
+ 
     console.log("✅ Pitch updated:", pitchId);
     res.json({ success: true, pitch: result.rows[0] });
-
+ 
   } catch (err) {
     console.error("Error updating pitch:", err);
     res.json({ success: false, error: err.message });
   }
 });
-
-
-
+ 
+ 
+ 
 app.delete("/session/:sessionId/pitch/:pitchId", async (req, res) => {
   const { sessionId, pitchId } = req.params;
   const { token } = req.body;
   const user = await verifyToken(token);
-
+ 
   if (!user) {
     return res.json({ success: false, error: "Invalid token" });
   }
-
+ 
   try {
     const sessionCheck = await pool.query(
       "SELECT id FROM sessions WHERE id = $1 AND user_id = $2",
       [sessionId, user.id]
     );
-
+ 
     if (sessionCheck.rows.length === 0) {
       return res.json({ success: false, error: "Session not found" });
     }
-
+ 
     await pool.query("DELETE FROM clips WHERE pitch_id = $1", [pitchId]);
-
+ 
     const result = await pool.query(
       "DELETE FROM pitches WHERE id = $1 RETURNING id",
       [pitchId]
     );
-
+ 
     if (result.rows.length === 0) {
       return res.json({ success: false, error: "Pitch not found" });
     }
-
+ 
     console.log("✅ Pitch deleted:", pitchId);
     res.json({ success: true });
-
+ 
   } catch (err) {
     console.error("Error deleting pitch:", err);
     res.json({ success: false, error: err.message });
   }
 });
-
+ 
 app.delete("/session/:sessionId", async (req, res) => {
   const { sessionId } = req.params;
   const { token } = req.body;
   const user = await verifyToken(token);
-
+ 
   if (!user) {
     return res.json({ success: false, error: "Invalid token" });
   }
-
+ 
   try {
     const sessionCheck = await pool.query(
       "SELECT id FROM sessions WHERE id = $1 AND user_id = $2",
       [sessionId, user.id]
     );
-
+ 
     if (sessionCheck.rows.length === 0) {
       return res.json({ success: false, error: "Session not found" });
     }
-
+ 
     await pool.query("DELETE FROM clips WHERE session_id = $1", [sessionId]);
     await pool.query("DELETE FROM pitches WHERE session_id = $1", [sessionId]);
     await pool.query("DELETE FROM sessions WHERE id = $1", [sessionId]);
-
+ 
     console.log("✅ Session deleted:", sessionId);
     res.json({ success: true });
-
+ 
   } catch (err) {
     console.error("Error deleting session:", err);
     res.json({ success: false, error: err.message });
   }
 });
-
+ 
 app.post("/session/:sessionId/close", async (req, res) => {
   const { sessionId } = req.params;
   const { token } = req.body;
   const user = await verifyToken(token);
-
+ 
   if (!user) {
     return res.json({ success: false, error: "Invalid token" });
   }
-
+ 
   try {
     const sessionCheck = await pool.query(
       "SELECT id FROM sessions WHERE id = $1 AND user_id = $2",
       [sessionId, user.id]
     );
-
+ 
     if (sessionCheck.rows.length === 0) {
       return res.json({ success: false, error: "Session not found" });
     }
-
+ 
     await pool.query(
       "UPDATE sessions SET is_closed = TRUE, closed_at = CURRENT_TIMESTAMP WHERE id = $1",
       [sessionId]
     );
-
+ 
     // Return immediately to user
     res.json({ success: true, message: "Session closed. Clips processing in background..." });
-
+ 
 // Return immediately to user
     res.json({ success: true, message: "Session closed." });
-
+ 
   } catch (err) {
     console.error("Close session error:", err);
     res.json({ success: false, error: "Failed to close session" });
   }
 });
-
+ 
 // ======================================
 // PDF GENERATION
 // ======================================
 function generateSessionPDF(session) {
   const pdfPath = path.join(__dirname, "pdfs", `${session.sessionId}.pdf`);
-
+ 
   if (!fs.existsSync(path.join(__dirname, "pdfs"))) {
     fs.mkdirSync(path.join(__dirname, "pdfs"), { recursive: true });
   }
-
+ 
   const doc = new PDFDocument({ size: "A4", margin: 40 });
   const stream = fs.createWriteStream(pdfPath);
-
+ 
   doc.pipe(stream);
-
+ 
   try {
     doc.image(path.join(__dirname, "public/images/kilo-page.png"), 40, 30, { width: 120 });
   } catch (err) {
     console.error("Logo image not found:", err);
   }
   doc.moveDown(2);
-
+ 
   doc.fontSize(24).font("Helvetica-Bold").text("Kilo Baseball Report", { align: "center" });
   doc.fontSize(12).font("Helvetica").text(session.name, { align: "center" });
   doc.fontSize(10)
     .fillColor("#666")
     .text(`Session ID: ${session.sessionId}`, { align: "center" });
   doc.text(`Created: ${new Date(session.createdAt).toLocaleString()}`, { align: "center" });
-
+ 
   doc.moveDown();
-
+ 
   const totalPitches = session.pitches.length;
   const balls = session.pitches.filter((p) => p.result === "Ball").length;
   const strikes = session.pitches.filter(
     (p) => p.result === "Strike" || p.result === "Foul"
   ).length;
   const inPlay = session.pitches.filter((p) => p.result?.includes("Play")).length;
-
+ 
   doc.fontSize(14).font("Helvetica-Bold").text("Session Summary", { underline: true });
   doc.fontSize(11).font("Helvetica").fillColor("#000");
   doc.text(`Total Pitches: ${totalPitches}`);
   doc.text(`Balls: ${balls}`);
   doc.text(`Strikes: ${strikes}`);
   doc.text(`In Play: ${inPlay}`);
-
+ 
   doc.moveDown();
-
+ 
   doc.fontSize(14).font("Helvetica-Bold").text("Pitch Details", { underline: true });
   doc.moveDown(0.5);
-
+ 
 const tableTop = doc.y;
 doc.fontSize(9).font("Helvetica-Bold")
   .text("#", 50, tableTop, { width: 40, align: "center" })
@@ -695,23 +695,23 @@ doc.fontSize(9).font("Helvetica-Bold")
   .text("Result", 205, tableTop, { width: 60, align: "center" })
   .text("Accuracy", 270, tableTop, { width: 50, align: "center" })
   .text("MPH", 325, tableTop, { width: 50, align: "center" });
-
+ 
 doc.moveTo(50, tableTop + 18).lineTo(520, tableTop + 18).stroke();
-
+ 
 let yPos = tableTop + 28;
-
+ 
 doc.fontSize(8).font("Helvetica");
 session.pitches.forEach((pitch, index) => {
   if (yPos > 700) {
     doc.addPage();
     yPos = 50;
   }
-
+ 
   doc.text(String(index + 1), 50, yPos, { width: 40, align: "center" });
   doc.text(pitch.pitch_type || "—", 95, yPos, { width: 50, align: "center" });
   doc.text(pitch.zone ? String(pitch.zone) : "Ball", 150, yPos, { width: 50, align: "center" });
   doc.text(pitch.result || "—", 205, yPos, { width: 60, align: "center" });
-
+ 
   // Calculate distance
   let distance = "—";
   if (pitch.x !== null && pitch.y !== null && pitch.target_x !== null && pitch.target_y !== null) {
@@ -725,36 +725,36 @@ session.pitches.forEach((pitch, index) => {
   }
   doc.text(distance, 270, yPos, { width: 50, align: "center" });
   doc.text(pitch.mph ? String(pitch.mph) : "—", 325, yPos, { width: 50, align: "center" });
-
+ 
 yPos += 10;
 });
-
+ 
   return new Promise((resolve, reject) => {
     stream.on('finish', () => {
       console.log("✅ PDF generated:", session.sessionId);
       resolve();
     });
-
+ 
     stream.on('error', (err) => {
       console.error("PDF generation error:", err);
       reject(err);
     });
-
+ 
     doc.end();
   });
 }
-
+ 
 // Helper function to draw strikezone on PDF
 function drawStrikezonePDF(doc, x, y, width, height, pitchX, pitchY) {
   // Strikezone border
   doc.rect(x + width * 0.2, y + height * 0.2, width * 0.6, height * 0.6).stroke("#0099FF");
-
+ 
   // Grid lines
   doc.moveTo(x + width * 0.2, y).lineTo(x + width * 0.2, y + height).stroke("#666666");
   doc.moveTo(x + width * 0.8, y).lineTo(x + width * 0.8, y + height).stroke("#666666");
   doc.moveTo(x, y + height * 0.2).lineTo(x + width, y + height * 0.2).stroke("#666666");
   doc.moveTo(x, y + height * 0.8).lineTo(x + width, y + height * 0.8).stroke("#666666");
-
+ 
   // Pitch dot
   if (pitchX !== null && pitchX !== undefined && pitchY !== null && pitchY !== undefined) {
     const dotX = x + pitchX * width;
@@ -762,34 +762,34 @@ function drawStrikezonePDF(doc, x, y, width, height, pitchX, pitchY) {
     doc.circle(dotX, dotY, 2.5).fill("#FF4444");
   }
 }
-
+ 
 app.get("/session/:sessionId/download-pdf", async (req, res) => {
   const { sessionId } = req.params;
   const token = req.headers.authorization?.split(" ")[1] || req.query.token;
   const user = await verifyToken(token);
-
+ 
   if (!user) {
     return res.status(401).json({ success: false, error: "Invalid token" });
   }
-
+ 
   try {
     const sessionCheck = await pool.query(
       "SELECT name FROM sessions WHERE id = $1 AND user_id = $2",
       [sessionId, user.id]
     );
-
+ 
     if (sessionCheck.rows.length === 0) {
       return res.status(404).json({ success: false, error: "Session not found" });
     }
-
+ 
     const pdfPath = path.join(__dirname, "pdfs", `${sessionId}.pdf`);
     console.log("Checking PDF at:", pdfPath);
-
+ 
     if (!fs.existsSync(pdfPath)) {
       console.error("PDF file not found:", pdfPath);
       return res.status(404).json({ success: false, error: "PDF not found" });
     }
-
+ 
     res.download(pdfPath, `${sessionCheck.rows[0].name}.pdf`, (err) => {
       if (err) {
         console.error("Download error:", err);
@@ -801,7 +801,7 @@ app.get("/session/:sessionId/download-pdf", async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to download PDF" });
   }
 });
-
+ 
 // ======================================
 // FILE UPLOADS
 // ======================================
@@ -816,47 +816,16 @@ const storage = multer.diskStorage({
     cb(null, name);
   }
 });
-
+ 
 const upload = multer({ storage });
-
-function buildDrawtextFilter(countText) {
-  // Clean up text - remove special characters, normalize spacing
-  const cleanText = countText
-    .replace(/\|/g, '')      // remove pipes
-    .replace(/:/g, '')       // remove colons
-    .replace(/\n/g, ' ')     // newlines to space
-    .replace(/\s+/g, ' ')    // collapse multiple spaces
-    .trim();
-  
-  // Escape single quotes just in case
-  const escapedText = cleanText.replace(/'/g, "\\'");
-  
-  // Build drawtext filter - white text centered at bottom
-  const filter = `drawtext=text='${escapedText}':x=(w-text_w)/2:y=h-30:fontsize=14:fontcolor=white`;
-  
-  console.log("🎬 Drawtext filter:", filter);
-  return filter;
-}
-
+ 
 app.post("/uploadClip", upload.single("clip"), (req, res) => {
   const webmPath = req.file.path;
   const mp4Filename = req.file.filename.replace(".webm", ".mp4");
   const mp4Path = path.join(__dirname, "clips", mp4Filename);
-  
-  // Get count text from FormData
-  const countText = req.body.countText || "No count data";
-  console.log("📊 Count text received:", countText);
-
-  // Build and apply drawtext filter
-  const drawtextFilter = buildDrawtextFilter(countText);
-
-  // Convert WebM to MP4 with text overlay
+ 
+  // Convert WebM to MP4
   ffmpeg(webmPath)
-    .videoCodec('libx264')
-    .audioCodec('aac')
-    .videoBitrate('2500k')
-    .audioBitrate('128k')
-    .videoFilters(drawtextFilter)
     .output(mp4Path)
     .on("end", () => {
       // Delete the WebM file after conversion
@@ -870,58 +839,58 @@ app.post("/uploadClip", upload.single("clip"), (req, res) => {
     })
     .run();
 });
-
+ 
 app.post("/session/:sessionId/link-clip", async (req, res) => {
   const { sessionId } = req.params;
   const { token, pitchId, clipUrl } = req.body;
   const user = await verifyToken(token);
-
+ 
   if (!user) {
     return res.json({ success: false, error: "Invalid token" });
   }
-
+ 
   try {
     const sessionCheck = await pool.query(
       "SELECT id FROM sessions WHERE id = $1 AND user_id = $2",
       [sessionId, user.id]
     );
-
+ 
     if (sessionCheck.rows.length === 0) {
       return res.json({ success: false, error: "Session not found" });
     }
-
+ 
     const clipId = crypto.randomUUID();
     await pool.query(
       "INSERT INTO clips (id, session_id, pitch_id, url) VALUES ($1, $2, $3, $4)",
       [clipId, sessionId, pitchId, clipUrl]
     );
-
+ 
     res.json({ success: true, clipId });
   } catch (err) {
     console.error("Link clip error:", err);
     res.json({ success: false, error: "Failed to link clip" });
   }
 });
-
+ 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
-
+ 
 // ======================================
 // WEBSOCKET - SIMPLIFIED & ROBUST
 // ======================================
 const clients = {};
-
+ 
 wss.on("connection", (ws) => {
   let sessionId = null;
   let deviceType = null;
-
+ 
   const pingInterval = setInterval(() => {
     if (ws.readyState === WebSocket.OPEN) {
       ws.ping();
     }
   }, 30000);
-
+ 
   ws.on("message", (raw) => {
     let msg;
     try {
@@ -929,18 +898,18 @@ wss.on("connection", (ws) => {
     } catch (err) {
       return;
     }
-
+ 
     if (msg.type === "join-session") {
       sessionId = msg.sessionId;
       deviceType = msg.device;
-
+ 
       if (!clients[sessionId]) {
         clients[sessionId] = {};
       }
       clients[sessionId][deviceType] = ws;
-
+ 
       console.log(`✅ ${deviceType} joined ${sessionId.slice(0, 8)}`);
-      
+ 
       // TEST: Send hello message to camera after 1 second
       if (deviceType === "camera") {
         setTimeout(() => {
@@ -957,9 +926,9 @@ wss.on("connection", (ws) => {
       }
       return;
     }
-
+ 
     if (!sessionId) return;
-
+ 
     // Pitch messages: tagger → camera
     if (msg.type === "pitch-start" || msg.type === "pitch-end" || msg.type === "pitch") {
       const camera = clients[sessionId]?.camera;
@@ -977,7 +946,7 @@ wss.on("connection", (ws) => {
       }
       return;
     }
-
+ 
     // Clips: camera → tagger
     if (msg.type === "clip") {
       const tagger = clients[sessionId]?.tagger;
@@ -987,7 +956,7 @@ wss.on("connection", (ws) => {
       }
       return;
     }
-
+ 
     // Velocity: camera → tagger
 // Velocity: camera → tagger
     if (msg.type === "velocity") {
@@ -996,7 +965,7 @@ wss.on("connection", (ws) => {
         tagger.send(JSON.stringify(msg));
       }
     }
-
+ 
     // Count updates: tagger → camera
     if (msg.type === "count-update") {
       const camera = clients[sessionId]?.camera;
@@ -1005,7 +974,7 @@ wss.on("connection", (ws) => {
       }
       return;
     }
-
+ 
  // Start recording: tagger → camera
     if (msg.type === "start-recording") {
       console.log(`🔍 Routing start-recording to camera:`, {
@@ -1023,7 +992,7 @@ wss.on("connection", (ws) => {
       }
       return;
     }
-
+ 
         // Stop recording: tagger → camera
     if (msg.type === "stop-recording") {
       const camera = clients[sessionId]?.camera;
@@ -1034,7 +1003,7 @@ wss.on("connection", (ws) => {
       return;
     }
   });
-
+ 
   ws.on("close", () => {
     clearInterval(pingInterval);
     if (sessionId && clients[sessionId]) {
@@ -1046,7 +1015,7 @@ wss.on("connection", (ws) => {
     }
   });
 });
-
+ 
 // ======================================
 // START SERVER
 // ======================================
