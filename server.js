@@ -433,8 +433,8 @@ app.post("/session/:sessionId/pitch", async (req, res) => {
     }
  
 const result = await pool.query(
-  `INSERT INTO pitches (id, session_id, pitch_type, zone, result, x, y, target_x, target_y, clip_start_time, clip_end_time, mph)
-   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+  `INSERT INTO pitches (id, session_id, pitch_type, zone, result, x, y, target_x, target_y, clip_start_time, clip_end_time, mph, balls, strikes)
+   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
    RETURNING *`,
   [
     pitch.pitchId,
@@ -448,7 +448,9 @@ const result = await pool.query(
     pitch.target_y || null,
     pitch.clip_start_time || null,
     pitch.clip_end_time || null,
-    pitch.mph || null
+    pitch.mph || null,
+    pitch.balls || 0,
+    pitch.strikes || 0
   ]
 );
  
