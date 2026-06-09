@@ -345,6 +345,68 @@
         padding: 12px;
       }
     }
+    /* COUNT TENDENCIES */
+    .count-group {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .count-label {
+      font-weight: 600;
+      color: #22d3ee;
+      font-size: 13px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .tendency-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+      font-size: 13px;
+    }
+
+    .tendency-item:last-child {
+      border-bottom: none;
+    }
+
+    .tendency-pitch {
+      font-weight: 500;
+      color: #e5e7eb;
+    }
+
+    .tendency-percentage {
+      color: #22d3ee;
+      font-weight: 600;
+    }
+
+    .tendency-bar {
+      width: 120px;
+      height: 6px;
+      background: rgba(148, 163, 184, 0.2);
+      border-radius: 3px;
+      overflow: hidden;
+      margin: 0 12px;
+    }
+
+    .tendency-bar-fill {
+      height: 100%;
+      background: #22d3ee;
+      border-radius: 3px;
+    }
+
+    .no-tendencies {
+      text-align: center;
+      color: #9ca3af;
+      padding: 20px;
+      font-size: 13px;
+    }
+  </style>
   </style>
 </head>
 <body>
@@ -433,6 +495,14 @@
           </table>
         </div>
       </div>
+      <div class="card">
+        <div class="card-title">Count Tendencies</div>
+        <div id="tendenciesContainer" style="display: flex; flex-direction: column; gap: 16px;">
+          <div style="text-align: center; color: #9ca3af; padding: 20px;">Loading...</div>
+        </div>
+      </div>
+    </div>
+  </main>
     </div>
   </main>
 
@@ -572,6 +642,11 @@ document.getElementById("sessionsList").innerHTML = data.sessions
           .join("");
       }
 
+            // Display count tendencies
+      const grouped = groupByCount(pitches);
+      const tendencies = calculateTendencies(grouped);
+      renderTendencies(tendencies);
+
       // Switch views
       document.getElementById("sessionsView").classList.add("hidden");
       document.getElementById("detailView").classList.remove("hidden");
@@ -664,6 +739,100 @@ function generateStrikezoneSVG(x, y, width = 80, height = 110, targetX = null, t
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+    }
+
+    // ===== GROUP PITCHES BY COUNT =====
+    function groupByCount(pitches) {
+      const grouped = {};
+      
+      pitches.forEach(pitch => {
+        const balls = pitch.balls || 0;
+        const strikes = pitch.strikes || 0;
+        const countKey = `${balls}-${strikes}`;
+        
+        if (!grouped[countKey]) {
+          grouped[countKey] = [];
+        }
+        grouped[countKey].push(pitch);
+      });
+      
+      return grouped;
+    }
+
+    // ===== CALCULATE TENDENCIES WITH FILTERING =====
+    function calculateTendencies(grouped) {
+      const tendencies = {};
+      
+      Object.entries(grouped).forEach(([countKey, pitches]) => {
+        // Count pitch types
+        const pitchCounts = {};
+        pitches.forEach(pitch => {
+          const type = pitch.pitchType || '—';
+          pitchCounts[type] = (pitchCounts[type] || 0) + 1;
+        });
+        
+        // Calculate percentages
+        const total = pitches.length;
+        const percentages = Object.entries(pitchCounts).map(([type, count]) => ({
+          type,
+          count,
+          percentage: Math.round((count / total) * 100)
+        }));
+        
+        // Sort by percentage descending
+        percentages.sort((a, b) => b.percentage - a.percentage);
+        
+        // FILTER: Show if 48%+ OR top 2 if both are 40%+
+        let filtered = percentages.filter(p => p.percentage >= 48);
+        
+        if (filtered.length === 0 && percentages.length >= 2) {
+          if (percentages[0].percentage >= 40 && percentages[1].percentage >= 40) {
+            filtered = [percentages[0], percentages[1]];
+          }
+        }
+        
+        if (filtered.length > 0) {
+          tendencies[countKey] = filtered;
+        }
+      });
+      
+      return tendencies;
+    }
+
+    // ===== RENDER COUNT TENDENCIES =====
+    function renderTendencies(tendencies) {
+      const container = document.getElementById('tendenciesContainer');
+      
+      if (!tendencies || Object.keys(tendencies).length === 0) {
+        container.innerHTML = '<div class="no-tendencies">No significant pitch tendencies found (need 48%+ or top 2 at 40%+)</div>';
+        return;
+      }
+      
+      // Sort counts: 0-0, 0-1, 0-2, 1-0, 1-1, etc.
+      const sortedCounts = Object.keys(tendencies).sort((a, b) => {
+        const [aB, aS] = a.split('-').map(Number);
+        const [bB, bS] = b.split('-').map(Number);
+        if (aB !== bB) return aB - bB;
+        return aS - bS;
+      });
+      
+      container.innerHTML = sortedCounts.map(countKey => {
+        const items = tendencies[countKey];
+        return `
+          <div class="count-group">
+            <div class="count-label">${countKey} Count (${items.reduce((sum, item) => sum + item.count, 0)} pitches)</div>
+            ${items.map(item => `
+              <div class="tendency-item">
+                <div class="tendency-pitch">${item.type}</div>
+                <div class="tendency-bar">
+                  <div class="tendency-bar-fill" style="width: ${item.percentage}%;"></div>
+                </div>
+                <div class="tendency-percentage">${item.percentage}%</div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }).join('');
     }
 
   </script>
