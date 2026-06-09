@@ -454,10 +454,13 @@ ws.addEventListener("message", function(event) {
         }
       };
  
-      mediaRecorder.onstop = async () => {
-        const blob = new Blob(recordedChunks, { type: "video/webm" });
-        await uploadClip(blob, currentPitchId);
-        recordedChunks = [];
+      mediaRecorder.onstop = () => {
+        // Small delay to ensure all data is flushed before upload
+        setTimeout(async () => {
+          const blob = new Blob(recordedChunks, { type: "video/webm" });
+          await uploadClip(blob, currentPitchId);
+          recordedChunks = [];
+        }, 50);
       };
     }
  
