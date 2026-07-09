@@ -1026,42 +1026,6 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
       pitcherMap[pitcher.name] = pitcherId;
     }
 
-    // Insert all pitches (skip if duplicate)
-    for (const pitch of pitchesToInsert) {
-      const pitcherId = pitcherMap[pitch.pitcherName];
-
-      // Check for duplicate pitch (same pitcher, same time, same count, same result in this session)
-      const duplicate = await pool.query(
-        `SELECT id FROM pitches 
-         WHERE session_id = $1 AND pitcher_id = $2 AND pitch_type = $3 AND balls = $4 AND strikes = $5 AND result = $6
-         LIMIT 1`,
-        [sessionId, pitcherId, pitch.pitchType, pitch.balls, pitch.strikes, pitch.result]
-      );
-
-      if (duplicate.rows.length > 0) {
-        continue; // Skip duplicate
-      }
-
-            await pool.query(
-        `INSERT INTO pitches (id, session_id, pitcher_id, pitch_type, result, x, y, mph, spin_rate, ivb, hb, batter_handedness, exit_velocity)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
-        [
-          crypto.randomUUID(),
-          sessionId,
-          pitcherId,
-          pitch.pitchType,
-          pitch.result,
-          pitch.x,
-          pitch.y,
-          pitch.mph,
-          pitch.spinRate,
-          pitch.ivb,
-          pitch.hb,
-          pitch.batterHandedness,
-          pitch.exitVelocity
-        ]
-      );
-
     // Insert all pitches
     for (const pitch of pitchesToInsert) {
       const pitcherId = pitcherMap[pitch.pitcherName];
