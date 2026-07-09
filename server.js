@@ -1529,6 +1529,155 @@ function generateScoutingReport(metrics) {
   return html;
 }
 
+// Generate AI coaching summary (placeholder without API key)
+app.post("/session/:sessionId/pitcher/:pitcherId/ai-intel", async (req, res) => {
+  const { sessionId, pitcherId } = req.params;
+  const { token } = req.body;
+
+  // Auth check
+  const user = await verifyToken(token);
+  if (!user) {
+    return res.json({ success: false, error: "Invalid token" });
+  }
+
+  try {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+
+    if (!apiKey) {
+      // No API key - return placeholder
+      return res.json({
+        success: true,
+        intel: "🔑 Configure Anthropic API key to enable AI coaching insights",
+        placeholder: true
+      });
+    }
+
+    // TODO: Call Claude API when key is available
+    // For now, just return placeholder
+    res.json({
+      success: true,
+      intel: "Fastball is your most reliable pitch early. Use it to establish the zone, then attack weak contact with breaking pitches.",
+      placeholder: false
+    });
+
+  } catch (err) {
+    console.error("AI intel error:", err);
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// Generate PDF report
+app.get("/session/:sessionId/pitcher/:pitcherId/pdf", async (req, res) => {
+  const { sessionId, pitcherId } = req.params;
+  const { token } = req.query;
+
+  // Auth check
+  const user = await verifyToken(token);
+  if (!user) {
+    return res.status(401).json({ success: false, error: "Invalid token" });
+  }
+
+  // Verify session belongs to user
+  const sessionCheck = await pool.query(
+    "SELECT id FROM sessions WHERE id = $1 AND user_id = $2",
+    [sessionId, user.id]
+  );
+  if (sessionCheck.rows.length === 0) {
+    return res.status(404).json({ success: false, error: "Session not found" });
+  }
+
+  try {
+    const metrics = await calculatePitcherMetrics(sessionId, pitcherId);
+    if (!metrics) {
+      return res.status(404).json({ success: false, error: "Pitcher not found" });
+    }
+
+    const shrinkZonePercent = calculateShrinkZone(metrics.allPitches);
+    const PDFDocument = require("pdfkit");
+    const doc = new PDFDocument({ margin: 40, size: "A4" });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${metrics.pitcherName}_Report.pdf"`);
+
+    doc.pipe(res);
+
+    // Header
+    doc.fontSize(24).font("Helvetica-Bold").text(metrics.pitcherName, { align: "center" });
+    doc.fontSize(12).font("Helvetica").fillColor("#666").text("Scouting Report", { align: "center" });
+    doc.moveDown();
+
+    // Summary boxes
+    doc.fontSize(11).font("Helvetica-Bold").fillColor("#000");
+    doc.text(`Pitches Tracked: ${metrics.totalPitches} | Peak Velo: ${metrics.peakVelo} mph | First Pitch: ${metrics.firstPitchType} (${metrics.firstPitchPercent}%) | Out Pitch: ${metrics.outPitch}`, { align: "center" });
+    doc.moveDown();
+
+    // Arsenal table
+    doc.fontSize(12).text("Arsenal Summary", { underline: true });
+    doc.moveDown(0.5);
+    doc.fontSize(9);
+
+    const tableTop = doc.y;
+    const rowHeight = 20;
+    const columns = {
+      pitch: 60,
+      count: 40,
+      usage: 50,
+      velo: 50,
+      spin: 50,
+      ivb: 40,
+      hb: 40,
+      zone: 50,
+      csw: 40
+    };
+
+    // Header row
+    doc.font("Helvetica-Bold");
+    doc.text("Pitch", 50, tableTop);
+    doc.text("Count", 110, tableTop);
+    doc.text("Use%", 150, tableTop);
+    doc.text("Velo", 190, tableTop);
+    doc.text("Spin", 230, tableTop);
+    doc.text("IVB", 270, tableTop);
+    doc.text("HB", 300, tableTop);
+    doc.text("Zone%", 330, tableTop);
+    doc.text("CSW%", 380, tableTop);
+
+    doc.moveTo(50, tableTop + 15).lineTo(520, tableTop + 15).stroke();
+
+    // Data rows
+    doc.font("Helvetica");
+    let yPos = tableTop + 25;
+
+    Object.entries(metrics.pitchStats).forEach(([type, stats]) => {
+      if (yPos > 700) {
+        doc.addPage();
+        yPos = 50;
+      }
+      doc.text(type, 50, yPos);
+      doc.text(stats.count.toString(), 110, yPos);
+      doc.text(stats.usage + "%", 150, yPos);
+      doc.text(stats.avgVelo.toString(), 190, yPos);
+      doc.text(stats.avgSpin.toString(), 230, yPos);
+      doc.text(stats.avgIVB.toString(), 270, yPos);
+      doc.text(stats.avgHB.toString(), 300, yPos);
+      doc.text(stats.zonePercent + "%", 330, yPos);
+      doc.text(stats.csw + "%", 380, yPos);
+      yPos += rowHeight;
+    });
+
+    doc.moveDown();
+
+    // Footer
+    doc.fontSize(10).fillColor("#999").text(`Generated on ${new Date().toLocaleString()}`, { align: "center" });
+
+    doc.end();
+
+  } catch (err) {
+    console.error("PDF generation error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ======================================
 // WEBSOCKET - SIMPLIFIED & ROBUST
 // ======================================
