@@ -931,6 +931,11 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
       const pitcherTeam = record.PitcherTeam?.trim();
 
       if (!pitcherName) continue; // Skip if no pitcher name
+           
+      // Skip rows with missing critical pitch data
+      if (!record.PlateLocSide || !record.PlateLocHeight || !record.RelSpeed) {
+        continue;
+      }
 
       // Track pitcher
       const pitcherKey = `${pitcherName}`;
