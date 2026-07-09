@@ -985,8 +985,6 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
       pitchesToInsert.push({
         pitcherName,
         pitchType,
-        balls,
-        strikes,
         result,
         x,
         y,
