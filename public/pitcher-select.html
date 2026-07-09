@@ -191,6 +191,30 @@
         font-size: 22px;
       }
     }
+    .delete-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      color: #fca5a5;
+      cursor: pointer;
+      font-size: 20px;
+      line-height: 1;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .delete-btn:hover {
+      background: rgba(239, 68, 68, 0.4);
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.6);
+    }
   </style>
 </head>
 <body>
@@ -293,14 +317,16 @@
       }
     }
 
-    function displayPitchers(pitchers) {
+function displayPitchers(pitchers) {
       const container = document.getElementById("pitchersContainer");
       container.innerHTML = "";
 
       pitchers.forEach(pitcher => {
         const card = document.createElement("div");
         card.className = "pitcher-card";
+        card.style.position = "relative";
         card.innerHTML = `
+          <button class="delete-btn" onclick="deletePitcher('${pitcher.id}', '${pitcher.name}')">−</button>
           <div class="pitcher-name">${pitcher.name}</div>
           <div class="pitcher-team">${pitcher.pitchCount} pitches</div>
           <button class="pitcher-action" onclick="viewPitcherReport('${pitcher.id}', '${pitcher.name}')">
@@ -335,6 +361,35 @@
 
     function goBack() {
       window.location.href = "/dashboard.html";
+    }
+    async function deletePitcher(pitcherId, pitcherName) {
+      const confirm = window.confirm(`Delete ${pitcherName} and all their pitches from all sessions? This cannot be undone.`);
+      
+      if (!confirm) {
+        return;
+      }
+
+      const token = localStorage.getItem("token");
+
+      try {
+        const res = await fetch(
+          `/pitcher/${pitcherId}?token=${token}`,
+          { method: "DELETE" }
+        );
+
+        const data = await res.json();
+
+        if (!data.success) {
+          alert("Failed to delete pitcher: " + data.error);
+          return;
+        }
+
+        alert(`${pitcherName} deleted!`);
+        loadPitchers(); // Reload pitcher list
+
+      } catch (err) {
+        alert("Error: " + err.message);
+      }
     }
   </script>
 </body>

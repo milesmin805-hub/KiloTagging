@@ -1013,6 +1013,45 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
       pitcherMap[pitcher.name] = pitcherId;
     }
 
+    // Insert all pitches (skip if duplicate)
+    for (const pitch of pitchesToInsert) {
+      const pitcherId = pitcherMap[pitch.pitcherName];
+
+      // Check for duplicate pitch (same pitcher, same time, same count, same result in this session)
+      const duplicate = await pool.query(
+        `SELECT id FROM pitches 
+         WHERE session_id = $1 AND pitcher_id = $2 AND pitch_type = $3 AND balls = $4 AND strikes = $5 AND result = $6
+         LIMIT 1`,
+        [sessionId, pitcherId, pitch.pitchType, pitch.balls, pitch.strikes, pitch.result]
+      );
+
+      if (duplicate.rows.length > 0) {
+        continue; // Skip duplicate
+      }
+
+      await pool.query(
+        `INSERT INTO pitches (id, session_id, pitcher_id, pitch_type, balls, strikes, result, x, y, mph, spin_rate, ivb, hb, batter_handedness, exit_velocity)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+        [
+          crypto.randomUUID(),
+          sessionId,
+          pitcherId,
+          pitch.pitchType,
+          pitch.balls,
+          pitch.strikes,
+          pitch.result,
+          pitch.x,
+          pitch.y,
+          pitch.mph,
+          pitch.spinRate,
+          pitch.ivb,
+          pitch.hb,
+          pitch.batterHandedness,
+          pitch.exitVelocity
+        ]
+      );
+    }
+
     // Insert all pitches
     for (const pitch of pitchesToInsert) {
       const pitcherId = pitcherMap[pitch.pitcherName];
@@ -1675,6 +1714,53 @@ app.get("/session/:sessionId/pitcher/:pitcherId/pdf", async (req, res) => {
   } catch (err) {
     console.error("PDF generation error:", err);
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Delete pitcher (removes pitcher and ALL their pitches from all sessions)
+app.delete("/pitcher/:pitcherId", async (req, res) => {
+  const { pitcherId } = req.params;
+  const { token } = req.query;
+
+  // Auth check
+  const user = await verifyToken(token);
+  if (!user) {
+    return res.json({ success: false, error: "Invalid token" });
+  }
+
+  try {
+    // Get pitcher to verify it exists
+    const pitcher = await pool.query(
+      "SELECT id, name FROM pitchers WHERE id = $1",
+      [pitcherId]
+    );
+
+    if (pitcher.rows.length === 0) {
+      return res.json({ success: false, error: "Pitcher not found" });
+    }
+
+    // Delete all pitches for this pitcher (from ALL sessions)
+    await pool.query(
+      "DELETE FROM pitches WHERE pitcher_id = $1",
+      [pitcherId]
+    );
+
+    // Delete the pitcher record
+    await pool.query(
+      "DELETE FROM pitchers WHERE id = $1",
+      [pitcherId]
+    );
+
+    console.log(`🗑️ Deleted pitcher: ${pitcher.rows[0].name}`);
+
+    res.json({ 
+      success: true, 
+      message: `Pitcher ${pitcher.rows[0].name} deleted`
+    });
+
+  } catch (err) {
+    console.error("Delete pitcher error:", err);
+    res.json({ success: false, error: err.message });
   }
 });
 

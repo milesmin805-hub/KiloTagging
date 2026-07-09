@@ -318,6 +318,7 @@
           type="file" 
           accept=".csv"
           class="file-input-hidden"
+          multiple
           onchange="handleFileSelect(event)"
         />
       </div>
@@ -327,6 +328,7 @@
   </main>
 
   <script>
+    let selectedFiles = [];
     let selectedFile = null;
     let currentSessionId = null;
 
@@ -364,12 +366,13 @@
       }
     }
 
-    function handleFileSelect(e) {
+  function handleFileSelect(e) {
       const files = e.target.files;
       if (files.length > 0) {
-        selectedFile = files[0];
+        selectedFiles = Array.from(files);
         document.getElementById("uploadBtn").disabled = false;
-        showStatus(`Selected: ${selectedFile.name}`, "success");
+        const fileNames = selectedFiles.map(f => f.name).join(", ");
+        showStatus(`Selected: ${fileNames} (${files.length} file${files.length > 1 ? 's' : ''})`, "success");
       }
     }
 
@@ -407,9 +410,9 @@
     }
 
     // Upload CSV
-    async function uploadCSV() {
-      if (!selectedFile) {
-        showStatus("Please select a CSV file", "error");
+async function uploadCSV() {
+      if (!selectedFiles || selectedFiles.length === 0) {
+        showStatus("Please select CSV file(s)", "error");
         return;
       }
 
@@ -419,29 +422,33 @@
       }
 
       const token = localStorage.getItem("token");
-      const formData = new FormData();
-      formData.append("csv", selectedFile);
-      formData.append("sessionId", currentSessionId);
-      formData.append("token", token);
-
-      showStatus("Uploading CSV...", "loading");
+      showStatus(`Uploading ${selectedFiles.length} file(s)...`, "loading");
       document.getElementById("uploadBtn").disabled = true;
 
       try {
-        const res = await fetch("/upload-csv", {
-          method: "POST",
-          body: formData
-        });
+        for (let i = 0; i < selectedFiles.length; i++) {
+          const formData = new FormData();
+          formData.append("csv", selectedFiles[i]);
+          formData.append("sessionId", currentSessionId);
+          formData.append("token", token);
 
-        const data = await res.json();
+          const res = await fetch("/upload-csv", {
+            method: "POST",
+            body: formData
+          });
 
-        if (!data.success) {
-          showStatus("Upload failed: " + data.error, "error");
-          document.getElementById("uploadBtn").disabled = false;
-          return;
+          const data = await res.json();
+
+          if (!data.success) {
+            showStatus(`File ${i + 1} failed: ` + data.error, "error");
+            document.getElementById("uploadBtn").disabled = false;
+            return;
+          }
+
+          showStatus(`Uploaded ${i + 1}/${selectedFiles.length} files...`, "loading");
         }
 
-        showStatus("CSV uploaded successfully! Pitchers parsed.", "success");
+        showStatus("All CSVs uploaded! Pitchers parsed.", "success");
         
         // Redirect to pitcher selection page
         setTimeout(() => {
