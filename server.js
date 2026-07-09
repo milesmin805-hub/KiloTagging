@@ -1280,6 +1280,61 @@ app.get("/pitcher/:pitcherId/report", async (req, res) => {
   }
 });
 
+// Get metrics as JSON (for pitcher-report.html)
+app.get("/session/:sessionId/metrics", async (req, res) => {
+  const { sessionId } = req.params;
+  const { pitcherId, token } = req.query;
+
+  // Auth check
+  const user = await verifyToken(token);
+  if (!user) {
+    return res.json({ success: false, error: "Invalid token" });
+  }
+
+  // Verify session belongs to user
+  const sessionCheck = await pool.query(
+    "SELECT id FROM sessions WHERE id = $1 AND user_id = $2",
+    [sessionId, user.id]
+  );
+  if (sessionCheck.rows.length === 0) {
+    return res.json({ success: false, error: "Session not found" });
+  }
+
+  try {
+    const metrics = await calculatePitcherMetrics(sessionId, pitcherId);
+    if (!metrics) {
+      return res.json({ success: false, error: "Pitcher not found" });
+    }
+
+    // Calculate additional stats needed for report
+    const shrinkZonePercent = calculateShrinkZone(metrics.allPitches);
+
+    res.json({
+      success: true,
+      pitcherName: metrics.pitcherName,
+      totalPitches: metrics.totalPitches,
+      peakVelo: metrics.peakVelo,
+      firstPitchType: metrics.firstPitchType,
+      firstPitchPercent: metrics.firstPitchPercent,
+      outPitch: metrics.outPitch,
+      outPitchCount: metrics.outPitchCount,
+      shrinkZonePercent,
+      pitchStats: metrics.pitchStats
+    });
+
+  } catch (err) {
+    console.error("Metrics error:", err);
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// Helper: Calculate shrink zone %
+function calculateShrinkZone(pitches) {
+  if (pitches.length === 0) return 0;
+  const oozCount = pitches.filter(p => !isInZone(p.x, p.y)).length;
+  return ((oozCount / pitches.length) * 100).toFixed(1);
+}
+
 // ======================================
 // REPORT HTML GENERATION
 // ======================================
