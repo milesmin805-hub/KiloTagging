@@ -915,7 +915,8 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
 
   try {
     // Parse CSV
-    const fileContent = file.buffer.toString("utf8");
+    const fs = require("fs");
+    const fileContent = fs.readFileSync(file.path, "utf8");
     const records = csv.parse(fileContent, {
       columns: true,
       skip_empty_lines: true,
