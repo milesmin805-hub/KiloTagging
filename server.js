@@ -954,6 +954,11 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
       const x = Math.max(0, Math.min(1, normalizedX));
       const y = Math.max(0, Math.min(1, normalizedY));
 
+           // Skip if no pitch type data
+      if (!record.TaggedPitchType && !record.AutoPitchType) {
+        continue;
+      }
+
       // Map pitch type (Trackman → Kilo)
       const pitchType = mapPitchType(record.TaggedPitchType || record.AutoPitchType);
 
@@ -965,10 +970,10 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
       const strikes = parseInt(record.Strikes) || 0;
 
       // Get other metrics
-      const mph = parseInt(record.RelSpeed) || null;
-      const spinRate = parseInt(record.SpinRate) || null;
-      const ivb = parseFloat(record.InducedVertBreak) || null;
-      const hb = parseFloat(record.HorzBreak) || null;
+      const mph = record.RelSpeed ? parseInt(record.RelSpeed) : null;
+      const spinRate = record.SpinRate ? parseInt(record.SpinRate) : null;
+      const ivb = record.InducedVertBreak ? parseFloat(record.InducedVertBreak) : null;
+      const hb = record.HorzBreak ? parseFloat(record.HorzBreak) : null;
       const batterHandedness = record.BatterSide === "L" ? "LHH" : "RHH";
       const exitVelocity = parseInt(record.ExitSpeed) || null;
 
