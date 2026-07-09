@@ -321,15 +321,15 @@
       localStorage.setItem("userId", data.userId);
       localStorage.setItem("email", data.email);
 
-      // Go to session page
-      window.location.href = "/session-select.html";
+  // Go to dashboard
+      window.location.href = "/dashboard.html";
     });
 
-    // Check if already logged in
+// Check if already logged in
     window.addEventListener("load", () => {
       const token = localStorage.getItem("token");
       if (token) {
-        window.location.href = "/session-select.html";
+        window.location.href = "/dashboard.html";
       }
     });
   </script>

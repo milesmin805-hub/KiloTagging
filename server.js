@@ -433,8 +433,8 @@ app.post("/session/:sessionId/pitch", async (req, res) => {
     }
  
 const result = await pool.query(
-  `INSERT INTO pitches (id, session_id, pitch_type, zone, result, x, y, target_x, target_y, clip_start_time, clip_end_time, mph, balls, strikes)
-   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+  `INSERT INTO pitches (id, session_id, pitch_type, zone, result, x, y, target_x, target_y, clip_start_time, clip_end_time, mph, balls, strikes, spin_rate, ivb, hb, batter_handedness, pitch_outcome_details, exit_velocity, pitcher_id)
+   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
    RETURNING *`,
   [
     pitch.pitchId,
@@ -450,7 +450,14 @@ const result = await pool.query(
     pitch.clip_end_time || null,
     pitch.mph || null,
     pitch.balls || 0,
-    pitch.strikes || 0
+    pitch.strikes || 0,
+    pitch.spin_rate || null,
+    pitch.ivb || null,
+    pitch.hb || null,
+    pitch.batter_handedness || null,
+    pitch.pitch_outcome_details || null,
+    pitch.exit_velocity || null,
+    pitch.pitcher_id || null
   ]
 );
  
@@ -877,6 +884,201 @@ app.post("/session/:sessionId/link-clip", async (req, res) => {
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
+
+// ======================================
+// CSV UPLOAD & PARSING
+// ======================================
+const csv = require("csv-parse/sync");
+
+app.post("/upload-csv", upload.single("csv"), async (req, res) => {
+  const file = req.file;
+  const { sessionId, token } = req.body;
+
+  // Auth check
+  const user = await verifyToken(token);
+  if (!user) {
+    return res.json({ success: false, error: "Invalid token" });
+  }
+
+  // Validate session belongs to user
+  const sessionCheck = await pool.query(
+    "SELECT id FROM sessions WHERE id = $1 AND user_id = $2",
+    [sessionId, user.id]
+  );
+  if (sessionCheck.rows.length === 0) {
+    return res.json({ success: false, error: "Session not found" });
+  }
+
+  try {
+    // Parse CSV
+    const fileContent = file.buffer.toString("utf8");
+    const records = csv.parse(fileContent, {
+      columns: true,
+      skip_empty_lines: true,
+      trim: true
+    });
+
+    if (records.length === 0) {
+      return res.json({ success: false, error: "CSV is empty" });
+    }
+
+    const pitchers = new Map(); // Track unique pitchers
+    const pitchesToInsert = [];
+
+    // Process each record
+    for (const record of records) {
+      const pitcherName = record.Pitcher?.trim();
+      const pitcherTeam = record.PitcherTeam?.trim();
+
+      if (!pitcherName) continue; // Skip if no pitcher name
+
+      // Track pitcher
+      const pitcherKey = `${pitcherName}`;
+      if (!pitchers.has(pitcherKey)) {
+        pitchers.set(pitcherKey, { name: pitcherName, team: pitcherTeam });
+      }
+
+      // Normalize coordinates (Trackman feet → 0-1 scale)
+      const plateLocSide = parseFloat(record.PlateLocSide) || 0;
+      const plateLocHeight = parseFloat(record.PlateLocHeight) || 0;
+
+      const normalizedX = (plateLocSide + 2.0) / 5.2; // -3.4 to 3.2 → ~0 to 1
+      const normalizedY = plateLocHeight / 5.0; // 0-5 → 0-1
+
+      // Clamp to 0-1
+      const x = Math.max(0, Math.min(1, normalizedX));
+      const y = Math.max(0, Math.min(1, normalizedY));
+
+      // Map pitch type (Trackman → Kilo)
+      const pitchType = mapPitchType(record.TaggedPitchType || record.AutoPitchType);
+
+      // Map result
+      const result = mapPitchResult(record.PitchCall);
+
+      // Get balls and strikes
+      const balls = parseInt(record.Balls) || 0;
+      const strikes = parseInt(record.Strikes) || 0;
+
+      // Get other metrics
+      const mph = parseInt(record.RelSpeed) || null;
+      const spinRate = parseInt(record.SpinRate) || null;
+      const ivb = parseFloat(record.InducedVertBreak) || null;
+      const hb = parseFloat(record.HorzBreak) || null;
+      const batterHandedness = record.BatterSide === "L" ? "LHH" : "RHH";
+      const exitVelocity = parseInt(record.ExitSpeed) || null;
+
+      pitchesToInsert.push({
+        pitcherName,
+        pitchType,
+        balls,
+        strikes,
+        result,
+        x,
+        y,
+        mph,
+        spinRate,
+        ivb,
+        hb,
+        batterHandedness,
+        exitVelocity
+      });
+    }
+
+    if (pitchesToInsert.length === 0) {
+      return res.json({ success: false, error: "No valid pitch data found" });
+    }
+
+    // Create pitcher records and insert pitches
+    const pitcherMap = {}; // pitcher name → pitcher_id
+
+    for (const [key, pitcher] of pitchers.entries()) {
+      // Check if pitcher exists
+      const existing = await pool.query(
+        "SELECT id FROM pitchers WHERE name = $1",
+        [pitcher.name]
+      );
+
+      let pitcherId;
+      if (existing.rows.length > 0) {
+        pitcherId = existing.rows[0].id;
+      } else {
+        // Create new pitcher
+        const newPitcher = await pool.query(
+          "INSERT INTO pitchers (id, name) VALUES ($1, $2) RETURNING id",
+          [crypto.randomUUID(), pitcher.name]
+        );
+        pitcherId = newPitcher.rows[0].id;
+      }
+
+      pitcherMap[pitcher.name] = pitcherId;
+    }
+
+    // Insert all pitches
+    for (const pitch of pitchesToInsert) {
+      const pitcherId = pitcherMap[pitch.pitcherName];
+
+      await pool.query(
+        `INSERT INTO pitches (id, session_id, pitcher_id, pitch_type, balls, strikes, result, x, y, mph, spin_rate, ivb, hb, batter_handedness, exit_velocity)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+        [
+          crypto.randomUUID(),
+          sessionId,
+          pitcherId,
+          pitch.pitchType,
+          pitch.balls,
+          pitch.strikes,
+          pitch.result,
+          pitch.x,
+          pitch.y,
+          pitch.mph,
+          pitch.spinRate,
+          pitch.ivb,
+          pitch.hb,
+          pitch.batterHandedness,
+          pitch.exitVelocity
+        ]
+      );
+    }
+
+    res.json({
+      success: true,
+      message: `Imported ${pitchesToInsert.length} pitches from ${pitchers.size} pitchers`,
+      pitchers: Array.from(pitchers.values()),
+      pitcherCount: pitchers.size
+    });
+
+  } catch (err) {
+    console.error("CSV upload error:", err);
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// Helper functions
+function mapPitchType(trackmanType) {
+  const typeMap = {
+    "FourSeamFastBall": "FB",
+    "Sinker": "SN",
+    "Cutter": "CT",
+    "Slider": "SL",
+    "Curveball": "CB",
+    "Changeup": "CH",
+    "Splitter": "SP",
+    "Knuckleball": "KN"
+  };
+  return typeMap[trackmanType] || "?";
+}
+
+function mapPitchResult(pitchCall) {
+  const resultMap = {
+    "BallCalled": "Ball",
+    "StrikeCalled": "Strike",
+    "StrikeSwinging": "Strike",
+    "InPlay": "InPlay",
+    "HitByPitch": "HBP",
+    "BallIntentional": "Ball"
+  };
+  return resultMap[pitchCall] || "Ball";
+}
  
 // ======================================
 // WEBSOCKET - SIMPLIFIED & ROBUST
