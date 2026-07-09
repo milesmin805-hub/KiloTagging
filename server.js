@@ -960,7 +960,7 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
       }
 
       // Map pitch type (Trackman → Kilo)
-      const pitchType = mapPitchType(record.TaggedPitchType || record.AutoPitchType);
+      const pitchType = record.TaggedPitchType || record.AutoPitchType ? mapPitchType(record.TaggedPitchType || record.AutoPitchType) : "?";
 
       // Map result
       const result = mapPitchResult(record.PitchCall);
@@ -969,13 +969,13 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
       const balls = parseInt(record.Balls) || 0;
       const strikes = parseInt(record.Strikes) || 0;
 
-      // Get other metrics
+      // Get other metrics (safely handle blanks)
       const mph = record.RelSpeed ? parseInt(record.RelSpeed) : null;
       const spinRate = record.SpinRate ? parseInt(record.SpinRate) : null;
       const ivb = record.InducedVertBreak ? parseFloat(record.InducedVertBreak) : null;
       const hb = record.HorzBreak ? parseFloat(record.HorzBreak) : null;
-      const batterHandedness = record.BatterSide === "L" ? "LHH" : "RHH";
-      const exitVelocity = parseInt(record.ExitSpeed) || null;
+      const batterHandedness = record.BatterSide ? (record.BatterSide === "L" ? "LHH" : "RHH") : null;
+      const exitVelocity = record.ExitSpeed ? parseInt(record.ExitSpeed) : null;
 
       pitchesToInsert.push({
         pitcherName,
