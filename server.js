@@ -1072,13 +1072,15 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
       const pitcherId = pitcherMap[pitch.pitcherName];
 
       await pool.query(
-        `INSERT INTO pitches (id, session_id, pitcher_id, pitch_type, result, x, y, mph, spin_rate, ivb, hb, batter_handedness, exit_velocity)
+        `INSERT INTO pitches (id, session_id, pitcher_id, pitch_type, balls, strikes, result, x, y, mph, spin_rate, ivb, hb, batter_handedness, exit_velocity)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
         [
           crypto.randomUUID(),
           sessionId,
           pitcherId,
           pitch.pitchType,
+         0,  // balls - placeholder for now
+          0,  // strikes - placeholder for now
           pitch.result,
           pitch.x,
           pitch.y,
