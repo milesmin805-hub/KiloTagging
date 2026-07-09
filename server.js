@@ -1049,6 +1049,7 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
           pitch.exitVelocity
         ]
       );
+    }
 
     res.json({
       success: true,
