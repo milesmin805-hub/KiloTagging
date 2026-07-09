@@ -302,10 +302,13 @@ app.get("/session/:sessionId", async (req, res) => {
     const session = sessionResult.rows[0];
  
     const pitchesResult = await pool.query(
-      `SELECT id, pitch_type, zone, result, x, y, target_x, target_y,mph, created_at
-       FROM pitches WHERE session_id = $1 ORDER BY created_at ASC`,
-      [sessionId]
-    );
+  `SELECT p.id, p.pitch_type, p.zone, p.result, p.x, p.y, p.target_x, p.target_y, p.mph, p.created_at, p.pitcher_id, pi.name as pitcher_name
+   FROM pitches p
+   LEFT JOIN pitchers pi ON p.pitcher_id = pi.id
+   WHERE p.session_id = $1 
+   ORDER BY p.created_at ASC`,
+  [sessionId]
+);
  
     const clipsResult = await pool.query(
       "SELECT pitch_id, url FROM clips WHERE session_id = $1",
