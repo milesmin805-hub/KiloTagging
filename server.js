@@ -1081,6 +1081,400 @@ function mapPitchResult(pitchCall) {
 }
  
 // ======================================
+// METRICS CALCULATOR
+// ======================================
+async function calculatePitcherMetrics(sessionId, pitcherId) {
+  try {
+    // Get all pitches for this pitcher in this session
+    const pitchesResult = await pool.query(
+      `SELECT * FROM pitches 
+       WHERE session_id = $1 AND pitcher_id = $2 
+       ORDER BY created_at ASC`,
+      [sessionId, pitcherId]
+    );
+
+    const pitches = pitchesResult.rows;
+    if (pitches.length === 0) {
+      return null;
+    }
+
+    // Get pitcher name
+    const pitcherResult = await pool.query(
+      "SELECT name FROM pitchers WHERE id = $1",
+      [pitcherId]
+    );
+    const pitcherName = pitcherResult.rows[0]?.name || "Unknown";
+
+    // ===== BASIC STATS =====
+    const totalPitches = pitches.length;
+    const peakVelo = Math.max(...pitches.map(p => p.mph || 0));
+
+    // ===== PITCH TYPE GROUPING =====
+    const pitchGroups = {};
+    pitches.forEach(p => {
+      const type = p.pitch_type || "?";
+      if (!pitchGroups[type]) {
+        pitchGroups[type] = [];
+      }
+      pitchGroups[type].push(p);
+    });
+
+    // ===== CALCULATE STATS PER PITCH TYPE =====
+    const pitchStats = {};
+    Object.entries(pitchGroups).forEach(([type, typePitches]) => {
+      const count = typePitches.length;
+      const usage = ((count / totalPitches) * 100).toFixed(1);
+      
+      // Velocity
+      const velos = typePitches.filter(p => p.mph).map(p => p.mph);
+      const avgVelo = velos.length > 0 
+        ? (velos.reduce((a,b) => a+b) / velos.length).toFixed(1)
+        : "—";
+      const maxVelo = velos.length > 0 ? Math.max(...velos) : "—";
+      const minVelo = velos.length > 0 ? Math.min(...velos) : "—";
+
+      // Spin rate
+      const spins = typePitches.filter(p => p.spin_rate).map(p => p.spin_rate);
+      const avgSpin = spins.length > 0
+        ? Math.round(spins.reduce((a,b) => a+b) / spins.length)
+        : "—";
+
+      // IVB & HB
+      const ivbs = typePitches.filter(p => p.ivb !== null).map(p => p.ivb);
+      const avgIVB = ivbs.length > 0
+        ? (ivbs.reduce((a,b) => a+b) / ivbs.length).toFixed(2)
+        : "—";
+
+      const hbs = typePitches.filter(p => p.hb !== null).map(p => p.hb);
+      const avgHB = hbs.length > 0
+        ? (hbs.reduce((a,b) => a+b) / hbs.length).toFixed(2)
+        : "—";
+
+      // Zone %
+      const inZone = typePitches.filter(p => isInZone(p.x, p.y)).length;
+      const zonePercent = ((inZone / count) * 100).toFixed(1);
+
+      // Whiff % (StrikeSwinging / swings)
+      // CSW% (Called Strikes + Whiffs / total)
+      const strikes = typePitches.filter(p => p.result === "Strike").length;
+      const whiffs = typePitches.filter(p => p.pitch_outcome_details === "Whiff").length;
+      const csw = ((strikes + whiffs) / count * 100).toFixed(1);
+
+      // Exit velo (avg, max)
+      const exitVelos = typePitches.filter(p => p.exit_velocity).map(p => p.exit_velocity);
+      const avgEV = exitVelos.length > 0
+        ? (exitVelos.reduce((a,b) => a+b) / exitVelos.length).toFixed(1)
+        : "—";
+      const maxEV = exitVelos.length > 0 ? Math.max(...exitVelos) : "—";
+
+      pitchStats[type] = {
+        count,
+        usage,
+        avgVelo,
+        maxVelo,
+        minVelo,
+        avgSpin,
+        avgIVB,
+        avgHB,
+        zonePercent,
+        csw,
+        avgEV,
+        maxEV,
+        strikes,
+        whiffs
+      };
+    });
+
+    // ===== FIRST PITCH (0-0) STATS =====
+    const firstPitches = pitches.filter(p => p.balls === 0 && p.strikes === 0);
+    const firstPitchType = firstPitches.length > 0
+      ? getMostCommon(firstPitches.map(p => p.pitch_type))
+      : "—";
+    const firstPitchPercent = ((firstPitches.length / totalPitches) * 100).toFixed(1);
+
+    // ===== HANDEDNESS SPLITS =====
+    const rhPitches = pitches.filter(p => p.batter_handedness === "RHH");
+    const lhPitches = pitches.filter(p => p.batter_handedness === "LHH");
+
+    // ===== STRIKEOUT PITCH =====
+    const strikeoutPitches = pitches.filter(p => p.result === "Strike");
+    const outPitch = strikeoutPitches.length > 0
+      ? getMostCommon(strikeoutPitches.map(p => p.pitch_type))
+      : "—";
+    const outPitchCount = strikeoutPitches.filter(p => p.pitch_type === outPitch).length;
+
+    return {
+      pitcherName,
+      totalPitches,
+      peakVelo,
+      firstPitchType,
+      firstPitchPercent,
+      outPitch,
+      outPitchCount,
+      pitchStats,
+      firstPitches,
+      rhPitches,
+      lhPitches,
+      strikeoutPitches,
+      allPitches: pitches
+    };
+
+  } catch (err) {
+    console.error("Metrics calculation error:", err);
+    return null;
+  }
+}
+
+// Helper: Check if pitch is in zone (strike zone = 0.3-0.7 x, 0.3-0.7 y)
+function isInZone(x, y) {
+  return x >= 0.3 && x <= 0.7 && y >= 0.3 && y <= 0.7;
+}
+
+// Helper: Get most common item in array
+function getMostCommon(arr) {
+  const counts = {};
+  arr.forEach(item => {
+    counts[item] = (counts[item] || 0) + 1;
+  });
+  return Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+}
+
+// ======================================
+// PITCHER REPORT ENDPOINT
+// ======================================
+app.get("/pitcher/:pitcherId/report", async (req, res) => {
+  const { pitcherId } = req.params;
+  const { sessionId, token } = req.query;
+
+  // Auth check
+  const user = await verifyToken(token);
+  if (!user) {
+    return res.status(401).send("Unauthorized");
+  }
+
+  // Verify session belongs to user
+  const sessionCheck = await pool.query(
+    "SELECT id FROM sessions WHERE id = $1 AND user_id = $2",
+    [sessionId, user.id]
+  );
+  if (sessionCheck.rows.length === 0) {
+    return res.status(404).send("Session not found");
+  }
+
+  try {
+    // Calculate metrics
+    const metrics = await calculatePitcherMetrics(sessionId, pitcherId);
+    if (!metrics) {
+      return res.status(404).send("Pitcher not found");
+    }
+
+    // Generate HTML report
+    const html = generateScoutingReport(metrics);
+    
+    res.setHeader("Content-Type", "text/html");
+    res.send(html);
+
+  } catch (err) {
+    console.error("Report generation error:", err);
+    res.status(500).send("Error generating report");
+  }
+});
+
+// ======================================
+// REPORT HTML GENERATION
+// ======================================
+function generateScoutingReport(metrics) {
+  const {
+    pitcherName,
+    totalPitches,
+    peakVelo,
+    firstPitchType,
+    firstPitchPercent,
+    outPitch,
+    outPitchCount,
+    pitchStats
+  } = metrics;
+
+  // Basic styling
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${pitcherName} - Scouting Report</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #050816;
+      color: #e5e7eb;
+      padding: 20px;
+      margin: 0;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: #0f172a;
+      padding: 30px;
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+    h1 {
+      color: #22d3ee;
+      margin-bottom: 10px;
+    }
+    .header {
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+    }
+    .summary-boxes {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 30px;
+    }
+    .summary-box {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .summary-label {
+      font-size: 12px;
+      color: #9ca3af;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .summary-value {
+      font-size: 24px;
+      color: #22d3ee;
+      font-weight: 600;
+    }
+    .section {
+      margin-bottom: 30px;
+    }
+    .section-title {
+      font-size: 16px;
+      color: #22d3ee;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid rgba(56, 189, 248, 0.3);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    th {
+      background: rgba(56, 189, 248, 0.1);
+      color: #22d3ee;
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 12px;
+    }
+    td {
+      padding: 12px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    }
+    tr:hover {
+      background: rgba(56, 189, 248, 0.05);
+    }
+    .print-button {
+      background: #22d3ee;
+      color: #000;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+    .print-button:hover {
+      background: #06b6d4;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>${pitcherName}</h1>
+      <p>Scouting Report</p>
+      <button class="print-button" onclick="window.print()">🖨️ Print / Save as PDF</button>
+    </div>
+
+    <div class="summary-boxes">
+      <div class="summary-box">
+        <div class="summary-label">Pitches Tracked</div>
+        <div class="summary-value">${totalPitches}</div>
+      </div>
+      <div class="summary-box">
+        <div class="summary-label">Peak Velo</div>
+        <div class="summary-value">${peakVelo} mph</div>
+      </div>
+      <div class="summary-box">
+        <div class="summary-label">First Pitch</div>
+        <div class="summary-value">${firstPitchType} (${firstPitchPercent}%)</div>
+      </div>
+      <div class="summary-box">
+        <div class="summary-label">Out Pitch</div>
+        <div class="summary-value">${outPitch} (${outPitchCount})</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Arsenal Summary</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Pitch Type</th>
+            <th>Count</th>
+            <th>Usage %</th>
+            <th>Avg Velo</th>
+            <th>Max Velo</th>
+            <th>Avg Spin</th>
+            <th>IVB</th>
+            <th>HB</th>
+            <th>Zone %</th>
+            <th>CSW%</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${Object.entries(pitchStats).map(([type, stats]) => `
+            <tr>
+              <td><strong>${type}</strong></td>
+              <td>${stats.count}</td>
+              <td>${stats.usage}%</td>
+              <td>${stats.avgVelo}</td>
+              <td>${stats.maxVelo}</td>
+              <td>${stats.avgSpin}</td>
+              <td>${stats.avgIVB}</td>
+              <td>${stats.avgHB}</td>
+              <td>${stats.zonePercent}%</td>
+              <td>${stats.csw}%</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <p style="color: #9ca3af; font-size: 12px;">
+        Report generated on ${new Date().toLocaleString()}
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+
+  return html;
+}
+
+// ======================================
 // WEBSOCKET - SIMPLIFIED & ROBUST
 // ======================================
 const clients = {};
