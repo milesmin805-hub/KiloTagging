@@ -1063,7 +1063,6 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
     res.json({ success: false, error: err.message });
   }
 });
-}
 
 // Helper functions
 function mapPitchType(trackmanType) {
