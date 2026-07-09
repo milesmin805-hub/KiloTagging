@@ -894,6 +894,10 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
   const file = req.file;
   const { sessionId, token } = req.body;
 
+   if (!file) {
+    return res.json({ success: false, error: "No file received - check upload" });
+  }
+
   // Auth check
   const user = await verifyToken(token);
   if (!user) {
