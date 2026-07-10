@@ -330,8 +330,6 @@ const pitches = pitchesResult.rows.map((pitch) => {
       Math.pow((pitch.y - pitch.target_y) * STRIKEZONE_WIDTH_PX, 2)
     );
     distance = Math.round(pixelDistance * INCHES_PER_PIXEL * 10) / 10;
-   pitcher_id: pitch.pitcher_id,
-    pitcher_name: pitch.pitcher_name
   }
   return {
     id: pitch.id,
@@ -347,7 +345,9 @@ const pitches = pitchesResult.rows.map((pitch) => {
     clip_end_time: pitch.clip_end_time,
     distance: distance,
     mph: pitch.mph,
-    timestamp: new Date(pitch.created_at).getTime()
+    timestamp: new Date(pitch.created_at).getTime(),
+    pitcher_id: pitch.pitcher_id,
+    pitcher_name: pitch.pitcher_name
   };
 });
  
