@@ -686,10 +686,15 @@
       const colors = ["#22d3ee", "#fca5a5", "#86efac", "#fbbf24", "#a78bfa", "#f472b6"];
       let colorIdx = 0;
 
-      Object.entries(metricsData.pitchStats).forEach(([type, stats]) => {
-        datasets.push({
-          label: type,
-          data: [{ x: stats.avgHB, y: stats.avgIVB }],
+Object.entries(metricsData.pitchStats).forEach(([type, stats]) => {
+    const avgHB = typeof stats.avgHB === 'string' ? parseFloat(stats.avgHB) : stats.avgHB;
+    const avgIVB = typeof stats.avgIVB === 'string' ? parseFloat(stats.avgIVB) : stats.avgIVB;
+    
+    if (isNaN(avgHB) || isNaN(avgIVB)) return; // Skip if no valid data
+    
+    datasets.push({
+      label: type,
+      data: [{ x: avgHB, y: avgIVB }],
           backgroundColor: colors[colorIdx],
           borderColor: colors[colorIdx],
           borderWidth: 2,
