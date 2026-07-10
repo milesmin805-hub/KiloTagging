@@ -551,14 +551,8 @@
         }
 
         metricsData = data;
-        displayReport();
 
-      } catch (err) {
-        showError("Error: " + err.message);
-      }
-    }
-
-    // Load AI intel
+          // Load AI intel
         const aiRes = await fetch(
           `/session/${currentSessionId}/pitcher/${currentPitcherId}/ai-intel`,
           {
@@ -571,6 +565,12 @@
         if (aiData.success) {
           metricsData.aiIntel = aiData.intel;
         }
+        
+        displayReport();
+      } catch (err) {
+        showError("Error: " + err.message);
+      }
+    }
 
     function displayReport() {
       const m = metricsData;
