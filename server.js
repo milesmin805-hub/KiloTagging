@@ -330,6 +330,8 @@ const pitches = pitchesResult.rows.map((pitch) => {
       Math.pow((pitch.y - pitch.target_y) * STRIKEZONE_WIDTH_PX, 2)
     );
     distance = Math.round(pixelDistance * INCHES_PER_PIXEL * 10) / 10;
+   pitcher_id: pitch.pitcher_id,
+    pitcher_name: pitch.pitcher_name
   }
   return {
     id: pitch.id,
