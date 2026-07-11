@@ -1164,15 +1164,15 @@ async function calculatePitcherMetrics(sessionId, pitcherId) {
         : "—";
 
       // IVB & HB
-      const ivbs = typePitches.filter(p => p.ivb !== null).map(p => p.ivb);
-      const avgIVB = ivbs.length > 0
-        ? (ivbs.reduce((a,b) => a+b) / ivbs.length).toFixed(2)
-        : "—";
+      const ivbs = typePitches.filter(p => p.ivb !== null).map(p => parseFloat(p.ivb) || 0);
+const avgIVB = ivbs.length > 0 && ivbs.some(v => v !== 0)
+  ? (ivbs.reduce((a,b) => a+b) / ivbs.length).toFixed(2)
+  : "—";
 
-      const hbs = typePitches.filter(p => p.hb !== null).map(p => p.hb);
-      const avgHB = hbs.length > 0
-        ? (hbs.reduce((a,b) => a+b) / hbs.length).toFixed(2)
-        : "—";
+const hbs = typePitches.filter(p => p.hb !== null).map(p => parseFloat(p.hb) || 0);
+const avgHB = hbs.length > 0 && hbs.some(v => v !== 0)
+  ? (hbs.reduce((a,b) => a+b) / hbs.length).toFixed(2)
+  : "—";
 
       // Zone %
       const inZone = typePitches.filter(p => isInZone(p.x, p.y)).length;
