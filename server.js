@@ -1071,16 +1071,22 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
 
 // Helper functions
 function mapPitchType(trackmanType) {
-  const typeMap = {
-    "FourSeamFastBall": "FB",
-    "Sinker": "SN",
-    "Cutter": "CT",
-    "Slider": "SL",
-    "Curveball": "CB",
-    "Changeup": "CH",
-    "Splitter": "SP",
-    "Knuckleball": "KN"
-  };
+  if (!trackmanType) return "?";
+  
+  const normalized = trackmanType.trim().toLowerCase();
+  
+  // Check for pitch type keywords (handles all variations)
+  if (normalized.includes("four") || normalized.includes("4") || normalized.includes("fastball")) return "FB";
+  if (normalized.includes("sinker")) return "SN";
+  if (normalized.includes("cutter")) return "CT";
+  if (normalized.includes("slider")) return "SL";
+  if (normalized.includes("curve")) return "CB";
+  if (normalized.includes("change")) return "CH";
+  if (normalized.includes("split")) return "SP";
+  if (normalized.includes("knuckle")) return "KN";
+  
+  return "?";
+}
   return typeMap[trackmanType] || "?";
 }
 
