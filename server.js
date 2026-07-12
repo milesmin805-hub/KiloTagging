@@ -1089,8 +1089,6 @@ function mapPitchType(trackmanType) {
   
   return "?";
 }
-  return typeMap[trackmanType] || "?";
-}
 
 function mapPitchResult(pitchCall) {
   const resultMap = {
