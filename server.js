@@ -1225,6 +1225,15 @@ const avgHB = hbs.length > 0 && hbs.some(v => v !== 0)
       : "—";
     const outPitchCount = strikeoutPitches.filter(p => p.pitch_type === outPitch).length;
 
+    // ===== CONTACT QUALITY =====
+    const inPlayPitches = pitches.filter(p => p.result === "InPlay");
+    const bipCount = inPlayPitches.length;
+    const bipPercent = ((bipCount / totalPitches) * 100).toFixed(1);
+
+    // Hard hit % (exit velocity > 90 mph)
+    const hardHits = inPlayPitches.filter(p => p.exit_velocity && p.exit_velocity > 90);
+    const hardHitPercent = bipCount > 0 ? ((hardHits.length / bipCount) * 100).toFixed(1) : "—";
+
     return {
       pitcherName,
       totalPitches,
@@ -1238,7 +1247,10 @@ const avgHB = hbs.length > 0 && hbs.some(v => v !== 0)
       rhPitches,
       lhPitches,
       strikeoutPitches,
-      allPitches: pitches
+      allPitches: pitches,
+      bipCount,
+      bipPercent,
+      hardHitPercent
     };
 
   } catch (err) {
