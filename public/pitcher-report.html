@@ -619,12 +619,12 @@
       document.getElementById("oozTable").innerHTML = oozHtml;
 
       // Contact quality table
-      const contactHtml = Object.entries(m.pitchStats).map(([type, stats]) => `
+const contactHtml = Object.entries(m.pitchStats).map(([type, stats]) => `
         <tr>
           <td><strong>${type}</strong></td>
-          <td>—</td>
+          <td>${stats.bipCount || 0}</td>
           <td>${stats.avgEV}</td>
-          <td>—%</td>
+          <td>${stats.hardHitPercent}%</td>
           <td>${stats.maxEV}</td>
         </tr>
       `).join("");
