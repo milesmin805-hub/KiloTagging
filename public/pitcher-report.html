@@ -494,6 +494,61 @@
         </div>
       </div>
 
+      <!-- SECTION 8B: INTERACTIVE COUNT SEQUENCING BOARD -->
+      <div class="card">
+        <div class="card-title">Count Sequencing — What To Expect By Count</div>
+        
+        <!-- Count Grid -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px;">
+          <div style="text-align: center; font-size: 12px; color: #9ca3af; margin-bottom: 8px; grid-column: 2/4;">Strikes (S)</div>
+          
+          <!-- Row headers -->
+          <div style="grid-column: 1; text-align: right; padding-right: 12px; font-size: 12px; color: #9ca3af;">B=0</div>
+          <div class="count-cell" onclick="selectCount(0, 0)">0-0</div>
+          <div class="count-cell" onclick="selectCount(0, 1)">0-1</div>
+          <div class="count-cell" onclick="selectCount(0, 2)">0-2</div>
+          
+          <div style="grid-column: 1; text-align: right; padding-right: 12px; font-size: 12px; color: #9ca3af;">B=1</div>
+          <div class="count-cell" onclick="selectCount(1, 0)">1-0</div>
+          <div class="count-cell" onclick="selectCount(1, 1)">1-1</div>
+          <div class="count-cell" onclick="selectCount(1, 2)">1-2</div>
+          
+          <div style="grid-column: 1; text-align: right; padding-right: 12px; font-size: 12px; color: #9ca3af;">B=2</div>
+          <div class="count-cell" onclick="selectCount(2, 0)">2-0</div>
+          <div class="count-cell" onclick="selectCount(2, 1)">2-1</div>
+          <div class="count-cell" onclick="selectCount(2, 2)">2-2</div>
+          
+          <div style="grid-column: 1; text-align: right; padding-right: 12px; font-size: 12px; color: #9ca3af;">B=3</div>
+          <div class="count-cell" onclick="selectCount(3, 0)">3-0</div>
+          <div class="count-cell" onclick="selectCount(3, 1)">3-1</div>
+          <div class="count-cell" onclick="selectCount(3, 2)">3-2</div>
+        </div>
+
+        <!-- Count Details (appears when cell clicked) -->
+        <div id="countDetails" style="display: none; background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.3); padding: 16px; border-radius: 8px;">
+          <div style="font-size: 14px; font-weight: 600; color: #22d3ee; margin-bottom: 12px;">
+            Count: <span id="selectedCount">0-0</span> (<span id="countPitches">0</span> pitches)
+          </div>
+          <div style="overflow-x: auto; margin-bottom: 16px;">
+            <table style="width: 100%; font-size: 13px;">
+              <thead>
+                <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.3);">
+                  <th style="text-align: left; padding: 8px; color: #22d3ee;">Pitch</th>
+                  <th style="text-align: center; padding: 8px; color: #22d3ee;">Count</th>
+                  <th style="text-align: center; padding: 8px; color: #22d3ee;">Usage%</th>
+                  <th style="text-align: center; padding: 8px; color: #22d3ee;">Zone%</th>
+                </tr>
+              </thead>
+              <tbody id="countTableBody">
+              </tbody>
+            </table>
+          </div>
+          <div id="countNote" style="background: rgba(239, 68, 68, 0.1); border-left: 3px solid #fca5a5; padding: 12px; border-radius: 4px; color: #e5e7eb; font-size: 13px; line-height: 1.5;">
+            💡 Click a count to see pitch tendencies
+          </div>
+        </div>
+      </div>
+      
       <!-- SECTION 9: 13-BOX STRIKE ZONE HEATMAP (PLACEHOLDER) -->
       <div class="card">
         <div class="card-title">13-Box Strike Zone Heatmap</div>
