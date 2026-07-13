@@ -1189,6 +1189,12 @@ const avgHB = hbs.length > 0 && hbs.some(v => v !== 0)
         : "—";
       const maxEV = exitVelos.length > 0 ? Math.max(...exitVelos) : "—";
 
+     // Contact quality (BIP, HH%)
+      const bipPitches = typePitches.filter(p => p.result === "InPlay");
+      const bipCount = bipPitches.length;
+      const hardHits = bipPitches.filter(p => p.exit_velocity && p.exit_velocity > 90);
+      const hardHitPercent = bipCount > 0 ? ((hardHits.length / bipCount) * 100).toFixed(1) : "—";
+     
       pitchStats[type] = {
         count,
         usage,
@@ -1203,7 +1209,9 @@ const avgHB = hbs.length > 0 && hbs.some(v => v !== 0)
         avgEV,
         maxEV,
         strikes,
-        whiffs
+        whiffs,
+        bipCount,
+        hardHitPercent
       };
     });
 
