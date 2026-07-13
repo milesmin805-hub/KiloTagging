@@ -970,7 +970,7 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
       }
 
       // Map pitch type (Trackman → Kilo)
-      const pitchType = record.TaggedPitchType || record.AutoPitchType ? mapPitchType(record.TaggedPitchType || record.AutoPitchType) : "?";
+      const pitchType = (record.TaggedPitchType || record.AutoPitchType) ? mapPitchType(record.TaggedPitchType || record.AutoPitchType) : "?";
 
       // Map result
       const result = mapPitchResult(record.PitchCall);
@@ -1045,8 +1045,8 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
           sessionId,
           pitcherId,
           pitch.pitchType,
-           0,  // balls - from CSV
-           0,  // strikes - from CSV
+          pitch.balls,
+          pitch.strikes,
           pitch.result,
           pitch.x,
           pitch.y,
