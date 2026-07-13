@@ -629,6 +629,7 @@
         </tr>
       `).join("");
       document.getElementById("contactTable").innerHTML = contactHtml;
+      
 
       // Pitch mix pie chart
       drawPitchMixChart();
@@ -680,60 +681,51 @@
       });
     }
 
-    function drawMovementChart() {
-      const ctx = document.getElementById("movementChart").getContext("2d");
-      const datasets = [];
-      const colors = ["#22d3ee", "#fca5a5", "#86efac", "#fbbf24", "#a78bfa", "#f472b6"];
-      let colorIdx = 0;
+function drawMovementChart() {
+  const ctx = document.getElementById("movementChart").getContext("2d");
+  const datasets = [];
 
-Object.entries(metricsData.pitchStats).forEach(([type, stats]) => {
+  Object.entries(metricsData.pitchStats).forEach(([type, stats]) => {
     const avgHB = typeof stats.avgHB === 'string' ? parseFloat(stats.avgHB) : stats.avgHB;
     const avgIVB = typeof stats.avgIVB === 'string' ? parseFloat(stats.avgIVB) : stats.avgIVB;
     
-    if (isNaN(avgHB) || isNaN(avgIVB)) return; // Skip if no valid data
+    if (isNaN(avgHB) || isNaN(avgIVB)) return;
     
     datasets.push({
       label: type,
       data: [{ x: avgHB, y: avgIVB }],
-          backgroundColor: colors[colorIdx],
-          borderColor: colors[colorIdx],
-          borderWidth: 2,
-          radius: 8
-        });
-        colorIdx++;
-      });
+      borderRadius: 50
+    });
+  });
 
-      movementChart = new Chart(ctx, {
-        type: "scatter",
-        data: { datasets },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            x: {
-              title: { display: true, text: "Horizontal Break (in)", color: "#9ca3af" },
-              min: -10,
-              max: 20,
-              ticks: { color: "#9ca3af" },
-              grid: { color: "rgba(148, 163, 184, 0.2)" }
-            },
-            y: {
-              title: { display: true, text: "Induced Vertical Break (in)", color: "#9ca3af" },
-              min: 0,
-              max: 8,
-              ticks: { color: "#9ca3af" },
-              grid: { color: "rgba(148, 163, 184, 0.2)" }
-            }
-          },
-          plugins: {
-            legend: {
-              labels: { color: "#e5e7eb" }
-            }
-          }
+  new Chart(ctx, {
+    type: "scatter",
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: "#e5e7eb" } }
+      },
+      scales: {
+        x: {
+          min: -30,
+          max: 30,
+          title: { display: true, text: "Horizontal Break (inches)", color: "#e5e7eb" },
+          grid: { color: "rgba(148, 163, 184, 0.2)" },
+          ticks: { color: "#e5e7eb" }
+        },
+        y: {
+          min: -20,
+          max: 30,
+          title: { display: true, text: "Induced Vertical Break (inches)", color: "#e5e7eb" },
+          grid: { color: "rgba(148, 163, 184, 0.2)" },
+          ticks: { color: "#e5e7eb" }
         }
-      });
+      }
     }
-
+  });
+}
     function showError(msg) {
       document.getElementById("errorMsg").textContent = msg;
       document.getElementById("errorMsg").style.display = "block";
