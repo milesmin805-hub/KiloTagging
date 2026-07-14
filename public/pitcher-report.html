@@ -753,6 +753,9 @@ const contactHtml = Object.entries(m.pitchStats).map(([type, stats]) => `
       // Movement profile scatter
       drawMovementChart();
 
+      // Populate count board
+      populateCountBubbles();
+
       // AI Intel
       if (metricsData.aiIntel) {
         document.getElementById("aiIntel").innerHTML = `<div style="font-size: 13px; line-height: 1.6;">${metricsData.aiIntel}</div>`;
@@ -961,7 +964,8 @@ function showMovementDetails(pitchType) {
         alert("Error downloading PDF");
       }
     }
-    function selectCount(balls, strikes) {
+    
+  function selectCount(balls, strikes, event) {
   const countKey = `${balls}-${strikes}`;
   const pitchesAtCount = metricsData.allPitches.filter(p => p.balls === balls && p.strikes === strikes);
   
@@ -983,46 +987,73 @@ function showMovementDetails(pitchType) {
     }
   });
 
-  // Generate table
-  let tableHtml = "";
-  Object.entries(pitchCounts).forEach(([type, data]) => {
+  // Sort by usage
+  const sorted = Object.entries(pitchCounts).sort((a, b) => b[1].count - a[1].count);
+
+  // Generate pitch breakdown
+  let breakdownHtml = "";
+  sorted.forEach(([type, data]) => {
     const usage = ((data.count / pitchesAtCount.length) * 100).toFixed(1);
     const zonePercent = ((data.inZone / data.count) * 100).toFixed(1);
-    tableHtml += `
-      <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.2);">
-        <td style="padding: 8px;"><strong>${type}</strong></td>
-        <td style="text-align: center; padding: 8px;">${data.count}</td>
-        <td style="text-align: center; padding: 8px;">${usage}%</td>
-        <td style="text-align: center; padding: 8px;">${zonePercent}%</td>
-      </tr>
+    breakdownHtml += `
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="width: 100px; color: #e5e7eb; font-weight: 600;">● ${type}</div>
+        <div style="flex: 1; background: rgba(56, 189, 248, 0.2); border-radius: 4px; height: 24px; display: flex; align-items: center; padding: 0 8px;">
+          <div style="background: rgba(56, 189, 248, 0.7); height: 100%; border-radius: 4px; width: ${usage}%; display: flex; align-items: center; justify-content: center;">
+            <span style="font-size: 11px; color: #fff; font-weight: 600;">${usage}%</span>
+          </div>
+        </div>
+        <div style="width: 80px; text-align: right; color: #9ca3af; font-size: 12px;">${zonePercent}% zone</div>
+      </div>
     `;
   });
 
   // Generate insight note
   let note = "";
-  Object.entries(pitchCounts).forEach(([type, data]) => {
+  sorted.forEach(([type, data]) => {
     const zonePercent = (data.inZone / data.count) * 100;
     const usage = (data.count / pitchesAtCount.length) * 100;
     
     if (usage > 40 && zonePercent < 40) {
-      note = `⚠️ WAIT — ${type} often outside (${zonePercent.toFixed(0)}% zone); don't expand`;
+      note = `⚠️ SHRINK ZONE — ${type} only ${zonePercent.toFixed(0)}% in zone; waste pitch likely`;
     } else if (usage > 50 && zonePercent > 80) {
-      note = `🎯 DANGER — ${type} in zone ${zonePercent.toFixed(0)}% at this count; protect`;
-    } else if (usage > 60 && type !== "?" && data.count > 3) {
+      note = `🎯 DANGER ZONE — ${type} in zone ${zonePercent.toFixed(0)}% at this count; protect`;
+    } else if (usage > 60) {
       note = `🔄 PATTERN — ${type} comes ${usage.toFixed(0)}% of the time here`;
     }
   });
 
   if (!note) {
-    note = `📊 At ${countKey}: pitcher throws ${Object.keys(pitchCounts).join(", ")}`;
+    note = `📊 Mixed arsenal at ${countKey}`;
   }
 
   // Update UI
   document.getElementById("selectedCount").textContent = countKey;
   document.getElementById("countPitches").textContent = pitchesAtCount.length;
-  document.getElementById("countTableBody").innerHTML = tableHtml;
-  document.getElementById("countNote").innerHTML = note;
+  document.getElementById("pitchBreakdown").innerHTML = breakdownHtml;
+  document.getElementById("countNote").textContent = note;
   document.getElementById("countDetails").style.display = "block";
+}
+
+function populateCountBubbles() {
+  for (let b = 0; b <= 3; b++) {
+    for (let s = 0; s <= 2; s++) {
+      const pitchesAtCount = metricsData.allPitches.filter(p => p.balls === b && p.strikes === s);
+      if (pitchesAtCount.length === 0) continue;
+
+      const pitchCounts = {};
+      pitchesAtCount.forEach(p => {
+        const type = p.pitch_type || "?";
+        pitchCounts[type] = (pitchCounts[type] || 0) + 1;
+      });
+
+      const mostCommon = Object.entries(pitchCounts).sort((a, b) => b[1] - a[1])[0];
+      const elem = document.getElementById(`pitch-${b}-${s}`);
+      if (elem && mostCommon) {
+        elem.textContent = mostCommon[0];
+      }
+    }
+  }
 }
   </script>
 </body>
