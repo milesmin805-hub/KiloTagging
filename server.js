@@ -615,42 +615,6 @@ app.delete("/session/:sessionId", async (req, res) => {
   }
 });
  
-app.post("/session/:sessionId/close", async (req, res) => {
-  const { sessionId } = req.params;
-  const { token } = req.body;
-  const user = await verifyToken(token);
- 
-  if (!user) {
-    return res.json({ success: false, error: "Invalid token" });
-  }
- 
-  try {
-    const sessionCheck = await pool.query(
-      "SELECT id FROM sessions WHERE id = $1 AND user_id = $2",
-      [sessionId, user.id]
-    );
- 
-    if (sessionCheck.rows.length === 0) {
-      return res.json({ success: false, error: "Session not found" });
-    }
- 
-    await pool.query(
-      "UPDATE sessions SET is_closed = TRUE, closed_at = CURRENT_TIMESTAMP WHERE id = $1",
-      [sessionId]
-    );
- 
-    // Return immediately to user
-    res.json({ success: true, message: "Session closed. Clips processing in background..." });
- 
-// Return immediately to user
-    res.json({ success: true, message: "Session closed." });
- 
-  } catch (err) {
-    console.error("Close session error:", err);
-    res.json({ success: false, error: "Failed to close session" });
-  }
-});
- 
 // ======================================
 // PDF GENERATION
 // ======================================
@@ -1244,6 +1208,10 @@ const avgHB = hbs.length > 0 && hbs.some(v => v !== 0)
     const hardHits = inPlayPitches.filter(p => p.exit_velocity && p.exit_velocity > 90);
     const hardHitPercent = bipCount > 0 ? ((hardHits.length / bipCount) * 100).toFixed(1) : "—";
 
+    // ===== ADVANCED SCOUTING (handedness approach, out pitches, first-pitch
+    // tendencies, weakest pitch, two-strike intel) =====
+    const advancedScouting = calculateAdvancedScouting(pitches, pitchStats);
+
     return {
       pitcherName,
       totalPitches,
@@ -1260,7 +1228,8 @@ const avgHB = hbs.length > 0 && hbs.some(v => v !== 0)
       allPitches: pitches,
       bipCount,
       bipPercent,
-      hardHitPercent
+      hardHitPercent,
+      ...advancedScouting
     };
 
   } catch (err) {
@@ -1272,6 +1241,138 @@ const avgHB = hbs.length > 0 && hbs.some(v => v !== 0)
 // Helper: Check if pitch is in zone (strike zone = 0.3-0.7 x, 0.3-0.7 y)
 function isInZone(x, y) {
   return x >= 0.3 && x <= 0.7 && y >= 0.3 && y <= 0.7;
+}
+
+// ======================================
+// ADVANCED SCOUTING HELPERS
+// ======================================
+
+// Shared breakdown builder used by handedness splits, first-pitch tendencies,
+// and two-strike intel so all three report consistent numbers off one code path.
+function buildPitchTypeBreakdown(pitchSubset, totalForPercent) {
+  const total = totalForPercent !== undefined ? totalForPercent : pitchSubset.length;
+  const groups = {};
+  pitchSubset.forEach(p => {
+    const type = p.pitch_type || "?";
+    if (!groups[type]) groups[type] = [];
+    groups[type].push(p);
+  });
+
+  const breakdown = Object.entries(groups).map(([type, typePitches]) => {
+    const count = typePitches.length;
+    const pct = total > 0 ? ((count / total) * 100).toFixed(1) : "0.0";
+
+    const velos = typePitches.filter(p => p.mph).map(p => p.mph);
+    const avgVelo = velos.length > 0
+      ? (velos.reduce((a, b) => a + b) / velos.length).toFixed(1)
+      : "—";
+
+    const inZone = typePitches.filter(p => isInZone(p.x, p.y)).length;
+    const zonePercent = count > 0 ? ((inZone / count) * 100).toFixed(1) : "—";
+
+    const strikes = typePitches.filter(p => p.result === "Strike").length;
+    const whiffs = typePitches.filter(p => p.pitch_outcome_details === "Whiff").length;
+    const csw = count > 0 ? (((strikes + whiffs) / count) * 100).toFixed(1) : "—";
+
+    const battedBalls = typePitches.filter(p => p.result === "InPlay");
+    const hardHitBalls = battedBalls.filter(p => p.exit_velocity && p.exit_velocity > 90);
+    const hardHitPercent = battedBalls.length > 0
+      ? ((hardHitBalls.length / battedBalls.length) * 100).toFixed(1)
+      : "—";
+
+    return { type, count, pct, avgVelo, zonePercent, csw, whiffs, hardHitPercent, bipCount: battedBalls.length };
+  }).sort((a, b) => b.count - a.count);
+
+  return breakdown;
+}
+
+// Builds all five advanced scouting views off the same pitch list + pitchStats
+// that calculatePitcherMetrics already computed, so nothing is recalculated
+// twice or drifts out of sync with the arsenal summary table.
+function calculateAdvancedScouting(pitches, pitchStats) {
+  // ----- Handedness splits / approach vs RHH & LHH -----
+  const rhPitches = pitches.filter(p => p.batter_handedness === "RHH");
+  const lhPitches = pitches.filter(p => p.batter_handedness === "LHH");
+
+  const handednessApproach = {
+    RHH: {
+      pitchCount: rhPitches.length,
+      breakdown: buildPitchTypeBreakdown(rhPitches, rhPitches.length)
+    },
+    LHH: {
+      pitchCount: lhPitches.length,
+      breakdown: buildPitchTypeBreakdown(lhPitches, lhPitches.length)
+    }
+  };
+
+  // ----- First pitch tendencies (0-0 counts) -----
+  const firstPitches = pitches.filter(p => p.balls === 0 && p.strikes === 0);
+  const firstPitchBreakdown = buildPitchTypeBreakdown(firstPitches, firstPitches.length);
+  const firstPitchTendencies = {
+    totalFirstPitches: firstPitches.length,
+    breakdown: firstPitchBreakdown,
+    primaryType: firstPitchBreakdown[0]?.type || "—",
+    primaryPct: firstPitchBreakdown[0]?.pct || "0.0"
+  };
+
+  // ----- Two-strike intel -----
+  const twoStrikePitches = pitches.filter(p => p.strikes === 2);
+  const twoStrikeBreakdown = buildPitchTypeBreakdown(twoStrikePitches, twoStrikePitches.length);
+  const twoStrikeIntel = {
+    totalTwoStrikePitches: twoStrikePitches.length,
+    breakdown: twoStrikeBreakdown,
+    primaryType: twoStrikeBreakdown[0]?.type || "—",
+    primaryPct: twoStrikeBreakdown[0]?.pct || "0.0"
+  };
+
+  // ----- Primary / secondary out pitch -----
+  // Defined off two-strike counts specifically: a put-away pitch is judged
+  // by how often it produces a strike/whiff when the batter is already at two strikes.
+  const outPitchRanking = twoStrikeBreakdown
+    .map(b => {
+      const outCount = twoStrikePitches.filter(
+        p => p.pitch_type === b.type && (p.result === "Strike" || p.pitch_outcome_details === "Whiff")
+      ).length;
+      return { type: b.type, outCount, csw: b.csw, sampleSize: b.count };
+    })
+    .sort((a, b) => b.outCount - a.outCount);
+
+  const outPitches = {
+    primary: outPitchRanking[0] || null,
+    secondary: outPitchRanking[1] || null
+  };
+
+  // ----- Weakest pitch -----
+  // Combines hard-hit% (0-100 scale) with avg exit velocity allowed.
+  // EV is rescaled relative to a 70mph floor so both signals move on a
+  // comparable range before being summed into one ranking score.
+  const weakestCandidates = Object.entries(pitchStats)
+    .map(([type, stats]) => {
+      const hardHit = parseFloat(stats.hardHitPercent);
+      const avgEV = parseFloat(stats.avgEV);
+      const hasData = !isNaN(hardHit) && !isNaN(avgEV) && stats.bipCount > 0;
+      return {
+        type,
+        hardHitPercent: stats.hardHitPercent,
+        avgEV: stats.avgEV,
+        maxEV: stats.maxEV,
+        bipCount: stats.bipCount,
+        hasData,
+        score: hasData ? (hardHit + (avgEV - 70) * 2) : -Infinity
+      };
+    })
+    .filter(c => c.hasData)
+    .sort((a, b) => b.score - a.score);
+
+  const weakestPitch = weakestCandidates[0] || null;
+
+  return {
+    handednessApproach,
+    firstPitchTendencies,
+    twoStrikeIntel,
+    outPitches,
+    weakestPitch
+  };
 }
 
 // Helper: Get most common item in array
@@ -1364,7 +1465,12 @@ app.get("/session/:sessionId/metrics", async (req, res) => {
       outPitchCount: metrics.outPitchCount,
       shrinkZonePercent,
       pitchStats: metrics.pitchStats,
-      allPitches: metrics.allPitches
+      allPitches: metrics.allPitches,
+      handednessApproach: metrics.handednessApproach,
+      firstPitchTendencies: metrics.firstPitchTendencies,
+      twoStrikeIntel: metrics.twoStrikeIntel,
+      outPitches: metrics.outPitches,
+      weakestPitch: metrics.weakestPitch
     });
 
   } catch (err) {
