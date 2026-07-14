@@ -804,6 +804,8 @@ function drawMovementChart() {
   const ctx = document.getElementById("movementChart").getContext("2d");
   const datasets = [];
   const pitchTypes = [];
+  const colors = ["#22d3ee", "#fca5a5", "#86efac", "#fbbf24", "#a78bfa", "#f472b6"];
+  let colorIndex = 0;
 
   Object.entries(metricsData.pitchStats).forEach(([type, stats]) => {
     const avgHB = typeof stats.avgHB === 'string' ? parseFloat(stats.avgHB) : stats.avgHB;
@@ -811,16 +813,21 @@ function drawMovementChart() {
     
     if (isNaN(avgHB) || isNaN(avgIVB)) return;
     
+    const color = colors[colorIndex % colors.length];
     pitchTypes.push(type);
     datasets.push({
       label: type,
       data: [{ x: avgHB, y: avgIVB, pitchType: type, usage: stats.usage }],
       borderRadius: 50,
-      pointRadius: 8,
-      pointHoverRadius: 10,
+      pointRadius: 10,
+      pointHoverRadius: 12,
       borderWidth: 2,
-      borderColor: "#22d3ee"
+      borderColor: color,
+      backgroundColor: color,
+      pointBackgroundColor: color,
+      pointBorderColor: color
     });
+    colorIndex++;
   });
 
   const chart = new Chart(ctx, {
@@ -837,7 +844,13 @@ function drawMovementChart() {
         }
       },
       plugins: {
-        legend: { labels: { color: "#e5e7eb" } },
+        legend: { 
+          labels: { 
+            color: "#e5e7eb",
+            usePointStyle: true,
+            padding: 15
+          } 
+        },
         tooltip: {
           backgroundColor: "rgba(15, 23, 42, 0.9)",
           titleColor: "#22d3ee",
