@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Kilo - Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #050816;
+      color: #e5e7eb;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 16px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.15), transparent 55%);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #22d3ee, #0f172a);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .brand-text .title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .brand-text .subtitle {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .logout-btn {
+      padding: 8px 12px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      background: rgba(15, 23, 42, 0.9);
+      color: #e5e7eb;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.15s ease;
+    }
+
+    .logout-btn:hover {
+      border-color: rgba(56, 189, 248, 0.9);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+    }
+
+    main {
+      flex: 1;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .dashboard-header {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    .dashboard-header h1 {
+      font-size: 36px;
+      font-weight: 700;
+      color: #22d3ee;
+      margin-bottom: 8px;
+    }
+
+    .dashboard-header p {
+      font-size: 14px;
+      color: #9ca3af;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 24px;
+      max-width: 800px;
+      width: 100%;
+    }
+
+    .dashboard-card {
+      aspect-ratio: 1;
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+      font-weight: 600;
+      font-size: 18px;
+    }
+
+    .dashboard-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .card-icon {
+      font-size: 48px;
+    }
+
+    .card-label {
+      text-align: center;
+    }
+
+    /* Green - Reports */
+    .card-reports {
+      background: radial-gradient(circle at top left, rgba(134, 239, 172, 0.2), rgba(15, 23, 42, 0.9));
+      border-color: rgba(134, 239, 172, 0.5);
+      color: #86efac;
+    }
+
+    .card-reports:hover {
+      border-color: rgba(134, 239, 172, 0.9);
+      box-shadow: 0 0 30px rgba(134, 239, 172, 0.4);
+    }
+
+    /* Blue - Tagging */
+    .card-tagging {
+      background: radial-gradient(circle at top left, rgba(34, 211, 238, 0.2), rgba(15, 23, 42, 0.9));
+      border-color: rgba(34, 211, 238, 0.5);
+      color: #22d3ee;
+    }
+
+    .card-tagging:hover {
+      border-color: rgba(34, 211, 238, 0.9);
+      box-shadow: 0 0 30px rgba(34, 211, 238, 0.4);
+    }
+
+    /* Red - Camera */
+    .card-camera {
+      background: radial-gradient(circle at top left, rgba(252, 165, 165, 0.2), rgba(15, 23, 42, 0.9));
+      border-color: rgba(252, 165, 165, 0.5);
+      color: #fca5a5;
+    }
+
+    .card-camera:hover {
+      border-color: rgba(252, 165, 165, 0.9);
+      box-shadow: 0 0 30px rgba(252, 165, 165, 0.4);
+    }
+
+    @media (max-width: 600px) {
+      main {
+        padding: 20px;
+      }
+
+      .dashboard-header h1 {
+        font-size: 28px;
+      }
+
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .dashboard-card {
+        aspect-ratio: auto;
+        padding: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-mark">⚾</div>
+      <div class="brand-text">
+        <div class="title">Kilo</div>
+        <div class="subtitle">Baseball</div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </header>
+
+  <main>
+    <div class="dashboard-header">
+      <h1>Kilo Baseball</h1>
+      <p>Pitch Tagging & Scouting Reports</p>
+    </div>
+
+    <div class="dashboard-grid">
+      <!-- Generate Reports (Green) -->
+      <div class="dashboard-card card-reports" onclick="goToReports()">
+        <div class="card-icon">📊</div>
+        <div class="card-label">Generate Reports</div>
+      </div>
+
+      <!-- Tagging (Blue) -->
+      <div class="dashboard-card card-tagging" onclick="goToTagging()">
+        <div class="card-icon">🎯</div>
+        <div class="card-label">Tagging</div>
+      </div>
+
+      <!-- Camera (Red) -->
+      <div class="dashboard-card card-camera" onclick="goToCamera()">
+        <div class="card-icon">📹</div>
+        <div class="card-label">Camera</div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    window.addEventListener("load", () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        window.location.href = "/login.html";
+      }
+    });
+
+    function goToReports() {
+      window.location.href = "/session-select.html";
+    }
+
+    function goToTagging() {
+      window.location.href = "/session-select.html";
+    }
+
+    function goToCamera() {
+      window.location.href = "/session-select.html";
+    }
+
+    function logout() {
+      localStorage.removeItem("token");
+      window.location.href = "/login.html";
+    }
+  </script>
+</body>
+</html>
