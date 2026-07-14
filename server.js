@@ -1363,7 +1363,7 @@ app.get("/session/:sessionId/metrics", async (req, res) => {
       outPitch: metrics.outPitch,
       outPitchCount: metrics.outPitchCount,
       shrinkZonePercent,
-      pitchStats: metrics.pitchStats
+      pitchStats: metrics.pitchStats,
       allPitches: metrics.allPitches
     });
 
