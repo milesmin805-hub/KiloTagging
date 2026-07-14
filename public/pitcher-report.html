@@ -330,6 +330,28 @@
         display: none;
       }
     }
+
+    .count-bubble {
+      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), #020617);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      color: #e5e7eb;
+      transition: all 0.2s ease;
+    }
+
+    .count-bubble:hover {
+      border-color: rgba(56, 189, 248, 0.9);
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+      transform: translateY(-4px);
+    }
+
+    .count-bubble.active {
+      border-color: rgba(56, 189, 248, 0.9);
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.6);
+      background: rgba(56, 189, 248, 0.1);
+    }
   </style>
 </head>
 <body>
