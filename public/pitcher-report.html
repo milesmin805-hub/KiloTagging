@@ -739,6 +739,7 @@ const contactHtml = Object.entries(m.pitchStats).map(([type, stats]) => `
 function drawMovementChart() {
   const ctx = document.getElementById("movementChart").getContext("2d");
   const datasets = [];
+  const pitchTypes = [];
 
   Object.entries(metricsData.pitchStats).forEach(([type, stats]) => {
     const avgHB = typeof stats.avgHB === 'string' ? parseFloat(stats.avgHB) : stats.avgHB;
@@ -746,21 +747,51 @@ function drawMovementChart() {
     
     if (isNaN(avgHB) || isNaN(avgIVB)) return;
     
+    pitchTypes.push(type);
     datasets.push({
       label: type,
-      data: [{ x: avgHB, y: avgIVB }],
-      borderRadius: 50
+      data: [{ x: avgHB, y: avgIVB, pitchType: type, usage: stats.usage }],
+      borderRadius: 50,
+      pointRadius: 8,
+      pointHoverRadius: 10,
+      borderWidth: 2,
+      borderColor: "#22d3ee"
     });
   });
 
-  new Chart(ctx, {
+  const chart = new Chart(ctx, {
     type: "scatter",
     data: { datasets },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      onClick: (event, elements) => {
+        if (elements.length > 0) {
+          const datasetIndex = elements[0].datasetIndex;
+          const pitchType = pitchTypes[datasetIndex];
+          showMovementDetails(pitchType);
+        }
+      },
       plugins: {
-        legend: { labels: { color: "#e5e7eb" } }
+        legend: { labels: { color: "#e5e7eb" } },
+        tooltip: {
+          backgroundColor: "rgba(15, 23, 42, 0.9)",
+          titleColor: "#22d3ee",
+          bodyColor: "#e5e7eb",
+          borderColor: "rgba(56, 189, 248, 0.5)",
+          borderWidth: 1,
+          callbacks: {
+            title: (context) => context[0].raw.pitchType,
+            label: (context) => {
+              const data = context.raw;
+              return [
+                `HB: ${data.x.toFixed(2)}"`,
+                `IVB: ${data.y.toFixed(2)}"`,
+                `Usage: ${data.usage}%`
+              ];
+            }
+          }
+        }
       },
       scales: {
         x: {
@@ -780,6 +811,50 @@ function drawMovementChart() {
       }
     }
   });
+}
+
+function showMovementDetails(pitchType) {
+  const stats = metricsData.pitchStats[pitchType];
+  if (!stats) return;
+
+  const detailsHtml = `
+    <div style="background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.3); padding: 16px; border-radius: 8px;">
+      <div style="font-size: 14px; font-weight: 600; color: #22d3ee; margin-bottom: 12px;">${pitchType} Movement Profile</div>
+      <table style="width: 100%; font-size: 13px;">
+        <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.2);">
+          <td style="padding: 8px; color: #9ca3af;">Count:</td>
+          <td style="padding: 8px; text-align: right;"><strong>${stats.count}</strong></td>
+        </tr>
+        <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.2);">
+          <td style="padding: 8px; color: #9ca3af;">Usage:</td>
+          <td style="padding: 8px; text-align: right;"><strong>${stats.usage}%</strong></td>
+        </tr>
+        <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.2);">
+          <td style="padding: 8px; color: #9ca3af;">Avg Velo:</td>
+          <td style="padding: 8px; text-align: right;"><strong>${stats.avgVelo} mph</strong></td>
+        </tr>
+        <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.2);">
+          <td style="padding: 8px; color: #9ca3af;">Spin Rate:</td>
+          <td style="padding: 8px; text-align: right;"><strong>${stats.avgSpin} rpm</strong></td>
+        </tr>
+        <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.2);">
+          <td style="padding: 8px; color: #9ca3af;">IVB:</td>
+          <td style="padding: 8px; text-align: right;"><strong>${stats.avgIVB}"</strong></td>
+        </tr>
+        <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.2);">
+          <td style="padding: 8px; color: #9ca3af;">HB:</td>
+          <td style="padding: 8px; text-align: right;"><strong>${stats.avgHB}"</strong></td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; color: #9ca3af;">Zone%:</td>
+          <td style="padding: 8px; text-align: right;"><strong>${stats.zonePercent}%</strong></td>
+        </tr>
+      </table>
+    </div>
+  `;
+
+  // Create modal or insert into a details div
+  alert(`${pitchType} Profile:\nCount: ${stats.count}\nUsage: ${stats.usage}%\nAvg Velo: ${stats.avgVelo} mph\nIVB: ${stats.avgIVB}"\nHB: ${stats.avgHB}"\nZone%: ${stats.zonePercent}%`);
 }
     function showError(msg) {
       document.getElementById("errorMsg").textContent = msg;
