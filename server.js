@@ -948,7 +948,7 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
       const spinRate = record.SpinRate ? parseInt(record.SpinRate) : null;
       const ivb = record.InducedVertBreak ? parseFloat(record.InducedVertBreak) : null;
       const hb = record.HorzBreak ? parseFloat(record.HorzBreak) : null;
-      const batterHandedness = record.BatterSide ? (record.BatterSide === "L" ? "LHH" : "RHH") : null;
+      const batterHandedness = record.BatterSide ? (record.BatterSide === "Left" ? "LHH" : "RHH") : null;
       const exitVelocity = record.ExitSpeed ? parseInt(record.ExitSpeed) : null;
 
       pitchesToInsert.push({
