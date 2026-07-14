@@ -442,6 +442,124 @@
         </div>
       </div>
 
+      <!-- SECTION 2B: HANDEDNESS APPROACH (vs RHH / LHH) -->
+      <div class="card">
+        <div class="card-title">Approach vs RHH / LHH</div>
+        <div class="two-column">
+          <div>
+            <h3 style="font-size: 13px; color: #9ca3af; margin-bottom: 8px; font-weight: 600;">
+              Vs Right-Handed Hitters (<span id="rhhCount">0</span> pitches)
+            </h3>
+            <div style="overflow-x: auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Pitch</th>
+                    <th>Use%</th>
+                    <th>Velo</th>
+                    <th>Zone%</th>
+                    <th>CSW%</th>
+                  </tr>
+                </thead>
+                <tbody id="rhhTable"></tbody>
+              </table>
+            </div>
+          </div>
+          <div>
+            <h3 style="font-size: 13px; color: #9ca3af; margin-bottom: 8px; font-weight: 600;">
+              Vs Left-Handed Hitters (<span id="lhhCount">0</span> pitches)
+            </h3>
+            <div style="overflow-x: auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Pitch</th>
+                    <th>Use%</th>
+                    <th>Velo</th>
+                    <th>Zone%</th>
+                    <th>CSW%</th>
+                  </tr>
+                </thead>
+                <tbody id="lhhTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 2C: FIRST PITCH TENDENCIES -->
+      <div class="card">
+        <div class="card-title">First Pitch Tendencies (0-0 Counts)</div>
+        <p style="font-size: 13px; color: #9ca3af; margin-bottom: 12px;">
+          <strong id="firstPitchPrimaryType" style="color: #22d3ee;">—</strong> is thrown
+          <strong id="firstPitchPrimaryPct">0</strong>% of the time on 0-0
+          (<span id="firstPitchTotal">0</span> pitches tracked)
+        </p>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Pitch</th>
+                <th>Count</th>
+                <th>%</th>
+                <th>Zone%</th>
+              </tr>
+            </thead>
+            <tbody id="firstPitchTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SECTION 2D: TWO-STRIKE INTEL -->
+      <div class="card">
+        <div class="card-title">Two-Strike Intel</div>
+        <p style="font-size: 13px; color: #9ca3af; margin-bottom: 12px;">
+          <strong id="twoStrikePrimaryType" style="color: #22d3ee;">—</strong> is the primary two-strike pitch, thrown
+          <strong id="twoStrikePrimaryPct">0</strong>% of the time
+          (<span id="twoStrikeTotal">0</span> pitches tracked)
+        </p>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Pitch</th>
+                <th>Count</th>
+                <th>%</th>
+                <th>CSW%</th>
+                <th>Whiffs</th>
+              </tr>
+            </thead>
+            <tbody id="twoStrikeTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SECTION 2E: PUT-AWAY PITCH & WEAK POINT -->
+      <div class="card">
+        <div class="card-title">Put-Away Pitch &amp; Weak Point</div>
+        <div class="two-column">
+          <div>
+            <div class="intel-box">
+              <div class="intel-label">Primary Out Pitch</div>
+              <div id="primaryOutPitch" style="font-size: 20px; color: #22d3ee; font-weight: 600;">—</div>
+              <div id="primaryOutPitchDetail" style="font-size: 12px; color: #9ca3af; margin-top: 4px;"></div>
+            </div>
+            <div class="intel-box">
+              <div class="intel-label">Secondary Out Pitch</div>
+              <div id="secondaryOutPitch" style="font-size: 16px; color: #e5e7eb; font-weight: 600;">—</div>
+              <div id="secondaryOutPitchDetail" style="font-size: 12px; color: #9ca3af; margin-top: 4px;"></div>
+            </div>
+          </div>
+          <div>
+            <div class="intel-box" style="border-color: rgba(252, 165, 165, 0.4); background: rgba(239, 68, 68, 0.06);">
+              <div class="intel-label" style="color: #fca5a5;">Weakest Pitch</div>
+              <div id="weakestPitchType" style="font-size: 20px; color: #fca5a5; font-weight: 600;">—</div>
+              <div id="weakestPitchDetail" style="font-size: 12px; color: #9ca3af; margin-top: 4px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- SECTION 3: PITCH MIX -->
       <div class="card">
         <div class="card-title">Pitch Mix</div>
@@ -753,6 +871,12 @@ const contactHtml = Object.entries(m.pitchStats).map(([type, stats]) => `
       // Movement profile scatter
       drawMovementChart();
 
+      // Handedness approach, first-pitch tendencies, two-strike intel, out pitches, weakest pitch
+      populateHandednessApproach(m);
+      populateFirstPitchTendencies(m);
+      populateTwoStrikeIntel(m);
+      populateOutAndWeakestPitch(m);
+
       // Populate count board
       populateCountBubbles();
 
@@ -764,6 +888,126 @@ const contactHtml = Object.entries(m.pitchStats).map(([type, stats]) => `
       // Show report, hide loading
       document.getElementById("loading").style.display = "none";
       document.getElementById("reportContent").style.display = "block";
+    }
+
+    // ======================================
+    // HANDEDNESS APPROACH (vs RHH / LHH)
+    // ======================================
+    function populateHandednessApproach(m) {
+      const ha = m.handednessApproach;
+      if (!ha) return;
+
+      document.getElementById("rhhCount").textContent = ha.RHH.pitchCount;
+      document.getElementById("lhhCount").textContent = ha.LHH.pitchCount;
+
+      const noDataRow = (cols) => `<tr><td colspan="${cols}" style="text-align:center;color:#9ca3af;">No data yet</td></tr>`;
+
+      document.getElementById("rhhTable").innerHTML = ha.RHH.breakdown.length
+        ? ha.RHH.breakdown.map(b => `
+            <tr>
+              <td><strong>${b.type}</strong></td>
+              <td>${b.pct}%</td>
+              <td>${b.avgVelo}</td>
+              <td>${b.zonePercent}%</td>
+              <td>${b.csw}%</td>
+            </tr>
+          `).join("")
+        : noDataRow(5);
+
+      document.getElementById("lhhTable").innerHTML = ha.LHH.breakdown.length
+        ? ha.LHH.breakdown.map(b => `
+            <tr>
+              <td><strong>${b.type}</strong></td>
+              <td>${b.pct}%</td>
+              <td>${b.avgVelo}</td>
+              <td>${b.zonePercent}%</td>
+              <td>${b.csw}%</td>
+            </tr>
+          `).join("")
+        : noDataRow(5);
+    }
+
+    // ======================================
+    // FIRST PITCH TENDENCIES (0-0 counts)
+    // ======================================
+    function populateFirstPitchTendencies(m) {
+      const fp = m.firstPitchTendencies;
+      if (!fp) return;
+
+      document.getElementById("firstPitchPrimaryType").textContent = fp.primaryType;
+      document.getElementById("firstPitchPrimaryPct").textContent = fp.primaryPct;
+      document.getElementById("firstPitchTotal").textContent = fp.totalFirstPitches;
+
+      document.getElementById("firstPitchTable").innerHTML = fp.breakdown.length
+        ? fp.breakdown.map(b => `
+            <tr>
+              <td><strong>${b.type}</strong></td>
+              <td>${b.count}</td>
+              <td>${b.pct}%</td>
+              <td>${b.zonePercent}%</td>
+            </tr>
+          `).join("")
+        : `<tr><td colspan="4" style="text-align:center;color:#9ca3af;">No data yet</td></tr>`;
+    }
+
+    // ======================================
+    // TWO-STRIKE INTEL
+    // ======================================
+    function populateTwoStrikeIntel(m) {
+      const ts = m.twoStrikeIntel;
+      if (!ts) return;
+
+      document.getElementById("twoStrikePrimaryType").textContent = ts.primaryType;
+      document.getElementById("twoStrikePrimaryPct").textContent = ts.primaryPct;
+      document.getElementById("twoStrikeTotal").textContent = ts.totalTwoStrikePitches;
+
+      document.getElementById("twoStrikeTable").innerHTML = ts.breakdown.length
+        ? ts.breakdown.map(b => `
+            <tr>
+              <td><strong>${b.type}</strong></td>
+              <td>${b.count}</td>
+              <td>${b.pct}%</td>
+              <td>${b.csw}%</td>
+              <td>${b.whiffs}</td>
+            </tr>
+          `).join("")
+        : `<tr><td colspan="5" style="text-align:center;color:#9ca3af;">No data yet</td></tr>`;
+    }
+
+    // ======================================
+    // PRIMARY/SECONDARY OUT PITCH & WEAKEST PITCH
+    // ======================================
+    function populateOutAndWeakestPitch(m) {
+      const op = m.outPitches;
+      if (op) {
+        if (op.primary) {
+          document.getElementById("primaryOutPitch").textContent = op.primary.type;
+          document.getElementById("primaryOutPitchDetail").textContent =
+            `${op.primary.outCount} of ${op.primary.sampleSize} two-strike pitches (CSW ${op.primary.csw}%)`;
+        } else {
+          document.getElementById("primaryOutPitch").textContent = "—";
+          document.getElementById("primaryOutPitchDetail").textContent = "Not enough two-strike data yet";
+        }
+
+        if (op.secondary) {
+          document.getElementById("secondaryOutPitch").textContent = op.secondary.type;
+          document.getElementById("secondaryOutPitchDetail").textContent =
+            `${op.secondary.outCount} of ${op.secondary.sampleSize} two-strike pitches (CSW ${op.secondary.csw}%)`;
+        } else {
+          document.getElementById("secondaryOutPitch").textContent = "—";
+          document.getElementById("secondaryOutPitchDetail").textContent = "Not enough two-strike data yet";
+        }
+      }
+
+      const wp = m.weakestPitch;
+      if (wp) {
+        document.getElementById("weakestPitchType").textContent = wp.type;
+        document.getElementById("weakestPitchDetail").textContent =
+          `${wp.hardHitPercent}% hard-hit, ${wp.avgEV} mph avg EV (${wp.battedBallCount} batted balls)`;
+      } else {
+        document.getElementById("weakestPitchType").textContent = "—";
+        document.getElementById("weakestPitchDetail").textContent = "Not enough batted-ball data yet";
+      }
     }
 
     function drawPitchMixChart() {
