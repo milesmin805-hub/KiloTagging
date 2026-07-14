@@ -1364,7 +1364,7 @@ app.get("/session/:sessionId/metrics", async (req, res) => {
       outPitchCount: metrics.outPitchCount,
       shrinkZonePercent,
       pitchStats: metrics.pitchStats
-      allPitches: metrics.allPiches
+      allPitches: metrics.allPitches
     });
 
   } catch (err) {
