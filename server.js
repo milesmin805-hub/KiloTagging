@@ -911,10 +911,11 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
         continue;
       }
 
-      // Track pitcher
+    // Track pitcher
       const pitcherKey = `${pitcherName}`;
       if (!pitchers.has(pitcherKey)) {
-        pitchers.set(pitcherKey, { name: pitcherName, team: pitcherTeam });
+        const pitcherThrows = record.PitcherThrows || null;
+        pitchers.set(pitcherKey, { name: pitcherName, team: pitcherTeam, throws: pitcherThrows });
       }
 
       // Normalize coordinates (Trackman feet → 0-1 scale)
