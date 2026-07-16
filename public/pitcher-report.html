@@ -1939,7 +1939,7 @@ function generateLocationHeatmaps() {
               return zone.row === row && zone.col === col;
             });
 
-            const hardHits = boxPitches.filter(p => parseFloat(p.exit_velocity) >= 95).length;
+            const hardHits = boxPitches.filter(p => parseFloat(p.exit_velocity) >= 88.5).length;
             const hardHitPercent = boxPitches.length > 0 ? (hardHits / boxPitches.length) * 100 : 0;
 
             return { row, col, count: boxPitches.length, hardHitPercent };
