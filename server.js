@@ -35,7 +35,47 @@ pool.on("error", (err) => {
 app.use(express.static("public"));
 app.use("/clips", express.static("clips"));
 app.use(express.json());
- 
+
+// ===== KERNEL DENSITY ESTIMATION (KDE) =====
+function calculateKDE(points, gridSize = 40) {
+  if (points.length < 2) return null;
+
+  // Create grid
+  const xMin = -2, xMax = 2;
+  const yMin = 0, yMax = 5;
+  const xStep = (xMax - xMin) / gridSize;
+  const yStep = (yMax - yMin) / gridSize;
+
+  const grid = [];
+  const densities = [];
+
+  // Calculate bandwidth (Silverman's rule)
+  const n = points.length;
+  const h = Math.pow(4 / (n * 3), 1 / 5); // Scott's rule simplified
+
+  // Evaluate KDE at grid points
+  for (let i = 0; i <= gridSize; i++) {
+    for (let j = 0; j <= gridSize; j++) {
+      const x = xMin + i * xStep;
+      const y = yMin + j * yStep;
+
+      let density = 0;
+      points.forEach(p => {
+        const dx = (p.x - x) / h;
+        const dy = (p.y - y) / h;
+        // Gaussian kernel
+        density += Math.exp(-(dx * dx + dy * dy) / 2);
+      });
+      density /= (n * h * h);
+
+      grid.push({ x, y });
+      densities.push(density);
+    }
+  }
+
+  return { grid, densities, gridSize, xMin, xMax, yMin, yMax };
+}
+
 // ======================================
 // INITIALIZE DATABASE
 // ======================================
@@ -1636,7 +1676,25 @@ app.get("/session/:sessionId/metrics", async (req, res) => {
       firstPitchTendencies: metrics.firstPitchTendencies,
       twoStrikeIntel: metrics.twoStrikeIntel,
       outPitches: metrics.outPitches,
-      weakestPitch: metrics.weakestPitch
+      weakestPitch: metrics.weakestPitch,
+      kdeData: kdeData,
+     
+     // Calculate KDE for location heatmaps
+      const kdeData = {};
+      Object.entries(metrics.pitchStats).forEach(([pitchType, stats]) => {
+        const pitchesOfType = allPitches.filter(p => p.pitch_type === pitchType);
+        
+        // Convert normalized coords to plate coords
+        const points = pitchesOfType
+          .map(p => ({
+            x: (parseFloat(p.x) * 4) - 2,
+            y: parseFloat(p.y) * 5
+          }))
+          .filter(p => !isNaN(p.x) && !isNaN(p.y));
+
+        if (points.length >= 2) {
+          kdeData[pitchType] = calculateKDE(points, 40);
+        }
     });
 
   } catch (err) {
