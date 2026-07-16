@@ -987,10 +987,10 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
       if (existing.rows.length > 0) {
         pitcherId = existing.rows[0].id;
       } else {
-        // Create new pitcher
+      // Create new pitcher
         const newPitcher = await pool.query(
-          "INSERT INTO pitchers (id, name) VALUES ($1, $2) RETURNING id",
-          [crypto.randomUUID(), pitcher.name]
+          "INSERT INTO pitchers (id, name, pitcher_throws) VALUES ($1, $2, $3) RETURNING id",
+          [crypto.randomUUID(), pitcher.name, pitcher.throws]
         );
         pitcherId = newPitcher.rows[0].id;
       }
@@ -1087,12 +1087,13 @@ async function calculatePitcherMetrics(sessionId, pitcherId) {
       return null;
     }
 
-    // Get pitcher name
+  // Get pitcher name and throws
     const pitcherResult = await pool.query(
-      "SELECT name FROM pitchers WHERE id = $1",
+      "SELECT name, pitcher_throws FROM pitchers WHERE id = $1",
       [pitcherId]
     );
     const pitcherName = pitcherResult.rows[0]?.name || "Unknown";
+    const pitcherThrows = pitcherResult.rows[0]?.pitcher_throws || null;
 
     // ===== BASIC STATS =====
     const totalPitches = pitches.length;
