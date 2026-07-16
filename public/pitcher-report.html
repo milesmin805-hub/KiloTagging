@@ -404,6 +404,10 @@
         <div class="summary-box">
           <div class="summary-label">Shrink Zone</div>
           <div class="summary-value" id="shrinkZone">—%</div>
+          <div class="summary-box">
+          <div class="summary-label">Pitcher Hand</div>
+          <div class="summary-value" id="pitcherHand">—</div>
+        </div>
         </div>
       </div>
 
@@ -819,6 +823,8 @@
       document.getElementById("firstPitch").textContent = m.firstPitchType + ` (${m.firstPitchPercent}%)`;
       document.getElementById("outPitch").textContent = m.outPitch + ` (${m.outPitchCount})`;
       document.getElementById("shrinkZone").textContent = m.shrinkZonePercent || "—";
+      document.getElementById("pitcherHand").textContent = m.pitcherThrows ? 
+        (m.pitcherThrows === "Left" ? "Left" : "Right") : "—";
 
       // Arsenal table
       const arsenalHtml = Object.entries(m.pitchStats).map(([type, stats]) => `
