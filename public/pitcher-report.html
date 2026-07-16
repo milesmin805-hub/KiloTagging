@@ -1688,9 +1688,20 @@ function populateCountBubbles() {
         
         if (pitchesOfType.length === 0) return;
 
-        // Extract x, y coordinates
-        const xData = pitchesOfType.map(p => p.x).filter(x => x !== null && x !== undefined);
-        const yData = pitchesOfType.map(p => p.y).filter(y => y !== null && y !== undefined);
+// Extract x, y coordinates and convert from normalized (0-1) to plate coordinates
+        const xData = pitchesOfType
+          .map(p => {
+            const x = parseFloat(p.x);
+            return isNaN(x) ? null : (x * 4) - 2; // Convert 0-1 to -2 to 2
+          })
+          .filter(x => x !== null);
+        
+        const yData = pitchesOfType
+          .map(p => {
+            const y = parseFloat(p.y);
+            return isNaN(y) ? null : y * 5; // Convert 0-1 to 0 to 5
+          })
+          .filter(y => y !== null);
 
         if (xData.length === 0 || yData.length === 0) return;
 
