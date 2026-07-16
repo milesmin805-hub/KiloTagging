@@ -998,13 +998,21 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
       pitcherMap[pitcher.name] = pitcherId;
     }
 
+      // Create CSV import record
+    const csvImportId = crypto.randomUUID();
+    await pool.query(
+      `INSERT INTO csv_imports (id, session_id, pitch_count, pitcher_count) 
+       VALUES ($1, $2, $3, $4)`,
+      [csvImportId, sessionId, pitchesToInsert.length, pitchers.size]
+    );
+
     // Insert all pitches
     for (const pitch of pitchesToInsert) {
       const pitcherId = pitcherMap[pitch.pitcherName];
 
-            await pool.query(
-        `INSERT INTO pitches (id, session_id, pitcher_id, pitch_type, balls, strikes, result, x, y, mph, spin_rate, ivb, hb, batter_handedness, exit_velocity)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+      await pool.query(
+        `INSERT INTO pitches (id, session_id, pitcher_id, pitch_type, balls, strikes, result, x, y, mph, spin_rate, ivb, hb, batter_handedness, exit_velocity, csv_import_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
         [
           crypto.randomUUID(),
           sessionId,
@@ -1020,11 +1028,11 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
           pitch.ivb,
           pitch.hb,
           pitch.batterHandedness,
-          pitch.exitVelocity
+          pitch.exitVelocity,
+          csvImportId
         ]
       );
     }
-
     res.json({
       success: true,
       message: `Imported ${pitchesToInsert.length} pitches from ${pitchers.size} pitchers`,
@@ -1034,6 +1042,104 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
 
   } catch (err) {
     console.error("CSV upload error:", err);
+    res.json({ success: false, error: err.message });
+  }
+
+ // Get past CSV imports for a session
+app.get("/session/:sessionId/csv-imports", async (req, res) => {
+  const { sessionId } = req.params;
+  const token = req.headers.authorization?.split(" ")[1] || req.query.token;
+  const user = await verifyToken(token);
+
+  if (!user) {
+    return res.json({ success: false, error: "Invalid token" });
+  }
+
+  try {
+    const sessionCheck = await pool.query(
+      "SELECT id FROM sessions WHERE id = $1 AND user_id = $2",
+      [sessionId, user.id]
+    );
+    if (sessionCheck.rows.length === 0) {
+      return res.json({ success: false, error: "Session not found" });
+    }
+
+    const result = await pool.query(
+      `SELECT id, uploaded_at, pitch_count, pitcher_count 
+       FROM csv_imports 
+       WHERE session_id = $1 
+       ORDER BY uploaded_at DESC`,
+      [sessionId]
+    );
+
+    res.json({ 
+      success: true, 
+      imports: result.rows.map(row => ({
+        id: row.id,
+        uploadedAt: row.uploaded_at,
+        pitchCount: row.pitch_count,
+        pitcherCount: row.pitcher_count
+      }))
+    });
+  } catch (err) {
+    console.error("CSV imports list error:", err);
+    res.json({ success: false, error: err.message });
+  }
+
+ // Delete CSV import and all linked pitches
+app.delete("/csv-import/:csvImportId", async (req, res) => {
+  const { csvImportId } = req.params;
+  const { token } = req.body;
+  const user = await verifyToken(token);
+
+  if (!user) {
+    return res.json({ success: false, error: "Invalid token" });
+  }
+
+  try {
+    // Get csv_import to verify it exists and get session_id
+    const csvImport = await pool.query(
+      "SELECT id, session_id, pitch_count FROM csv_imports WHERE id = $1",
+      [csvImportId]
+    );
+
+    if (csvImport.rows.length === 0) {
+      return res.json({ success: false, error: "CSV import not found" });
+    }
+
+    const sessionId = csvImport.rows[0].session_id;
+    const pitchCount = csvImport.rows[0].pitch_count;
+
+    // Verify session belongs to user
+    const sessionCheck = await pool.query(
+      "SELECT id FROM sessions WHERE id = $1 AND user_id = $2",
+      [sessionId, user.id]
+    );
+    if (sessionCheck.rows.length === 0) {
+      return res.json({ success: false, error: "Unauthorized" });
+    }
+
+    // Delete all pitches from this import
+    await pool.query(
+      "DELETE FROM pitches WHERE csv_import_id = $1",
+      [csvImportId]
+    );
+
+    // Delete the csv_import record
+    await pool.query(
+      "DELETE FROM csv_imports WHERE id = $1",
+      [csvImportId]
+    );
+
+    console.log(`🗑️ Deleted CSV import: ${pitchCount} pitches removed`);
+
+    res.json({ 
+      success: true, 
+      message: `Deleted CSV import (${pitchCount} pitches removed)`
+    });
+
+  } catch (err) {
+    console.error("Delete CSV import error:", err);
     res.json({ success: false, error: err.message });
   }
 });
