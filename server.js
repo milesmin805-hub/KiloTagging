@@ -976,7 +976,8 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
 
       // Map pitch type (Trackman → Kilo)
       const pitchType = (record.TaggedPitchType || record.AutoPitchType) ? mapPitchType(record.TaggedPitchType || record.AutoPitchType) : "?";
-
+      const extension = record.Extension ? parseFloat(record.Extension) : null;
+     
       // Map result
       const result = mapPitchResult(record.PitchCall);
 
@@ -1051,8 +1052,8 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
       const pitcherId = pitcherMap[pitch.pitcherName];
 
       await pool.query(
-        `INSERT INTO pitches (id, session_id, pitcher_id, pitch_type, balls, strikes, result, x, y, mph, spin_rate, ivb, hb, batter_handedness, exit_velocity, csv_import_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+        `INSERT INTO pitches (id, session_id, pitcher_id, pitch_type, balls, strikes, result, x, y, mph, spin_rate, ivb, hb, extension, batter_handedness, exit_velocity, csv_import_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
         [
           crypto.randomUUID(),
           sessionId,
@@ -1067,6 +1068,7 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
           pitch.spinRate,
           pitch.ivb,
           pitch.hb,
+          pitch.extension,
           pitch.batterHandedness,
           pitch.exitVelocity,
           csvImportId
@@ -1316,6 +1318,10 @@ async function calculatePitcherMetrics(sessionId, pitcherId) {
     Object.entries(pitchGroups).forEach(([type, typePitches]) => {
       const count = typePitches.length;
       const usage = ((count / totalPitches) * 100).toFixed(1);
+
+     const avgExtension = typePitches.length > 0
+      ? (typePitches.reduce((sum, p) => sum + (parseFloat(p.extension) || 0), 0) / typePitches.length).toFixed(2)
+      : 0;
       
       // Velocity
       const velos = typePitches.filter(p => p.mph).map(p => p.mph);
@@ -1374,6 +1380,7 @@ const avgHB = hbs.length > 0 && hbs.some(v => v !== 0)
         avgSpin,
         avgIVB,
         avgHB,
+        extension: avgExtension,
         zonePercent,
         csw,
         avgEV,
