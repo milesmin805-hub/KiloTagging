@@ -425,20 +425,20 @@
       <div class="card">
         <div class="card-title">Arsenal Summary</div>
         <div style="overflow-x: auto;">
-          <table>
-            <thead>
-              <tr>
-                <th>Pitch</th>
-                <th>#</th>
-                <th>Use%</th>
-                <th>Velo</th>
-                <th>Spin</th>
-                <th>IVB</th>
-                <th>HB</th>
-                <th>Zone%</th>
-                <th>CSW%</th>
-              </tr>
-            </thead>
+       <table>
+  <thead>
+    <tr>
+      <th onclick="sortArsenal('pitch')" style="cursor: pointer;">Pitch <span id="arsenalSort-pitch"></span></th>
+      <th onclick="sortArsenal('count')" style="cursor: pointer;"># <span id="arsenalSort-count"></span></th>
+      <th onclick="sortArsenal('usage')" style="cursor: pointer;">Use% <span id="arsenalSort-usage"></span></th>
+      <th onclick="sortArsenal('avgVelo')" style="cursor: pointer;">Velo <span id="arsenalSort-avgVelo"></span></th>
+      <th onclick="sortArsenal('avgSpin')" style="cursor: pointer;">Spin <span id="arsenalSort-avgSpin"></span></th>
+      <th onclick="sortArsenal('avgIVB')" style="cursor: pointer;">IVB <span id="arsenalSort-avgIVB"></span></th>
+      <th onclick="sortArsenal('avgHB')" style="cursor: pointer;">HB <span id="arsenalSort-avgHB"></span></th>
+      <th onclick="sortArsenal('zonePercent')" style="cursor: pointer;">Zone% <span id="arsenalSort-zonePercent"></span></th>
+      <th onclick="sortArsenal('csw')" style="cursor: pointer;">CSW% <span id="arsenalSort-csw"></span></th>
+    </tr>
+  </thead>
             <tbody id="arsenalTable">
               <!-- Populated by JS -->
             </tbody>
@@ -456,15 +456,15 @@
             </h3>
             <div style="overflow-x: auto;">
               <table>
-                <thead>
-                  <tr>
-                    <th>Pitch</th>
-                    <th>Use%</th>
-                    <th>Velo</th>
-                    <th>Zone%</th>
-                    <th>CSW%</th>
-                  </tr>
-                </thead>
+  <thead>
+    <tr>
+      <th onclick="sortRHH('pitch')" style="cursor: pointer;">Pitch <span id="rhhSort-pitch"></span></th>
+      <th onclick="sortRHH('pct')" style="cursor: pointer;">Use% <span id="rhhSort-pct"></span></th>
+      <th onclick="sortRHH('avgVelo')" style="cursor: pointer;">Velo <span id="rhhSort-avgVelo"></span></th>
+      <th onclick="sortRHH('zonePercent')" style="cursor: pointer;">Zone% <span id="rhhSort-zonePercent"></span></th>
+      <th onclick="sortRHH('csw')" style="cursor: pointer;">CSW% <span id="rhhSort-csw"></span></th>
+    </tr>
+  </thead>
                 <tbody id="rhhTable"></tbody>
               </table>
             </div>
@@ -475,15 +475,15 @@
             </h3>
             <div style="overflow-x: auto;">
               <table>
-                <thead>
-                  <tr>
-                    <th>Pitch</th>
-                    <th>Use%</th>
-                    <th>Velo</th>
-                    <th>Zone%</th>
-                    <th>CSW%</th>
-                  </tr>
-                </thead>
+  <thead>
+    <tr>
+      <th onclick="sortLHH('pitch')" style="cursor: pointer;">Pitch <span id="lhhSort-pitch"></span></th>
+      <th onclick="sortLHH('pct')" style="cursor: pointer;">Use% <span id="lhhSort-pct"></span></th>
+      <th onclick="sortLHH('avgVelo')" style="cursor: pointer;">Velo <span id="lhhSort-avgVelo"></span></th>
+      <th onclick="sortLHH('zonePercent')" style="cursor: pointer;">Zone% <span id="lhhSort-zonePercent"></span></th>
+      <th onclick="sortLHH('csw')" style="cursor: pointer;">CSW% <span id="lhhSort-csw"></span></th>
+    </tr>
+  </thead>
                 <tbody id="lhhTable"></tbody>
               </table>
             </div>
@@ -500,15 +500,15 @@
           (<span id="firstPitchTotal">0</span> pitches tracked)
         </p>
         <div style="overflow-x: auto;">
-          <table>
-            <thead>
-              <tr>
-                <th>Pitch</th>
-                <th>Count</th>
-                <th>%</th>
-                <th>Zone%</th>
-              </tr>
-            </thead>
+         <table>
+  <thead>
+    <tr>
+      <th onclick="sortFirstPitch('pitch')" style="cursor: pointer;">Pitch <span id="firstPitchSort-pitch"></span></th>
+      <th onclick="sortFirstPitch('count')" style="cursor: pointer;">Count <span id="firstPitchSort-count"></span></th>
+      <th onclick="sortFirstPitch('pct')" style="cursor: pointer;">% <span id="firstPitchSort-pct"></span></th>
+      <th onclick="sortFirstPitch('zonePercent')" style="cursor: pointer;">Zone% <span id="firstPitchSort-zonePercent"></span></th>
+    </tr>
+  </thead>
             <tbody id="firstPitchTable"></tbody>
           </table>
         </div>
@@ -524,15 +524,15 @@
         </p>
         <div style="overflow-x: auto;">
           <table>
-            <thead>
-              <tr>
-                <th>Pitch</th>
-                <th>Count</th>
-                <th>%</th>
-                <th>CSW%</th>
-                <th>Whiffs</th>
-              </tr>
-            </thead>
+  <thead>
+    <tr>
+      <th onclick="sortTwoStrike('pitch')" style="cursor: pointer;">Pitch <span id="twoStrikeSort-pitch"></span></th>
+      <th onclick="sortTwoStrike('count')" style="cursor: pointer;">Count <span id="twoStrikeSort-count"></span></th>
+      <th onclick="sortTwoStrike('pct')" style="cursor: pointer;">% <span id="twoStrikeSort-pct"></span></th>
+      <th onclick="sortTwoStrike('csw')" style="cursor: pointer;">CSW% <span id="twoStrikeSort-csw"></span></th>
+      <th onclick="sortTwoStrike('whiffs')" style="cursor: pointer;">Whiffs <span id="twoStrikeSort-whiffs"></span></th>
+    </tr>
+  </thead>
             <tbody id="twoStrikeTable"></tbody>
           </table>
         </div>
@@ -585,15 +585,15 @@
         <div class="card-title">OOZ Tendency — What Not To Chase</div>
         <div style="overflow-x: auto;">
           <table>
-            <thead>
-              <tr>
-                <th>Pitch</th>
-                <th>Total</th>
-                <th>OOZ#</th>
-                <th>OOZ%</th>
-                <th>Zone%</th>
-              </tr>
-            </thead>
+  <thead>
+    <tr>
+      <th onclick="sortOOZ('pitch')" style="cursor: pointer;">Pitch <span id="oozSort-pitch"></span></th>
+      <th onclick="sortOOZ('total')" style="cursor: pointer;">Total <span id="oozSort-total"></span></th>
+      <th onclick="sortOOZ('oozCount')" style="cursor: pointer;">OOZ# <span id="oozSort-oozCount"></span></th>
+      <th onclick="sortOOZ('oozPercent')" style="cursor: pointer;">OOZ% <span id="oozSort-oozPercent"></span></th>
+      <th onclick="sortOOZ('zonePercent')" style="cursor: pointer;">Zone% <span id="oozSort-zonePercent"></span></th>
+    </tr>
+  </thead>
             <tbody id="oozTable">
               <!-- Populated by JS -->
             </tbody>
@@ -606,15 +606,15 @@
         <div class="card-title">Contact Quality Against — Where To Do Damage</div>
         <div style="overflow-x: auto;">
           <table>
-            <thead>
-              <tr>
-                <th>Pitch</th>
-                <th>BIP</th>
-                <th>Avg EV</th>
-                <th>HH%</th>
-                <th>Max EV</th>
-              </tr>
-            </thead>
+  <thead>
+    <tr>
+      <th onclick="sortContactQuality('pitch')" style="cursor: pointer;">Pitch <span id="contactSort-pitch"></span></th>
+      <th onclick="sortContactQuality('bip')" style="cursor: pointer;">BIP <span id="contactSort-bip"></span></th>
+      <th onclick="sortContactQuality('avgEV')" style="cursor: pointer;">Avg EV <span id="contactSort-avgEV"></span></th>
+      <th onclick="sortContactQuality('hardHit')" style="cursor: pointer;">HH% <span id="contactSort-hardHit"></span></th>
+      <th onclick="sortContactQuality('maxEV')" style="cursor: pointer;">Max EV <span id="contactSort-maxEV"></span></th>
+    </tr>
+  </thead>
             <tbody id="contactTable">
               <!-- Populated by JS -->
             </tbody>
@@ -1305,6 +1305,375 @@ function populateCountBubbles() {
       }
     }
   }
+  
+  let contactQualitySortColumn = 'pitch';
+    let contactQualitySortAsc = true;
+
+    function sortContactQuality(column) {
+      // Clear all arrow indicators
+      document.getElementById('contactSort-pitch').textContent = '';
+      document.getElementById('contactSort-bip').textContent = '';
+      document.getElementById('contactSort-avgEV').textContent = '';
+      document.getElementById('contactSort-hardHit').textContent = '';
+      document.getElementById('contactSort-maxEV').textContent = '';
+
+      // Toggle sort direction if same column clicked
+      if (contactQualitySortColumn === column) {
+        contactQualitySortAsc = !contactQualitySortAsc;
+      } else {
+        contactQualitySortAsc = true;
+      }
+      contactQualitySortColumn = column;
+
+      // Set arrow indicator
+      document.getElementById(`contactSort-${column}`).textContent = contactQualitySortAsc ? '↑' : '↓';
+
+      // Sort data
+      const sorted = Object.entries(metricsData.pitchStats).sort((a, b) => {
+        const aVal = a[1][column === 'pitch' ? 'type' : column];
+        const bVal = b[1][column === 'pitch' ? 'type' : column];
+
+        if (column === 'pitch') {
+          return contactQualitySortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        }
+
+        const aNum = parseFloat(aVal) || 0;
+        const bNum = parseFloat(bVal) || 0;
+        return contactQualitySortAsc ? aNum - bNum : bNum - aNum;
+      });
+
+      // Re-render table
+      const contactHtml = sorted.map(([type, stats]) => `
+        <tr>
+          <td><strong>${type}</strong></td>
+          <td>${stats.bipCount || 0}</td>
+          <td>${stats.avgEV}</td>
+          <td>${stats.hardHitPercent}%</td>
+          <td>${stats.maxEV}</td>
+        </tr>
+      `).join("");
+      document.getElementById("contactTable").innerHTML = contactHtml;
+    }
+  
+  let arsenalSortColumn = 'pitch';
+    let arsenalSortAsc = true;
+
+    function sortArsenal(column) {
+      // Clear all arrow indicators
+      document.getElementById('arsenalSort-pitch').textContent = '';
+      document.getElementById('arsenalSort-count').textContent = '';
+      document.getElementById('arsenalSort-usage').textContent = '';
+      document.getElementById('arsenalSort-avgVelo').textContent = '';
+      document.getElementById('arsenalSort-avgSpin').textContent = '';
+      document.getElementById('arsenalSort-avgIVB').textContent = '';
+      document.getElementById('arsenalSort-avgHB').textContent = '';
+      document.getElementById('arsenalSort-zonePercent').textContent = '';
+      document.getElementById('arsenalSort-csw').textContent = '';
+
+      // Toggle sort direction if same column clicked
+      if (arsenalSortColumn === column) {
+        arsenalSortAsc = !arsenalSortAsc;
+      } else {
+        arsenalSortAsc = true;
+      }
+      arsenalSortColumn = column;
+
+      // Set arrow indicator
+      document.getElementById(`arsenalSort-${column}`).textContent = arsenalSortAsc ? '↑' : '↓';
+
+      // Sort data
+      const sorted = Object.entries(metricsData.pitchStats).sort((a, b) => {
+        const aVal = a[1][column === 'pitch' ? 'type' : column];
+        const bVal = b[1][column === 'pitch' ? 'type' : column];
+
+        if (column === 'pitch') {
+          return arsenalSortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        }
+
+        const aNum = parseFloat(aVal) || 0;
+        const bNum = parseFloat(bVal) || 0;
+        return arsenalSortAsc ? aNum - bNum : bNum - aNum;
+      });
+
+      // Re-render table
+      const arsenalHtml = sorted.map(([type, stats]) => `
+        <tr>
+          <td><strong>${type}</strong></td>
+          <td>${stats.count}</td>
+          <td>${stats.usage}%</td>
+          <td>${stats.avgVelo}</td>
+          <td>${stats.avgSpin}</td>
+          <td>${stats.avgIVB}</td>
+          <td>${stats.avgHB}</td>
+          <td>${stats.zonePercent}%</td>
+          <td>${stats.csw}%</td>
+        </tr>
+      `).join("");
+      document.getElementById("arsenalTable").innerHTML = arsenalHtml;
+    }
+
+  let oozSortColumn = 'pitch';
+    let oozSortAsc = true;
+
+    function sortOOZ(column) {
+      // Clear all arrow indicators
+      document.getElementById('oozSort-pitch').textContent = '';
+      document.getElementById('oozSort-total').textContent = '';
+      document.getElementById('oozSort-oozCount').textContent = '';
+      document.getElementById('oozSort-oozPercent').textContent = '';
+      document.getElementById('oozSort-zonePercent').textContent = '';
+
+      // Toggle sort direction if same column clicked
+      if (oozSortColumn === column) {
+        oozSortAsc = !oozSortAsc;
+      } else {
+        oozSortAsc = true;
+      }
+      oozSortColumn = column;
+
+      // Set arrow indicator
+      document.getElementById(`oozSort-${column}`).textContent = oozSortAsc ? '↑' : '↓';
+
+      // Sort data
+      const sorted = Object.entries(metricsData.pitchStats).sort((a, b) => {
+        const stats_a = a[1];
+        const stats_b = b[1];
+
+        if (column === 'pitch') {
+          return oozSortAsc ? a[0].localeCompare(b[0]) : b[0].localeCompare(a[0]);
+        }
+
+        let aVal, bVal;
+        if (column === 'total') {
+          aVal = stats_a.count;
+          bVal = stats_b.count;
+        } else if (column === 'oozCount') {
+          aVal = stats_a.count - Math.round(stats_a.count * (stats_a.zonePercent / 100));
+          bVal = stats_b.count - Math.round(stats_b.count * (stats_b.zonePercent / 100));
+        } else if (column === 'oozPercent') {
+          aVal = (100 - stats_a.zonePercent);
+          bVal = (100 - stats_b.zonePercent);
+        } else if (column === 'zonePercent') {
+          aVal = stats_a.zonePercent;
+          bVal = stats_b.zonePercent;
+        }
+
+        const aNum = parseFloat(aVal) || 0;
+        const bNum = parseFloat(bVal) || 0;
+        return oozSortAsc ? aNum - bNum : bNum - aNum;
+      });
+
+      // Re-render table
+      const oozHtml = sorted.map(([type, stats]) => {
+        const oozCount = stats.count - Math.round(stats.count * (stats.zonePercent / 100));
+        const oozPercent = (100 - stats.zonePercent).toFixed(1);
+        return `
+          <tr>
+            <td><strong>${type}</strong></td>
+            <td>${stats.count}</td>
+            <td>${oozCount}</td>
+            <td>${oozPercent}%</td>
+            <td>${stats.zonePercent}%</td>
+          </tr>
+        `;
+      }).join("");
+      document.getElementById("oozTable").innerHTML = oozHtml;
+    }
+
+  let twoStrikeSortColumn = 'pitch';
+    let twoStrikeSortAsc = true;
+
+    function sortTwoStrike(column) {
+      // Clear all arrow indicators
+      document.getElementById('twoStrikeSort-pitch').textContent = '';
+      document.getElementById('twoStrikeSort-count').textContent = '';
+      document.getElementById('twoStrikeSort-pct').textContent = '';
+      document.getElementById('twoStrikeSort-csw').textContent = '';
+      document.getElementById('twoStrikeSort-whiffs').textContent = '';
+
+      // Toggle sort direction if same column clicked
+      if (twoStrikeSortColumn === column) {
+        twoStrikeSortAsc = !twoStrikeSortAsc;
+      } else {
+        twoStrikeSortAsc = true;
+      }
+      twoStrikeSortColumn = column;
+
+      // Set arrow indicator
+      document.getElementById(`twoStrikeSort-${column}`).textContent = twoStrikeSortAsc ? '↑' : '↓';
+
+      // Sort breakdown
+      const sorted = [...metricsData.twoStrikeIntel.breakdown].sort((a, b) => {
+        const aVal = a[column];
+        const bVal = b[column];
+
+        if (column === 'pitch') {
+          return twoStrikeSortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        }
+
+        const aNum = parseFloat(aVal) || 0;
+        const bNum = parseFloat(bVal) || 0;
+        return twoStrikeSortAsc ? aNum - bNum : bNum - aNum;
+      });
+
+      // Re-render table
+      const twoStrikeHtml = sorted.map(b => `
+        <tr>
+          <td><strong>${b.type}</strong></td>
+          <td>${b.count}</td>
+          <td>${b.pct}%</td>
+          <td>${b.csw}%</td>
+          <td>${b.whiffs}</td>
+        </tr>
+      `).join("");
+      document.getElementById("twoStrikeTable").innerHTML = twoStrikeHtml;
+    }
+
+  let firstPitchSortColumn = 'pitch';
+    let firstPitchSortAsc = true;
+
+    function sortFirstPitch(column) {
+      // Clear all arrow indicators
+      document.getElementById('firstPitchSort-pitch').textContent = '';
+      document.getElementById('firstPitchSort-count').textContent = '';
+      document.getElementById('firstPitchSort-pct').textContent = '';
+      document.getElementById('firstPitchSort-zonePercent').textContent = '';
+
+      // Toggle sort direction if same column clicked
+      if (firstPitchSortColumn === column) {
+        firstPitchSortAsc = !firstPitchSortAsc;
+      } else {
+        firstPitchSortAsc = true;
+      }
+      firstPitchSortColumn = column;
+
+      // Set arrow indicator
+      document.getElementById(`firstPitchSort-${column}`).textContent = firstPitchSortAsc ? '↑' : '↓';
+
+      // Sort breakdown
+      const sorted = [...metricsData.firstPitchTendencies.breakdown].sort((a, b) => {
+        const aVal = a[column];
+        const bVal = b[column];
+
+        if (column === 'pitch') {
+          return firstPitchSortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        }
+
+        const aNum = parseFloat(aVal) || 0;
+        const bNum = parseFloat(bVal) || 0;
+        return firstPitchSortAsc ? aNum - bNum : bNum - aNum;
+      });
+
+      // Re-render table
+      const firstPitchHtml = sorted.map(b => `
+        <tr>
+          <td><strong>${b.type}</strong></td>
+          <td>${b.count}</td>
+          <td>${b.pct}%</td>
+          <td>${b.zonePercent}%</td>
+        </tr>
+      `).join("");
+      document.getElementById("firstPitchTable").innerHTML = firstPitchHtml;
+    }
+
+  let rhhSortColumn = 'pitch';
+    let rhhSortAsc = true;
+
+    function sortRHH(column) {
+      // Clear all arrow indicators
+      document.getElementById('rhhSort-pitch').textContent = '';
+      document.getElementById('rhhSort-pct').textContent = '';
+      document.getElementById('rhhSort-avgVelo').textContent = '';
+      document.getElementById('rhhSort-zonePercent').textContent = '';
+      document.getElementById('rhhSort-csw').textContent = '';
+
+      // Toggle sort direction if same column clicked
+      if (rhhSortColumn === column) {
+        rhhSortAsc = !rhhSortAsc;
+      } else {
+        rhhSortAsc = true;
+      }
+      rhhSortColumn = column;
+
+      // Set arrow indicator
+      document.getElementById(`rhhSort-${column}`).textContent = rhhSortAsc ? '↑' : '↓';
+
+      // Sort breakdown
+      const sorted = [...metricsData.handednessApproach.RHH.breakdown].sort((a, b) => {
+        const aVal = a[column];
+        const bVal = b[column];
+
+        if (column === 'pitch') {
+          return rhhSortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        }
+
+        const aNum = parseFloat(aVal) || 0;
+        const bNum = parseFloat(bVal) || 0;
+        return rhhSortAsc ? aNum - bNum : bNum - aNum;
+      });
+
+      // Re-render table
+      const rhhHtml = sorted.map(b => `
+        <tr>
+          <td><strong>${b.type}</strong></td>
+          <td>${b.pct}%</td>
+          <td>${b.avgVelo}</td>
+          <td>${b.zonePercent}%</td>
+          <td>${b.csw}%</td>
+        </tr>
+      `).join("");
+      document.getElementById("rhhTable").innerHTML = rhhHtml;
+    }
+
+    let lhhSortColumn = 'pitch';
+    let lhhSortAsc = true;
+
+    function sortLHH(column) {
+      // Clear all arrow indicators
+      document.getElementById('lhhSort-pitch').textContent = '';
+      document.getElementById('lhhSort-pct').textContent = '';
+      document.getElementById('lhhSort-avgVelo').textContent = '';
+      document.getElementById('lhhSort-zonePercent').textContent = '';
+      document.getElementById('lhhSort-csw').textContent = '';
+
+      // Toggle sort direction if same column clicked
+      if (lhhSortColumn === column) {
+        lhhSortAsc = !lhhSortAsc;
+      } else {
+        lhhSortAsc = true;
+      }
+      lhhSortColumn = column;
+
+      // Set arrow indicator
+      document.getElementById(`lhhSort-${column}`).textContent = lhhSortAsc ? '↑' : '↓';
+
+      // Sort breakdown
+      const sorted = [...metricsData.handednessApproach.LHH.breakdown].sort((a, b) => {
+        const aVal = a[column];
+        const bVal = b[column];
+
+        if (column === 'pitch') {
+          return lhhSortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        }
+
+        const aNum = parseFloat(aVal) || 0;
+        const bNum = parseFloat(bVal) || 0;
+        return lhhSortAsc ? aNum - bNum : bNum - aNum;
+      });
+
+      // Re-render table
+      const lhhHtml = sorted.map(b => `
+        <tr>
+          <td><strong>${b.type}</strong></td>
+          <td>${b.pct}%</td>
+          <td>${b.avgVelo}</td>
+          <td>${b.zonePercent}%</td>
+          <td>${b.csw}%</td>
+        </tr>
+      `).join("");
+      document.getElementById("lhhTable").innerHTML = lhhHtml;
+    }
+  
 }
   </script>
 </body>
