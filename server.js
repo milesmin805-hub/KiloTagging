@@ -1044,6 +1044,7 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
     console.error("CSV upload error:", err);
     res.json({ success: false, error: err.message });
   }
+ }); 
 
  // Get past CSV imports for a session
 app.get("/session/:sessionId/csv-imports", async (req, res) => {
