@@ -1713,28 +1713,22 @@ function populateCountBubbles() {
         container.appendChild(mapDiv);
 
         // Create 2D histogram heatmap
-        const trace = {
+const trace = {
           x: xData,
           y: yData,
           type: 'histogram2d',
+          nbinsx: 30,
+          nbinsy: 40,
           colorscale: 'Blues',
           showscale: true,
           colorbar: {
-            title: 'Count',
+            title: 'Density',
             thickness: 15,
             len: 0.7
           },
-          xbins: {
-            start: -2,
-            end: 2,
-            size: 0.15
-          },
-          ybins: {
-            start: 0,
-            end: 5,
-            size: 0.15
-          },
-          marker: { opacity: 0.9 }
+          contours: {
+            coloring: 'heatmap'
+          }
         };
 
         // Strike zone box (overlay)
