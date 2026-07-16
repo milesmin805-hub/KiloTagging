@@ -1005,6 +1005,7 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
         spinRate,
         ivb,
         hb,
+        extension: extension,
         batterHandedness,
         exitVelocity
       });
