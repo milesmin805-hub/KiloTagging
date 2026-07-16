@@ -1216,6 +1216,7 @@ const avgHB = hbs.length > 0 && hbs.some(v => v !== 0)
 
     return {
       pitcherName,
+      pitcherThrows,
       totalPitches,
       peakVelo,
       firstPitchType,
@@ -1459,6 +1460,7 @@ app.get("/session/:sessionId/metrics", async (req, res) => {
     res.json({
       success: true,
       pitcherName: metrics.pitcherName,
+      pitcherThrows: metrics.pitcherThrows,
       totalPitches: metrics.totalPitches,
       peakVelo: metrics.peakVelo,
       firstPitchType: metrics.firstPitchType,
