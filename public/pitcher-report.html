@@ -721,13 +721,31 @@
         </div>
       </div>
       
-      <!-- SECTION 9: 13-BOX STRIKE ZONE HEATMAP (PLACEHOLDER) -->
-      <div class="card">
-        <div class="card-title">13-Box Strike Zone Heatmap</div>
-        <div class="heatmap-placeholder">
-          📊 Zone effectiveness heatmap will be generated in next phase
-        </div>
-      </div>
+<!-- SECTION 9: 13-BOX STRIKE ZONE HEATMAPS -->
+
+<!-- PART 1: PITCH LOCATION BY TYPE -->
+<div class="card">
+  <div class="card-title">Pitch Location by Type — 13-Box Heat Map</div>
+  <div id="thirteenBoxLocation" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+    <!-- Populated by JavaScript -->
+  </div>
+</div>
+
+<!-- PART 2: PITCH LOCATION SPLIT BY HANDEDNESS -->
+<div class="card">
+  <div class="card-title">Pitch Location by Type & Handedness — RHH vs LHH</div>
+  <div id="thirteenBoxHandedness" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(650px, 1fr)); gap: 24px;">
+    <!-- Populated by JavaScript -->
+  </div>
+</div>
+
+<!-- PART 3: CONTACT QUALITY BY TYPE -->
+<div class="card">
+  <div class="card-title">Contact Quality by Type — Hard Hit % by Location</div>
+  <div id="thirteenBoxContact" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+    <!-- Populated by JavaScript -->
+  </div>
+</div>
 
       <!-- FOOTER -->
       <div style="text-align: center; color: #9ca3af; font-size: 12px; margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(148, 163, 184, 0.2);">
@@ -876,6 +894,8 @@ const contactHtml = Object.entries(m.pitchStats).map(([type, stats]) => `
       populateCountBubbles();
 
       generateLocationHeatmaps();
+
+      render13BoxHeatmaps();
 
       // AI Intel
       if (metricsData.aiIntel) {
@@ -1751,6 +1771,183 @@ function generateLocationHeatmaps() {
 
         Plotly.newPlot(mapId, [trace, strikeZoneTrace], layout, config);
       });
+
+  // ===== 13-BOX STRIKE ZONE HEATMAPS =====
+    function get13BoxZone(x, y) {
+      // Map (x, y) to a 13-box grid
+      // Zones: 3 columns (left, center, right) × 4 rows (high, middle, low, bottom) + blank
+      // Strike zone roughly: x: -0.83 to 0.83, y: 1.5 to 3.5
+      
+      let col, row;
+      
+      // Columns: -2 to -0.83 (left), -0.83 to 0.83 (center), 0.83 to 2 (right)
+      if (x < -0.83) col = 0; // left
+      else if (x < 0.83) col = 1; // center
+      else col = 2; // right
+      
+      // Rows: 0-1.5 (bottom), 1.5-2.5 (low), 2.5-3.5 (middle), 3.5-5 (high)
+      if (y < 1.5) row = 3; // bottom (blank)
+      else if (y < 2.5) row = 2; // low
+      else if (y < 3.5) row = 1; // middle
+      else row = 0; // high
+      
+      return { row, col };
+    }
+
+    function generate13BoxHeatmap(title, boxData, colorMode = 'count') {
+      // boxData: array of { row, col, count, hardHitPercent, avgEV }
+      // colorMode: 'count' or 'contact'
+      
+      const html = `
+        <div style="background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(148, 163, 184, 0.3); padding: 16px; border-radius: 12px;">
+          <div style="font-size: 13px; font-weight: 600; color: #22d3ee; margin-bottom: 12px; text-align: center;">${title}</div>
+          <table style="width: 100%; border-collapse: collapse;">
+            ${[0, 1, 2, 3].map(row => `
+              <tr>
+                ${[0, 1, 2].map(col => {
+                  const box = boxData.find(b => b.row === row && b.col === col);
+                  const value = colorMode === 'count' ? box?.count || 0 : box?.hardHitPercent || 0;
+                  const color = getBoxColor(value, colorMode);
+                  const displayValue = colorMode === 'count' ? value : (box?.hardHitPercent || 0).toFixed(0) + '%';
+                  
+                  return `
+                    <td style="
+                      width: 33%;
+                      height: 60px;
+                      background: ${color};
+                      border: 1px solid rgba(148, 163, 184, 0.3);
+                      text-align: center;
+                      vertical-align: middle;
+                      font-weight: 600;
+                      color: ${value > 50 ? '#fff' : '#000'};
+                      font-size: 14px;
+                    ">
+                      ${displayValue}
+                    </td>
+                  `;
+                }).join('')}
+              </tr>
+            `).join('')}
+          </table>
+          ${colorMode === 'count' ? `
+            <div style="font-size: 11px; color: #9ca3af; margin-top: 8px; text-align: center;">
+              Blue = 0 pitches | White = some | Red = many
+            </div>
+          ` : `
+            <div style="font-size: 11px; color: #9ca3af; margin-top: 8px; text-align: center;">
+              Blue = low HH% | White = medium | Red = high HH%
+            </div>
+          `}
+        </div>
+      `;
+      
+      return html;
+    }
+
+    function getBoxColor(value, colorMode) {
+      if (colorMode === 'count') {
+        // Blue → White → Red based on pitch count
+        if (value === 0) return '#1e3a8a'; // dark blue
+        if (value === 1) return '#3b82f6'; // blue
+        if (value === 2) return '#60a5fa'; // light blue
+        if (value === 3) return '#93c5fd'; // lighter blue
+        if (value <= 5) return '#e5e7eb'; // light gray/white
+        if (value <= 8) return '#fca5a5'; // light red
+        if (value <= 12) return '#f87171'; // red
+        if (value <= 15) return '#ef4444'; // darker red
+        return '#dc2626'; // dark red
+      } else {
+        // Blue → White → Red based on HH%
+        if (value < 20) return '#1e3a8a'; // dark blue
+        if (value < 30) return '#3b82f6'; // blue
+        if (value < 40) return '#60a5fa'; // light blue
+        if (value < 50) return '#93c5fd'; // lighter blue
+        if (value < 60) return '#e5e7eb'; // white
+        if (value < 70) return '#fca5a5'; // light red
+        if (value < 80) return '#f87171'; // red
+        if (value < 90) return '#ef4444'; // darker red
+        return '#dc2626'; // dark red
+      }
+    }
+
+    function render13BoxHeatmaps() {
+      // PART 1: Pitch Location by Type
+      const locationContainer = document.getElementById('thirteenBoxLocation');
+      const locationHtml = Object.entries(metricsData.pitchStats).map(([pitchType, stats]) => {
+        const pitchesOfType = metricsData.allPitches.filter(p => p.pitch_type === pitchType);
+        
+        const boxData = [0, 1, 2, 3].flatMap(row =>
+          [0, 1, 2].map(col => ({
+            row,
+            col,
+            count: pitchesOfType.filter(p => {
+              const zone = get13BoxZone(parseFloat(p.x) * 4 - 2, parseFloat(p.y) * 5);
+              return zone.row === row && zone.col === col;
+            }).length
+          }))
+        );
+
+        return generate13BoxHeatmap(`${pitchType} (${pitchesOfType.length})`, boxData, 'count');
+      }).join('');
+      locationContainer.innerHTML = locationHtml;
+
+      // PART 2: Pitch Location by Handedness
+      const handednessContainer = document.getElementById('thirteenBoxHandedness');
+      const handednessHtml = Object.entries(metricsData.pitchStats).map(([pitchType, stats]) => {
+        const rhh = metricsData.allPitches.filter(p => p.pitch_type === pitchType && p.batter_handedness === 'RHH');
+        const lhh = metricsData.allPitches.filter(p => p.pitch_type === pitchType && p.batter_handedness === 'LHH');
+
+        const rhhBoxData = [0, 1, 2, 3].flatMap(row =>
+          [0, 1, 2].map(col => ({
+            row, col,
+            count: rhh.filter(p => {
+              const zone = get13BoxZone(parseFloat(p.x) * 4 - 2, parseFloat(p.y) * 5);
+              return zone.row === row && zone.col === col;
+            }).length
+          }))
+        );
+
+        const lhhBoxData = [0, 1, 2, 3].flatMap(row =>
+          [0, 1, 2].map(col => ({
+            row, col,
+            count: lhh.filter(p => {
+              const zone = get13BoxZone(parseFloat(p.x) * 4 - 2, parseFloat(p.y) * 5);
+              return zone.row === row && zone.col === col;
+            }).length
+          }))
+        );
+
+        return `
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div>${generate13BoxHeatmap(`${pitchType} vs RHH (${rhh.length})`, rhhBoxData, 'count')}</div>
+            <div>${generate13BoxHeatmap(`${pitchType} vs LHH (${lhh.length})`, lhhBoxData, 'count')}</div>
+          </div>
+        `;
+      }).join('');
+      handednessContainer.innerHTML = handednessHtml;
+
+      // PART 3: Contact Quality by Type
+      const contactContainer = document.getElementById('thirteenBoxContact');
+      const contactHtml = Object.entries(metricsData.pitchStats).map(([pitchType, stats]) => {
+        const pitchesOfType = metricsData.allPitches.filter(p => p.pitch_type === pitchType && p.exit_velocity);
+
+        const boxData = [0, 1, 2, 3].flatMap(row =>
+          [0, 1, 2].map(col => {
+            const boxPitches = pitchesOfType.filter(p => {
+              const zone = get13BoxZone(parseFloat(p.x) * 4 - 2, parseFloat(p.y) * 5);
+              return zone.row === row && zone.col === col;
+            });
+
+            const hardHits = boxPitches.filter(p => parseFloat(p.exit_velocity) >= 95).length;
+            const hardHitPercent = boxPitches.length > 0 ? (hardHits / boxPitches.length) * 100 : 0;
+
+            return { row, col, count: boxPitches.length, hardHitPercent };
+          })
+        );
+
+        return generate13BoxHeatmap(`${pitchType} Hard Hit % (${pitchesOfType.length} BIP)`, boxData, 'contact');
+      }).join('');
+      contactContainer.innerHTML = contactHtml;
     }
   </script>
 </body>
