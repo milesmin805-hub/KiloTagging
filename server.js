@@ -1086,6 +1086,7 @@ app.get("/session/:sessionId/csv-imports", async (req, res) => {
     console.error("CSV imports list error:", err);
     res.json({ success: false, error: err.message });
   }
+ }); 
 
  // Delete CSV import and all linked pitches
 app.delete("/csv-import/:csvImportId", async (req, res) => {
