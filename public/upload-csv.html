@@ -490,17 +490,6 @@ async function uploadCSV() {
       window.location.href = "/dashboard.html";
     }
 
-    let currentSessionId = null;
-
-    // Load session ID from URL on page load
-    window.addEventListener("load", () => {
-      const params = new URLSearchParams(window.location.search);
-      currentSessionId = params.get("sessionId");
-      if (currentSessionId) {
-        loadPastImports();
-      }
-    });
-
     // Load and display past CSV imports
     async function loadPastImports() {
       if (!currentSessionId) return;
