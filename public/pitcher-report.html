@@ -5,6 +5,7 @@
   <title>Kilo - Pitcher Report</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   <style>
     * {
       margin: 0;
@@ -622,13 +623,13 @@
         </div>
       </div>
 
-      <!-- SECTION 7: LOCATION HEATMAPS (PLACEHOLDER) -->
-      <div class="card">
-        <div class="card-title">Location Heatmaps</div>
-        <div class="heatmap-placeholder">
-          🗺️ Heatmap visualization will be generated in next phase
-        </div>
-      </div>
+<!-- SECTION 7: LOCATION HEATMAPS -->
+<div class="card">
+  <div class="card-title">Location Heatmaps</div>
+  <div id="heatmapsContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px;">
+    <!-- Populated by JavaScript -->
+  </div>
+</div>
 
       <!-- SECTION 8: PITCH SEQUENCING (PLACEHOLDER) -->
       <div class="card">
@@ -873,6 +874,8 @@ const contactHtml = Object.entries(m.pitchStats).map(([type, stats]) => `
 
       // Populate count board
       populateCountBubbles();
+
+      generateLocationHeatmaps();
 
       // AI Intel
       if (metricsData.aiIntel) {
@@ -1673,7 +1676,104 @@ function populateCountBubbles() {
       `).join("");
       document.getElementById("lhhTable").innerHTML = lhhHtml;
     }
-  
+
+  function generateLocationHeatmaps() {
+      const container = document.getElementById('heatmapsContainer');
+      container.innerHTML = ''; // Clear
+
+      Object.entries(metricsData.pitchStats).forEach(([pitchType, stats]) => {
+        // Get all pitches of this type
+        const pitchesOfType = metricsData.allPitches.filter(p => p.pitch_type === pitchType);
+        
+        if (pitchesOfType.length === 0) return;
+
+        // Extract x, y coordinates
+        const xData = pitchesOfType.map(p => p.x).filter(x => x !== null && x !== undefined);
+        const yData = pitchesOfType.map(p => p.y).filter(y => y !== null && y !== undefined);
+
+        if (xData.length === 0 || yData.length === 0) return;
+
+        // Create div for this heatmap
+        const mapId = `heatmap-${pitchType}`;
+        const mapDiv = document.createElement('div');
+        mapDiv.id = mapId;
+        mapDiv.style.height = '400px';
+        container.appendChild(mapDiv);
+
+        // Create 2D histogram heatmap
+        const trace = {
+          x: xData,
+          y: yData,
+          type: 'histogram2d',
+          colorscale: 'Blues',
+          showscale: true,
+          colorbar: {
+            title: 'Count',
+            thickness: 15,
+            len: 0.7
+          },
+          xbins: {
+            start: -2,
+            end: 2,
+            size: 0.15
+          },
+          ybins: {
+            start: 0,
+            end: 5,
+            size: 0.15
+          },
+          marker: { opacity: 0.9 }
+        };
+
+        // Strike zone box (overlay)
+        const strikeZoneX = [-0.83, 0.83, 0.83, -0.83, -0.83];
+        const strikeZoneY = [1.5, 1.5, 3.5, 3.5, 1.5];
+
+        const strikeZoneTrace = {
+          x: strikeZoneX,
+          y: strikeZoneY,
+          type: 'scatter',
+          mode: 'lines',
+          name: 'Strike Zone',
+          line: {
+            color: '#000000',
+            width: 3
+          },
+          hoverinfo: 'none',
+          showlegend: false
+        };
+
+        const layout = {
+          title: `${pitchType} (${pitchesOfType.length})`,
+          xaxis: {
+            title: 'Plate X',
+            range: [-2, 2],
+            zeroline: true,
+            zerolinewidth: 1,
+            zerolinecolor: '#ccc'
+          },
+          yaxis: {
+            title: 'Plate Z',
+            range: [0, 5],
+            zeroline: true,
+            zerolinewidth: 1,
+            zerolinecolor: '#ccc'
+          },
+          plot_bgcolor: '#001a4d',
+          paper_bgcolor: 'rgba(15, 23, 42, 0.9)',
+          font: { color: '#e5e7eb' },
+          margin: { l: 60, r: 60, t: 60, b: 60 },
+          hovermode: 'closest'
+        };
+
+        const config = {
+          responsive: true,
+          displayModeBar: false
+        };
+
+        Plotly.newPlot(mapId, [trace, strikeZoneTrace], layout, config);
+      });
+    }
 }
   </script>
 </body>
