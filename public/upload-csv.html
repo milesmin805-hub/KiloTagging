@@ -325,7 +325,22 @@
 
       <button id="uploadBtn" onclick="uploadCSV()" disabled>Upload CSV</button>
     </div>
-  </main>
+    
+    <!-- Past CSV Imports Section -->
+      <div class="card">
+        <div class="card-title" id="pastImportsTitle" style="display: none;">Past CSV Uploads</div>
+        <div id="pastImports" style="display: none;">
+          <div id="importsList" style="display: grid; gap: 12px;">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+
+        <!-- No imports message -->
+        <div id="noImports" style="display: none; text-align: center; color: #9ca3af; padding: 20px;">
+          <p>No CSV uploads yet for this session</p>
+        </div>
+      </div>
+    </main>
 
   <script>
     let selectedFiles = [];
@@ -474,6 +489,97 @@ async function uploadCSV() {
     function goBack() {
       window.location.href = "/dashboard.html";
     }
+
+    let currentSessionId = null;
+
+    // Load session ID from URL on page load
+    window.addEventListener("load", () => {
+      const params = new URLSearchParams(window.location.search);
+      currentSessionId = params.get("sessionId");
+      if (currentSessionId) {
+        loadPastImports();
+      }
+    });
+
+    // Load and display past CSV imports
+    async function loadPastImports() {
+      if (!currentSessionId) return;
+
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(`/session/${currentSessionId}/csv-imports?token=${token}`);
+        const data = await response.json();
+
+        if (!data.success || data.imports.length === 0) {
+          document.getElementById("noImports").style.display = "block";
+          document.getElementById("pastImports").style.display = "none";
+          document.getElementById("pastImportsTitle").style.display = "none";
+          return;
+        }
+
+        document.getElementById("pastImportsTitle").style.display = "block";
+        document.getElementById("pastImports").style.display = "block";
+        document.getElementById("noImports").style.display = "none";
+
+        const importsList = document.getElementById("importsList");
+        importsList.innerHTML = data.imports.map(imp => {
+          const date = new Date(imp.uploadedAt);
+          const dateStr = date.toLocaleDateString() + " " + date.toLocaleTimeString();
+
+          return `
+            <div style="background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(148, 163, 184, 0.3); padding: 16px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="color: #22d3ee; font-weight: 600; margin-bottom: 4px;">${dateStr}</div>
+                <div style="color: #9ca3af; font-size: 12px;">
+                  ${imp.pitchCount} pitches from ${imp.pitcherCount} pitcher${imp.pitcherCount !== 1 ? 's' : ''}
+                </div>
+              </div>
+              <button onclick="deleteImport('${imp.id}')" style="padding: 8px 12px; background: rgba(252, 165, 165, 0.2); border: 1px solid rgba(252, 165, 165, 0.5); color: #fca5a5; border-radius: 6px; cursor: pointer; transition: all 0.15s ease; font-size: 12px;">
+                Delete
+              </button>
+            </div>
+          `;
+        }).join("");
+
+      } catch (err) {
+        console.error("Error loading past imports:", err);
+      }
+    }
+
+    // Delete a CSV import
+    async function deleteImport(csvImportId) {
+      if (!confirm("Delete this CSV upload and all its pitches? This cannot be undone.")) {
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(`/csv-import/${csvImportId}`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          alert("✅ CSV import deleted!");
+          loadPastImports(); // Reload the list
+        } else {
+          alert("❌ Error: " + data.error);
+        }
+      } catch (err) {
+        console.error("Error deleting import:", err);
+        alert("❌ Failed to delete import");
+      }
+    }
+
+    // Update the upload form to reload past imports after successful upload
+    const originalUploadCSV = uploadCSV;
+    uploadCSV = async function() {
+      await originalUploadCSV.call(this);
+      setTimeout(loadPastImports, 2000);
+    };
   </script>
 </body>
 </html>
