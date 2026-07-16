@@ -442,11 +442,14 @@
             <p id="sessionDate"></p>
           </div>
           <div class="detail-actions">
-            <button onclick="downloadPDF()" style="background: radial-gradient(circle at top left, #22c55e, #0f172a); border-color: rgba(34, 197, 94, 0.8); color: #000;">
-              ⬇️ Download PDF
-            </button>
-            <button onclick="backToList()">← Back to List</button>
-          </div>
+  <button onclick="downloadPDF()" style="background: radial-gradient(circle at top left, #22c55e, #0f172a); border-color: rgba(34, 197, 94, 0.8); color: #000;">
+    ⬇️ Download PDF
+  </button>
+  <button onclick="location.href='/upload-csv.html?sessionId=' + currentSessionId" style="background: radial-gradient(circle at top left, #22d3ee, #0f172a); border-color: rgba(56, 189, 248, 0.8); color: #000; font-weight: 600;">
+    📤 Upload CSV
+  </button>
+  <button onclick="backToList()">← Back to List</button>
+</div>
         </div>
 
         <div class="summary-grid">
