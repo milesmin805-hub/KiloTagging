@@ -1659,6 +1659,24 @@ app.get("/session/:sessionId/metrics", async (req, res) => {
     // Calculate additional stats needed for report
     const shrinkZonePercent = calculateShrinkZone(metrics.allPitches);
 
+        // Calculate KDE for location heatmaps
+      const kdeData = {};
+      Object.entries(metrics.pitchStats).forEach(([pitchType, stats]) => {
+        const pitchesOfType = allPitches.filter(p => p.pitch_type === pitchType);
+        
+        // Convert normalized coords to plate coords
+        const points = pitchesOfType
+          .map(p => ({
+            x: (parseFloat(p.x) * 4) - 2,
+            y: parseFloat(p.y) * 5
+          }))
+          .filter(p => !isNaN(p.x) && !isNaN(p.y));
+
+        if (points.length >= 2) {
+          kdeData[pitchType] = calculateKDE(points, 40);
+        }
+    });
+
     res.json({
       success: true,
       pitcherName: metrics.pitcherName,
@@ -1678,25 +1696,7 @@ app.get("/session/:sessionId/metrics", async (req, res) => {
       outPitches: metrics.outPitches,
       weakestPitch: metrics.weakestPitch,
       kdeData: kdeData,
-     
-     // Calculate KDE for location heatmaps
-      const kdeData = {};
-      Object.entries(metrics.pitchStats).forEach(([pitchType, stats]) => {
-        const pitchesOfType = allPitches.filter(p => p.pitch_type === pitchType);
-        
-        // Convert normalized coords to plate coords
-        const points = pitchesOfType
-          .map(p => ({
-            x: (parseFloat(p.x) * 4) - 2,
-            y: parseFloat(p.y) * 5
-          }))
-          .filter(p => !isNaN(p.x) && !isNaN(p.y));
-
-        if (points.length >= 2) {
-          kdeData[pitchType] = calculateKDE(points, 40);
-        }
     });
-
   } catch (err) {
     console.error("Metrics error:", err);
     res.json({ success: false, error: err.message });
