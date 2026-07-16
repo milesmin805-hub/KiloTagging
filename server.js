@@ -1409,7 +1409,7 @@ const avgHB = hbs.length > 0 && hbs.some(v => v !== 0)
     const bipPercent = ((bipCount / totalPitches) * 100).toFixed(1);
 
     // Hard hit % (exit velocity > 90 mph)
-    const hardHits = inPlayPitches.filter(p => p.exit_velocity && p.exit_velocity > 90);
+    const hardHits = inPlayPitches.filter(p => p.exit_velocity && p.exit_velocity > 88.5);
     const hardHitPercent = bipCount > 0 ? ((hardHits.length / bipCount) * 100).toFixed(1) : "—";
 
     // ===== ADVANCED SCOUTING (handedness approach, out pitches, first-pitch
