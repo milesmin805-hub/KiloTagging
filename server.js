@@ -1662,7 +1662,7 @@ app.get("/session/:sessionId/metrics", async (req, res) => {
         // Calculate KDE for location heatmaps
       const kdeData = {};
       Object.entries(metrics.pitchStats).forEach(([pitchType, stats]) => {
-        const pitchesOfType = allPitches.filter(p => p.pitch_type === pitchType);
+        const pitchesOfType = metrics.allPitches.filter(p => p.pitch_type === pitchType);
         
         // Convert normalized coords to plate coords
         const points = pitchesOfType
