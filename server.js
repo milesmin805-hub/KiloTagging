@@ -2247,7 +2247,15 @@ wss.on("connection", (ws) => {
     }
   });
 });
- 
+
+app.get("/debug/extension", async (req, res) => {
+  try {
+    const result = await pool.query('SELECT pitch_type, extension FROM pitches WHERE extension IS NOT NULL LIMIT 5');
+    res.json(result.rows);
+  } catch (err) {
+    res.json({ error: err.message });
+  }
+});
 // ======================================
 // START SERVER
 // ======================================
