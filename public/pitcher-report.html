@@ -1678,32 +1678,14 @@ function populateCountBubbles() {
       document.getElementById("lhhTable").innerHTML = lhhHtml;
     }
 
-  function generateLocationHeatmaps() {
+function generateLocationHeatmaps() {
       const container = document.getElementById('heatmapsContainer');
       container.innerHTML = ''; // Clear
 
       Object.entries(metricsData.pitchStats).forEach(([pitchType, stats]) => {
-        // Get all pitches of this type
-        const pitchesOfType = metricsData.allPitches.filter(p => p.pitch_type === pitchType);
+        const kde = metricsData.kdeData[pitchType];
         
-        if (pitchesOfType.length === 0) return;
-
-// Extract x, y coordinates and convert from normalized (0-1) to plate coordinates
-        const xData = pitchesOfType
-          .map(p => {
-            const x = parseFloat(p.x);
-            return isNaN(x) ? null : (x * 4) - 2; // Convert 0-1 to -2 to 2
-          })
-          .filter(x => x !== null);
-        
-        const yData = pitchesOfType
-          .map(p => {
-            const y = parseFloat(p.y);
-            return isNaN(y) ? null : y * 5; // Convert 0-1 to 0 to 5
-          })
-          .filter(y => y !== null);
-
-        if (xData.length === 0 || yData.length === 0) return;
+        if (!kde) return; // Skip if no KDE data
 
         // Create div for this heatmap
         const mapId = `heatmap-${pitchType}`;
@@ -1712,22 +1694,19 @@ function populateCountBubbles() {
         mapDiv.style.height = '400px';
         container.appendChild(mapDiv);
 
-        // Create 2D histogram heatmap
-const trace = {
-          x: xData,
-          y: yData,
-          type: 'histogram2d',
-          nbinsx: 30,
-          nbinsy: 40,
-          colorscale: 'Blues',
+        // Create contour trace from KDE data
+        const trace = {
+          x: kde.grid.map(p => p.x),
+          y: kde.grid.map(p => p.y),
+          z: kde.densities,
+          type: 'contour',
+          colorscale: 'RdBu',
+          reversescale: true,
           showscale: true,
           colorbar: {
             title: 'Density',
             thickness: 15,
             len: 0.7
-          },
-          contours: {
-            coloring: 'heatmap'
           }
         };
 
@@ -1750,20 +1729,14 @@ const trace = {
         };
 
         const layout = {
-          title: `${pitchType} (${pitchesOfType.length})`,
+          title: `${pitchType} (${metricsData.allPitches.filter(p => p.pitch_type === pitchType).length})`,
           xaxis: {
             title: 'Plate X',
-            range: [-2, 2],
-            zeroline: true,
-            zerolinewidth: 1,
-            zerolinecolor: '#ccc'
+            range: [-2, 2]
           },
           yaxis: {
             title: 'Plate Z',
-            range: [0, 5],
-            zeroline: true,
-            zerolinewidth: 1,
-            zerolinecolor: '#ccc'
+            range: [0, 5]
           },
           plot_bgcolor: '#001a4d',
           paper_bgcolor: 'rgba(15, 23, 42, 0.9)',
@@ -1779,7 +1752,7 @@ const trace = {
 
         Plotly.newPlot(mapId, [trace, strikeZoneTrace], layout, config);
       });
-}
+    }
   </script>
 </body>
 </html>
