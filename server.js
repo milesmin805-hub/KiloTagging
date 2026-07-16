@@ -1088,6 +1088,60 @@ app.get("/session/:sessionId/csv-imports", async (req, res) => {
   }
  }); 
 
+// Delete CSV import and all linked pitches
+app.delete("/csv-import/:csvImportId", async (req, res) => {
+  const { csvImportId } = req.params;
+  const { token } = req.body;
+  const user = await verifyToken(token);
+
+  if (!user) {
+    return res.json({ success: false, error: "Invalid token" });
+  }
+
+  try {
+    const csvImport = await pool.query(
+      "SELECT id, session_id, pitch_count FROM csv_imports WHERE id = $1",
+      [csvImportId]
+    );
+
+    if (csvImport.rows.length === 0) {
+      return res.json({ success: false, error: "CSV import not found" });
+    }
+
+    const sessionId = csvImport.rows[0].session_id;
+    const pitchCount = csvImport.rows[0].pitch_count;
+
+    const sessionCheck = await pool.query(
+      "SELECT id FROM sessions WHERE id = $1 AND user_id = $2",
+      [sessionId, user.id]
+    );
+    if (sessionCheck.rows.length === 0) {
+      return res.json({ success: false, error: "Unauthorized" });
+    }
+
+    await pool.query(
+      "DELETE FROM pitches WHERE csv_import_id = $1",
+      [csvImportId]
+    );
+
+    await pool.query(
+      "DELETE FROM csv_imports WHERE id = $1",
+      [csvImportId]
+    );
+
+    console.log(`🗑️ Deleted CSV import: ${pitchCount} pitches removed`);
+
+    res.json({ 
+      success: true, 
+      message: `Deleted CSV import (${pitchCount} pitches removed)`
+    });
+
+  } catch (err) {
+    console.error("Delete CSV import error:", err);
+    res.json({ success: false, error: err.message });
+  }
+});
+
  // Delete CSV import and all linked pitches
 app.delete("/csv-import/:csvImportId", async (req, res) => {
   const { csvImportId } = req.params;
