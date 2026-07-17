@@ -977,6 +977,8 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
       // Map pitch type (Trackman → Kilo)
       const pitchType = (record.TaggedPitchType || record.AutoPitchType) ? mapPitchType(record.TaggedPitchType || record.AutoPitchType) : "?";
       const extension = record.Extension ? parseFloat(record.Extension) : null;
+      const relHeight = record.RelHeight ? parseFloat(record.RelHeight) : null;
+      const relSide = record.RelSide ? parseFloat(record.RelSide) : null;
      
       // Map result
       const result = mapPitchResult(record.PitchCall);
@@ -1006,6 +1008,8 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
         ivb,
         hb,
         extension: extension,
+        relHeight: relHeight,
+        relSide: relSide, 
         batterHandedness,
         exitVelocity
       });
@@ -1053,8 +1057,8 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
       const pitcherId = pitcherMap[pitch.pitcherName];
 
       await pool.query(
-        `INSERT INTO pitches (id, session_id, pitcher_id, pitch_type, balls, strikes, result, x, y, mph, spin_rate, ivb, hb, extension, batter_handedness, exit_velocity, csv_import_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
+        `INSERT INTO pitches (id, session_id, pitcher_id, pitch_type, balls, strikes, result, x, y, mph, spin_rate, ivb, hb, extension, rel_height, rel_side, batter_handedness, exit_velocity, csv_import_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)`,
         [
           crypto.randomUUID(),
           sessionId,
@@ -1070,6 +1074,8 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
           pitch.ivb,
           pitch.hb,
           pitch.extension,
+          pitch.relHeight,
+          pitch.relSide,
           pitch.batterHandedness,
           pitch.exitVelocity,
           csvImportId
