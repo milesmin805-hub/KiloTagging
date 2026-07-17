@@ -579,6 +579,8 @@
         <div class="card-title">Movement Profile (IVB vs HB)</div>
         <div class="chart-container">
           <canvas id="movementChart"></canvas>
+          <!-- Release Point Chart -->
+          <canvas id="releasePointChart" style="max-height: 300px;"></canvas>
         </div>
       </div>
 
@@ -885,6 +887,9 @@ const contactHtml = Object.entries(m.pitchStats).map(([type, stats]) => `
 
       // Movement profile scatter
       drawMovementChart();
+
+      // Release point chart
+      drawReleasePointChart();
 
       // Handedness approach, first-pitch tendencies, two-strike intel, out pitches, weakest pitch
       populateHandednessApproach(m);
@@ -1951,6 +1956,92 @@ function generateLocationHeatmaps() {
         return generate13BoxHeatmap(`${pitchType} Hard Hit % (${pitchesOfType.length} BIP)`, boxData, 'contact');
       }).join('');
       contactContainer.innerHTML = contactHtml;
+    }
+
+    function drawReleasePointChart() {
+      const ctx = document.getElementById("releasePointChart").getContext("2d");
+      const datasets = [];
+      const pitchTypes = [];
+      const colors = ["#22d3ee", "#fca5a5", "#86efac", "#fbbf24", "#a78bfa", "#f472b6"];
+      let colorIndex = 0;
+
+      Object.entries(metricsData.pitchStats).forEach(([type, stats]) => {
+        const pitchesOfType = metricsData.allPitches.filter(p => p.pitch_type === type && p.rel_height && p.rel_side);
+        
+        if (pitchesOfType.length === 0) return;
+
+        const color = colors[colorIndex % colors.length];
+        pitchTypes.push(type);
+        
+        datasets.push({
+          label: type,
+          data: pitchesOfType.map(p => ({
+            x: parseFloat(p.rel_side),
+            y: parseFloat(p.rel_height),
+            pitchType: type
+          })),
+          borderRadius: 50,
+          pointRadius: 6,
+          pointHoverRadius: 8,
+          borderWidth: 2,
+          borderColor: color,
+          backgroundColor: color,
+          pointBackgroundColor: color,
+          pointBorderColor: color
+        });
+        colorIndex++;
+      });
+
+      new Chart(ctx, {
+        type: "scatter",
+        data: { datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { 
+              labels: { 
+                color: "#e5e7eb",
+                usePointStyle: true,
+                padding: 15
+              } 
+            },
+            tooltip: {
+              backgroundColor: "rgba(15, 23, 42, 0.9)",
+              titleColor: "#22d3ee",
+              bodyColor: "#e5e7eb",
+              borderColor: "rgba(56, 189, 248, 0.5)",
+              borderWidth: 1,
+              callbacks: {
+                title: (context) => context[0].raw.pitchType,
+                label: (context) => {
+                  const data = context.raw;
+                  return [
+                    `Release Side: ${data.x.toFixed(2)} ft`,
+                    `Release Height: ${data.y.toFixed(2)} ft`
+                  ];
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              min: 0.8,
+              max: 1.7,
+              title: { display: true, text: "Release Side (ft)", color: "#e5e7eb" },
+              grid: { color: "rgba(148, 163, 184, 0.2)" },
+              ticks: { color: "#e5e7eb" }
+            },
+            y: {
+              min: 5.6,
+              max: 6.2,
+              title: { display: true, text: "Release Height (ft)", color: "#e5e7eb" },
+              grid: { color: "rgba(148, 163, 184, 0.2)" },
+              ticks: { color: "#e5e7eb" }
+            }
+          }
+        }
+      });
     }
   </script>
 </body>
