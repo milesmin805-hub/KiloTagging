@@ -20,6 +20,8 @@ async function migrate() {
     await pool.query('ALTER TABLE pitches ADD COLUMN IF NOT EXISTS pitcher_id UUID;');
     await pool.query('CREATE TABLE IF NOT EXISTS pitchers (id UUID PRIMARY KEY, name VARCHAR(255) NOT NULL UNIQUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);');
     await pool.query('ALTER TABLE pitches ADD COLUMN IF NOT EXISTS extension DECIMAL(5,2);');
+    await pool.query('ALTER TABLE pitches ADD COLUMN IF NOT EXISTS rel_height DECIMAL(5,2);');
+    await pool.query('ALTER TABLE pitches ADD COLUMN IF NOT EXISTS rel_side DECIMAL(5,2);');
     await pool.query('ALTER TABLE pitches ADD COLUMN IF NOT EXISTS csv_import_id UUID REFERENCES csv_imports(id);');
     
     // Create csv_imports table
