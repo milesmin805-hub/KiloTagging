@@ -1774,6 +1774,7 @@ app.get("/session/:sessionId/metrics", async (req, res) => {
       outPitches: metrics.outPitches,
       weakestPitch: metrics.weakestPitch,
       kdeData: kdeData,
+      advancedStats: advancedStats
     });
   } catch (err) {
     console.error("Metrics error:", err);
