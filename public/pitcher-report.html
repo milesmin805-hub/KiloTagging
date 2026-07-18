@@ -412,6 +412,22 @@
         </div>
       </div>
 
+        <!-- ADVANCED STATS ANALYTICS -->
+<div class="card">
+  <div class="card-title">Advanced Stats Analytics</div>
+  <table style="width: 100%; font-size: 13px;">
+    <thead>
+      <tr style="border-bottom: 2px solid rgba(34, 211, 238, 0.5);">
+        <th style="padding: 12px; text-align: left; color: #22d3ee; font-weight: 600;">Stat</th>
+        <th style="padding: 12px; text-align: right; color: #22d3ee; font-weight: 600;">Value</th>
+      </tr>
+    </thead>
+    <tbody id="advancedStatsTable">
+      <!-- Populated by JavaScript -->
+    </tbody>
+  </table>
+</div>
+      
       <!-- SECTION 1B: AI INTEL SUMMARY -->
       <div class="card">
         <div class="card-title">AI Coach Summary</div>
@@ -885,7 +901,9 @@ const contactHtml = Object.entries(m.pitchStats).map(([type, stats]) => `
       `).join("");
       document.getElementById("contactTable").innerHTML = contactHtml;
       
-
+      // Advanced Stats Chart
+      populateAdvancedStats(m);
+      
       // Pitch mix pie chart
       drawPitchMixChart();
 
@@ -2046,6 +2064,31 @@ function generateLocationHeatmaps() {
           }
         }
       });
+    }
+
+    function populateAdvancedStats(m) {
+      const stats = m.advancedStats;
+      if (!stats) return;
+
+      const statsData = [
+        { label: 'ERA', value: stats.era || '—' },
+        { label: 'FIP', value: stats.fip || '—' },
+        { label: 'Strikeouts', value: stats.strikeouts || 0 },
+        { label: 'Walks', value: stats.walks || 0 },
+        { label: 'HBP', value: stats.hbp || 0 },
+        { label: 'Home Runs', value: stats.homeRuns || 0 },
+        { label: 'Innings Pitched', value: stats.inningsPitched || '—' },
+        { label: 'wOBA (opponent)', value: stats.woba || '—' }
+      ];
+
+      const tableHtml = statsData.map(stat => `
+        <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.2);">
+          <td style="padding: 12px; color: #e5e7eb;">${stat.label}</td>
+          <td style="padding: 12px; text-align: right; color: #22d3ee; font-weight: 600;">${stat.value}</td>
+        </tr>
+      `).join('');
+
+      document.getElementById('advancedStatsTable').innerHTML = tableHtml;
     }
   </script>
 </body>
