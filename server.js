@@ -1279,7 +1279,67 @@ function mapPitchResult(pitchCall) {
   };
   return resultMap[pitchCall] || "Ball";
 }
- 
+
+// ======================================
+// ADVANCED STATS CALCULATOR
+// ======================================
+function calculateAdvancedStats(allPitches) {
+  // Calculate innings pitched
+  const inningsPitched = allPitches.length / 6; // roughly 6 pitches per out
+  
+  // Count outcomes
+  let strikeouts = 0, walks = 0, hbp = 0, homeRuns = 0, runsAllowed = 0;
+  
+  allPitches.forEach(p => {
+    // Strikeouts
+    if (p.result === 'Strikeout' || (p.pitch_call && p.pitch_call.includes('Strikeout'))) {
+      strikeouts++;
+    }
+    // Walks
+    if (p.result === 'Walk' || (p.pitch_call && p.pitch_call.includes('BallCalled'))) {
+      walks++;
+    }
+    // HBP
+    if (p.pitch_call === 'HitByPitch') {
+      hbp++;
+    }
+    // Home Runs
+    if (p.play_result === 'HomeRun') {
+      homeRuns++;
+    }
+    // Runs allowed
+    if (p.runs_scored) {
+      runsAllowed += parseInt(p.runs_scored);
+    }
+  });
+
+  // ERA = (Runs * 9) / IP
+  const era = inningsPitched > 0 ? ((runsAllowed * 9) / inningsPitched).toFixed(2) : 0;
+  
+  // FIP = ((13*HR + 3*(BB+HBP) - 2*K) / IP) + 3.20
+  const fip = inningsPitched > 0 
+    ? (((13 * homeRuns + 3 * (walks + hbp) - 2 * strikeouts) / inningsPitched) + 3.20).toFixed(2) 
+    : 0;
+
+  // wOBA calculation (opponent wOBA)
+  const bipPitches = allPitches.filter(p => p.exit_velocity);
+  const avgWoba = bipPitches.length > 0 
+    ? (bipPitches.reduce((sum, p) => sum + (parseFloat(p.exit_velocity) * 0.01), 0) / bipPitches.length).toFixed(3)
+    : 0;
+
+  return {
+    era,
+    fip,
+    strikeouts,
+    walks,
+    hbp,
+    homeRuns,
+    runsAllowed,
+    inningsPitched: inningsPitched.toFixed(1),
+    woba: avgWoba
+  };
+}
+
 // ======================================
 // METRICS CALCULATOR
 // ======================================
@@ -1305,6 +1365,9 @@ async function calculatePitcherMetrics(sessionId, pitcherId) {
     );
     const pitcherName = pitcherResult.rows[0]?.name || "Unknown";
     const pitcherThrows = pitcherResult.rows[0]?.pitcher_throws || null;
+
+       // ===== ADVANCED STATS =====
+    const advancedStats = calculateAdvancedStats(pitches);
 
     // ===== BASIC STATS =====
     const totalPitches = pitches.length;
@@ -1448,6 +1511,7 @@ const avgHB = hbs.length > 0 && hbs.some(v => v !== 0)
       bipCount,
       bipPercent,
       hardHitPercent,
+      advancedStats: advancedStats,
       ...advancedScouting
     };
 
