@@ -1782,6 +1782,53 @@ app.get("/session/:sessionId/metrics", async (req, res) => {
   }
 });
 
+// Get all pitchers with aggregated stats across all sessions
+app.get("/all-pitchers", async (req, res) => {
+  const token = req.headers.authorization?.split(" ")[1] || req.query.token;
+  const user = await verifyToken(token);
+
+  if (!user) {
+    return res.json({ success: false, error: "Invalid token" });
+  }
+
+  try {
+    // Get all pitchers for this user
+    const result = await pool.query(
+      `SELECT DISTINCT p.id, p.name, p.pitcher_throws
+       FROM pitchers p
+       JOIN pitches pt ON p.id = pt.pitcher_id
+       JOIN sessions s ON pt.session_id = s.id
+       WHERE s.user_id = $1
+       ORDER BY p.name`,
+      [user.id]
+    );
+
+    const pitchers = result.rows;
+    
+    // For each pitcher, get aggregated stats
+    const pitcherStats = await Promise.all(
+      pitchers.map(async (pitcher) => {
+        const pitchesResult = await pool.query(
+          `SELECT pt.* FROM pitches pt
+           JOIN sessions s ON pt.session_id = s.id
+           WHERE pt.pitcher_id = $1 AND s.user_id = $2`,
+          [pitcher.id, user.id]
+        );
+        
+        const pitches = pitchesResult.rows;
+        const metrics = calculatePitcherMetrics(pitches, pitcher);
+        
+        return { pitcher, metrics };
+      })
+    );
+
+    res.json({ success: true, pitchers: pitcherStats });
+  } catch (err) {
+    console.error("All pitchers error:", err);
+    res.json({ success: false, error: err.message });
+  }
+});
+
 // Helper: Calculate shrink zone %
 function calculateShrinkZone(pitches) {
   if (pitches.length === 0) return 0;
