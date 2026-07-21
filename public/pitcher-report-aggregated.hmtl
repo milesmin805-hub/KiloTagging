@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pitcher Profile</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+</head>
+<body>
+  <!-- Loading State -->
+  <div id="loading" style="display: flex; justify-content: center; align-items: center; height: 100vh; background: rgba(15, 23, 42, 0.95);">
+    <div style="text-align: center;">
+      <div style="color: #22d3ee; font-size: 24px; margin-bottom: 16px;">⚾</div>
+      <div style="color: #9ca3af;">Loading pitcher profile...</div>
+    </div>
+  </div>
+
+  <!-- Report Content -->
+  <div id="reportContent" style="display: none;">
+    <!-- Header -->
+    <div style="background: rgba(15, 23, 42, 0.95); padding: 20px; border-bottom: 1px solid rgba(148, 163, 184, 0.3); display: flex; justify-content: space-between; align-items: center;">
+      <h1 id="pitcherTitle" style="color: #22d3ee; margin: 0;">Pitcher Report</h1>
+      <div style="display: flex; gap: 12px;">
+        <button onclick="window.location.href='/all-pitchers.html'" style="padding: 10px 16px; background: rgba(34, 211, 238, 0.2); border: 1px solid rgba(34, 211, 238, 0.5); color: #22d3ee; border-radius: 6px; cursor: pointer; font-weight: 600;">
+          ← All Pitchers
+        </button>
+        <button onclick="window.location.href='/dashboard.html'" style="padding: 10px 16px; background: rgba(107, 114, 128, 0.2); border: 1px solid rgba(107, 114, 128, 0.5); color: #d1d5db; border-radius: 6px; cursor: pointer;">
+          🏠 Dashboard
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <main style="max-width: 1400px; margin: 0 auto; padding: 24px;">
+      <!-- SECTION 1: SUMMARY STATS -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 12px; margin-bottom: 24px;">
+        <div class="summary-box">
+          <div class="summary-label">Throws</div>
+          <div class="summary-value" id="throws">—</div>
+        </div>
+        <div class="summary-box">
+          <div class="summary-label">Total Pitches</div>
+          <div class="summary-value" id="totalPitches">—</div>
+        </div>
+        <div class="summary-box">
+          <div class="summary-label">Peak Velo</div>
+          <div class="summary-value" id="peakVelo">—</div>
+        </div>
+        <div class="summary-box">
+          <div class="summary-label">Avg Velo</div>
+          <div class="summary-value" id="avgVelo">—</div>
+        </div>
+      </div>
+
+      <!-- SECTION 2: ADVANCED STATS -->
+      <div class="card">
+        <div class="card-title">Advanced Stats Analytics</div>
+        <table style="width: 100%; font-size: 13px;">
+          <thead>
+            <tr style="border-bottom: 2px solid rgba(34, 211, 238, 0.5);">
+              <th style="padding: 12px; text-align: left; color: #22d3ee; font-weight: 600;">Stat</th>
+              <th style="padding: 12px; text-align: right; color: #22d3ee; font-weight: 600;">Value</th>
+            </tr>
+          </thead>
+          <tbody id="advancedStatsTable">
+            <!-- Populated by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- SECTION 3: PITCH MIX -->
+      <div class="card">
+        <div class="card-title">Pitch Mix</div>
+        <div style="position: relative; height: 300px;">
+          <canvas id="pitchMixChart"></canvas>
+        </div>
+      </div>
+
+      <!-- SECTION 4: ARSENAL SUMMARY -->
+      <div class="card">
+        <div class="card-title">Arsenal Summary</div>
+        <table style="width: 100%; font-size: 12px;">
+          <thead>
+            <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.3);">
+              <th onclick="sortArsenal('pitch')" style="cursor: pointer; padding: 12px; text-align: left; color: #22d3ee; font-weight: 600;">Pitch <span id="arsenalSort-pitch"></span></th>
+              <th onclick="sortArsenal('count')" style="cursor: pointer; padding: 12px; text-align: center; color: #22d3ee; font-weight: 600;"># <span id="arsenalSort-count"></span></th>
+              <th onclick="sortArsenal('usage')" style="cursor: pointer; padding: 12px; text-align: center; color: #22d3ee; font-weight: 600;">Use% <span id="arsenalSort-usage"></span></th>
+              <th onclick="sortArsenal('avgVelo')" style="cursor: pointer; padding: 12px; text-align: center; color: #22d3ee; font-weight: 600;">Velo <span id="arsenalSort-avgVelo"></span></th>
+              <th onclick="sortArsenal('avgSpin')" style="cursor: pointer; padding: 12px; text-align: center; color: #22d3ee; font-weight: 600;">Spin <span id="arsenalSort-avgSpin"></span></th>
+              <th onclick="sortArsenal('csw')" style="cursor: pointer; padding: 12px; text-align: center; color: #22d3ee; font-weight: 600;">CSW% <span id="arsenalSort-csw"></span></th>
+            </tr>
+          </thead>
+          <tbody id="arsenalTable">
+            <!-- Populated by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    let metricsData = {};
+    let currentPitcherId = null;
+
+    window.addEventListener('load', initReport);
+
+    async function initReport() {
+      const params = new URLSearchParams(window.location.search);
+      currentPitcherId = params.get('pitcherId');
+
+      if (!currentPitcherId) {
+        document.getElementById('loading').innerHTML = '<p style="color: #ef4444;">Missing pitcher ID</p>';
+        return;
+      }
+
+      await loadReport();
+    }
+
+    async function loadReport() {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`/pitcher-aggregated/${currentPitcherId}?token=${token}`);
+        const data = await response.json();
+
+        if (!data.success) {
+          document.getElementById('loading').innerHTML = `<p style="color: #ef4444;">Error: ${data.error}</p>`;
+          return;
+        }
+
+        metricsData = data.metrics;
+        displayReport();
+
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('reportContent').style.display = 'block';
+      } catch (err) {
+        console.error('Error loading report:', err);
+        document.getElementById('loading').innerHTML = '<p style="color: #ef4444;">Error loading report</p>';
+      }
+    }
+
+    function displayReport() {
+      // Title
+      document.getElementById('pitcherTitle').textContent = metricsData.pitcherName || 'Pitcher';
+
+      // Summary stats
+      document.getElementById('throws').textContent = metricsData.pitcherThrows === 'Right' ? 'RHH' : 'LHH';
+      document.getElementById('totalPitches').textContent = metricsData.totalPitches || 0;
+      document.getElementById('peakVelo').textContent = (metricsData.peakVelo || 0) + ' mph';
+      document.getElementById('avgVelo').textContent = metricsData.avgVelo || '—';
+
+      // Advanced stats table
+      const stats = metricsData.advancedStats || {};
+      const statsData = [
+        { label: 'ERA', value: stats.era || '—' },
+        { label: 'FIP', value: stats.fip || '—' },
+        { label: 'Strikeouts', value: stats.strikeouts || 0 },
+        { label: 'Walks', value: stats.walks || 0 },
+        { label: 'HBP', value: stats.hbp || 0 },
+        { label: 'Home Runs', value: stats.homeRuns || 0 },
+        { label: 'Innings Pitched', value: stats.inningsPitched || '—' },
+        { label: 'wOBA (opponent)', value: stats.woba || '—' }
+      ];
+
+      const tableHtml = statsData.map(stat => `
+        <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.2);">
+          <td style="padding: 12px; color: #e5e7eb;">${stat.label}</td>
+          <td style="padding: 12px; text-align: right; color: #22d3ee; font-weight: 600;">${stat.value}</td>
+        </tr>
+      `).join('');
+
+      document.getElementById('advancedStatsTable').innerHTML = tableHtml;
+
+      // Charts
+      drawPitchMixChart();
+      drawArsenalTable();
+    }
+
+    function drawPitchMixChart() {
+      const ctx = document.getElementById('pitchMixChart').getContext('2d');
+      const pitchStats = metricsData.pitchStats || {};
+      
+      const labels = Object.keys(pitchStats);
+      const data = labels.map(type => pitchStats[type].count || 0);
+      const colors = ['#22d3ee', '#fca5a5', '#86efac', '#fbbf24', '#a78bfa', '#f472b6'];
+
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: data,
+            backgroundColor: colors.slice(0, labels.length),
+            borderColor: 'rgba(15, 23, 42, 0.95)',
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: {
+                color: '#e5e7eb',
+                padding: 15,
+                font: { size: 12 }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function drawArsenalTable() {
+      const pitchStats = metricsData.pitchStats || {};
+      const arsenalHtml = Object.entries(pitchStats).map(([type, stats]) => `
+        <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.2);">
+          <td style="padding: 12px; color: #e5e7eb;"><strong>${type}</strong></td>
+          <td style="padding: 12px; text-align: center; color: #e5e7eb;">${stats.count || 0}</td>
+          <td style="padding: 12px; text-align: center; color: #e5e7eb;">${stats.usage || 0}%</td>
+          <td style="padding: 12px; text-align: center; color: #e5e7eb;">${stats.avgVelo || '—'}</td>
+          <td style="padding: 12px; text-align: center; color: #e5e7eb;">${stats.avgSpin || '—'}</td>
+          <td style="padding: 12px; text-align: center; color: #e5e7eb;">${stats.csw || '—'}%</td>
+        </tr>
+      `).join('');
+
+      document.getElementById('arsenalTable').innerHTML = arsenalHtml;
+    }
+
+    let arsenalSortColumn = 'pitch';
+    let arsenalSortAsc = true;
+
+    function sortArsenal(column) {
+      const indicators = ['pitch', 'count', 'usage', 'avgVelo', 'avgSpin', 'csw'];
+      indicators.forEach(c => {
+        document.getElementById(`arsenalSort-${c}`).textContent = '';
+      });
+
+      if (arsenalSortColumn === column) {
+        arsenalSortAsc = !arsenalSortAsc;
+      } else {
+        arsenalSortAsc = true;
+      }
+      arsenalSortColumn = column;
+
+      document.getElementById(`arsenalSort-${column}`).textContent = arsenalSortAsc ? '↑' : '↓';
+
+      const pitchStats = metricsData.pitchStats || {};
+      const sorted = Object.entries(pitchStats).sort((a, b) => {
+        const aVal = a[1][column === 'pitch' ? 'type' : column];
+        const bVal = b[1][column === 'pitch' ? 'type' : column];
+
+        if (column === 'pitch') {
+          return arsenalSortAsc ? a[0].localeCompare(b[0]) : b[0].localeCompare(a[0]);
+        }
+
+        const aNum = parseFloat(aVal) || 0;
+        const bNum = parseFloat(bVal) || 0;
+        return arsenalSortAsc ? aNum - bNum : bNum - aNum;
+      });
+
+      const arsenalHtml = sorted.map(([type, stats]) => `
+        <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.2);">
+          <td style="padding: 12px; color: #e5e7eb;"><strong>${type}</strong></td>
+          <td style="padding: 12px; text-align: center; color: #e5e7eb;">${stats.count || 0}</td>
+          <td style="padding: 12px; text-align: center; color: #e5e7eb;">${stats.usage || 0}%</td>
+          <td style="padding: 12px; text-align: center; color: #e5e7eb;">${stats.avgVelo || '—'}</td>
+          <td style="padding: 12px; text-align: center; color: #e5e7eb;">${stats.avgSpin || '—'}</td>
+          <td style="padding: 12px; text-align: center; color: #e5e7eb;">${stats.csw || '—'}%</td>
+        </tr>
+      `).join('');
+
+      document.getElementById('arsenalTable').innerHTML = arsenalHtml;
+    }
+  </script>
+</body>
+</html>
