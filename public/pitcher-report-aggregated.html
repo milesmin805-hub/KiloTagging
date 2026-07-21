@@ -586,7 +586,7 @@ tr:hover {
         <canvas id="movementChart"></canvas>
 
         <!-- Release Point Chart -->
-        <div class="card" style="margin-top: 60px;">
+        <div class="card" style="margin-top: 80px;">
           <div class="card-title">Release Point — Release Height vs Release Side</div>
           <div style="position: relative; height: 400px; margin-bottom: 80px;">
             <canvas id="releasePointChart"></canvas>
@@ -635,13 +635,78 @@ tr:hover {
           </div>
         </div>
 
-        <!-- SECTION 7: PITCH SEQUENCING (PLACEHOLDER) -->
-        <div class="card">
-          <div class="card-title">Pitch Sequencing</div>
-          <div class="heatmap-placeholder">
-            🔄 Pitch sequencing analysis will be generated in next phase
+<!-- SECTION 7: PITCH SEQUENCING -->
+      <div class="card">
+        <div class="card-title">Pitch Sequencing — Most Common Follow-Up Pitch</div>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Pitch</th>
+                <th>Top Follow-Up</th>
+                <th>%</th>
+                <th>Sample Size</th>
+              </tr>
+            </thead>
+            <tbody id="pitchSequencingTable">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SECTION 10: AI GENERATED SCOUTING REPORT -->
+      <div class="card">
+        <div class="card-title">AI Generated Scouting Report</div>
+        <p style="font-size: 11px; color: #9ca3af; margin-bottom: 16px;">
+          Estimated from tracked data — arm angle and 20-80 grades are approximations, not official scout grades.
+        </p>
+
+        <div class="summary-boxes" style="margin-bottom: 20px;">
+          <div class="summary-box">
+            <div class="summary-label">Name</div>
+            <div class="summary-value" id="aiReportName" style="font-size: 16px;">—</div>
+          </div>
+          <div class="summary-box">
+            <div class="summary-label">Throws</div>
+            <div class="summary-value" id="aiReportThrows">—</div>
+          </div>
+          <div class="summary-box">
+            <div class="summary-label">Arm Angle</div>
+            <div class="summary-value" id="aiReportArmAngle" style="font-size: 14px;">—</div>
+          </div>
+          <div class="summary-box">
+            <div class="summary-label">Overall Grade</div>
+            <div class="summary-value" id="aiReportOverallGrade">—</div>
           </div>
         </div>
+
+        <div style="overflow-x: auto; margin-bottom: 20px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Pitch</th>
+                <th>Velo Range</th>
+                <th>Grade (20-80)</th>
+              </tr>
+            </thead>
+            <tbody id="aiReportGradesTable"></tbody>
+          </table>
+        </div>
+
+        <div class="intel-box">
+          <div class="intel-label">Weaknesses</div>
+          <div id="aiReportWeaknesses" style="font-size: 13px;"></div>
+        </div>
+        <div class="intel-box">
+          <div class="intel-label">Strengths</div>
+          <div id="aiReportStrengths" style="font-size: 13px;"></div>
+        </div>
+        <div class="intel-box">
+          <div class="intel-label">Summary &amp; Focus Areas</div>
+          <div id="aiReportSummary" style="font-size: 13px;"></div>
+        </div>
+      </div>
 
         <!-- SECTION 7B: INTERACTIVE COUNT SEQUENCING BOARD -->
         <div class="card">
@@ -897,6 +962,8 @@ function displayReport() {
   populateFirstPitchTendencies(m);
   populateTwoStrikeIntel(m);
   populateOutAndWeakestPitch(m);
+  populatePitchSequencing(m);
+  populateAIScoutingReport(m);
 
   // Populate count board
   populateCountBubbles();
@@ -1026,8 +1093,50 @@ function populateOutAndWeakestPitch(m) {
       `${wp.hardHitPercent}% hard-hit, ${wp.avgEV} mph avg EV (${wp.battedBallCount} batted balls)`;
   } else {
     document.getElementById("weakestPitchType").textContent = "—";
-    document.getElementById("weakestPitchDetail").textContent = "Not enough batted-ball data yet";
+   document.getElementById("weakestPitchDetail").textContent = "Not enough batted-ball data yet";
+    }
   }
+}
+
+function populatePitchSequencing(m) {
+  const seq = m.pitchSequencing;
+  if (!seq || seq.length === 0) {
+    document.getElementById("pitchSequencingTable").innerHTML =
+      `<tr><td colspan="4" style="text-align:center;color:#9ca3af;">Not enough sequencing data yet</td></tr>`;
+    return;
+  }
+  document.getElementById("pitchSequencingTable").innerHTML = seq.map(s => `
+    <tr>
+      <td><strong>${s.type}</strong></td>
+      <td>${s.topFollowUp ? s.topFollowUp.nextType : "—"}</td>
+      <td>${s.topFollowUp ? s.topFollowUp.pct : "—"}%</td>
+      <td>${s.totalFollowed}</td>
+    </tr>
+  `).join("");
+}
+
+function populateAIScoutingReport(m) {
+  const r = m.aiScoutingReport;
+  if (!r) return;
+
+  document.getElementById("aiReportName").textContent = `${r.firstName} ${r.lastName}`;
+  document.getElementById("aiReportThrows").textContent = r.throwSide;
+  document.getElementById("aiReportArmAngle").textContent = r.armAngle
+    ? `${r.armAngle.classification} (${r.armAngle.angleDegrees}°)`
+    : "—";
+  document.getElementById("aiReportOverallGrade").textContent = r.overallGrade;
+
+  document.getElementById("aiReportGradesTable").innerHTML = r.veloRanges.map(v => `
+    <tr>
+      <td><strong>${v.type}</strong></td>
+      <td>${v.min}-${v.max} mph</td>
+      <td>${v.grade}</td>
+    </tr>
+  `).join("");
+
+  document.getElementById("aiReportWeaknesses").textContent = r.weaknessesSummary;
+  document.getElementById("aiReportStrengths").textContent = r.strengthsSummary;
+  document.getElementById("aiReportSummary").textContent = r.overallSummary;
 }
 
 function drawPitchMixChart() {
