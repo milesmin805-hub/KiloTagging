@@ -229,6 +229,7 @@
     }
 
     let arsenalSortColumn = 'pitch';
+
     let arsenalSortAsc = true;
 
     function sortArsenal(column) {
