@@ -414,18 +414,18 @@ tr:hover {
     <!-- ADVANCED STATS ANALYTICS -->
     <div class="card">
       <div class="card-title">Advanced Stats Analytics</div>
-      <table style="width: 100%; font-size: 13px;">
-        <thead>
-          <tr style="border-bottom: 2px solid rgba(34, 211, 238, 0.5);">
-            <th style="padding: 12px; text-align: left; color: #22d3ee; font-weight: 600;">Stat</th>
-            <th style="padding: 12px; text-align: right; color: #22d3ee; font-weight: 600;">Value</th>
-          </tr>
-        </thead>
-        <tbody id="advancedStatsTable">
-          <!-- Populated by JavaScript -->
-        </tbody>
-      </table>
-    </div>
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+          <thead>
+            <tr id="advancedStatsHeaderRow" style="border-bottom: 2px solid rgba(34, 211, 238, 0.5);">
+              <!-- Populated by JavaScript -->
+            </tr>
+          </thead>
+          <tbody id="advancedStatsTable">
+            <!-- Populated by JavaScript -->
+          </tbody>
+        </table>
+      </div>
 
     <!-- SECTION 2: ARSENAL SUMMARY -->
     <div class="card">
@@ -1932,24 +1932,29 @@ function populateAdvancedStats(m) {
   if (!stats) return;
 
   const statsData = [
-    { label: 'ERA', value: stats.era || '—' },
-    { label: 'FIP', value: stats.fip || '—' },
-    { label: 'Strikeouts', value: stats.strikeouts || 0 },
-    { label: 'Walks', value: stats.walks || 0 },
-    { label: 'HBP', value: stats.hbp || 0 },
-    { label: 'Home Runs', value: stats.homeRuns || 0 },
-    { label: 'Innings Pitched', value: stats.inningsPitched || '—' },
-    { label: 'wOBA (opponent)', value: stats.woba || '—' }
+    { label: 'ERA', value: stats.era ?? '—' },
+    { label: 'FIP', value: stats.fip ?? '—' },
+    { label: 'K', value: stats.strikeouts ?? 0 },
+    { label: 'BB', value: stats.walks ?? 0 },
+    { label: 'HBP', value: stats.hbp ?? 0 },
+    { label: 'HR', value: stats.homeRuns ?? 0 },
+    { label: 'IP', value: stats.inningsPitched ?? '—' },
+    { label: 'wOBA', value: stats.woba ?? '—' }
   ];
 
-  const tableHtml = statsData.map(stat => `
-    <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.2);">
-      <td style="padding: 12px; color: #e5e7eb;">${stat.label}</td>
-      <td style="padding: 12px; text-align: right; color: #22d3ee; font-weight: 600;">${stat.value}</td>
-    </tr>
+  const headerHtml = statsData.map(stat => `
+    <th style="padding: 8px 10px; text-align: center; color: #22d3ee; font-weight: 600; white-space: nowrap;">${stat.label}</th>
   `).join('');
+  document.getElementById('advancedStatsHeaderRow').innerHTML = headerHtml;
 
-  document.getElementById('advancedStatsTable').innerHTML = tableHtml;
+  const rowHtml = `
+    <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.2);">
+      ${statsData.map(stat => `
+        <td style="padding: 8px 10px; text-align: center; color: #e5e7eb; font-weight: 600;">${stat.value}</td>
+      `).join('')}
+    </tr>
+  `;
+  document.getElementById('advancedStatsTable').innerHTML = rowHtml;
 }
 </script>
 </body>
