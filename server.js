@@ -1464,6 +1464,12 @@ async function calculatePitcherMetrics(sessionId, pitcherId, preloadedPitches) {
     // ===== ADVANCED SCOUTING (handedness approach, out pitches, first-pitch
     // tendencies, weakest pitch, two-strike intel) =====
     const advancedScouting = calculateAdvancedScouting(pitches, pitchStats);
+    const pitchSequencing = calculatePitchSequencing(pitches);
+
+    const metricsForReport = {
+      pitcherName, pitcherThrows, pitchStats, allPitches: pitches, ...advancedScouting
+    };
+    const aiScoutingReport = generateAIScoutingReport(metricsForReport);
 
     return {
       pitcherName,
@@ -1484,6 +1490,8 @@ async function calculatePitcherMetrics(sessionId, pitcherId, preloadedPitches) {
       bipPercent,
       hardHitPercent,
       advancedStats: advancedStats,
+      pitchSequencing,
+      aiScoutingReport,
       ...advancedScouting
     };
 
@@ -1625,6 +1633,153 @@ function calculateAdvancedScouting(pitches, pitchStats) {
   };
 }
 
+// ======================================
+// PITCH SEQUENCING
+// ======================================
+// For each pitch type, finds which pitch type follows it most often.
+// Sequenced only within the same session — the last pitch of one session
+// never counts as "followed by" the first pitch of a different session.
+function calculatePitchSequencing(pitches) {
+  const bySession = {};
+  pitches.forEach(p => {
+    const sid = p.session_id;
+    if (!bySession[sid]) bySession[sid] = [];
+    bySession[sid].push(p);
+  });
+
+  const followCounts = {};
+  Object.values(bySession).forEach(sessionPitches => {
+    for (let i = 0; i < sessionPitches.length - 1; i++) {
+      const current = sessionPitches[i].pitch_type || "?";
+      const next = sessionPitches[i + 1].pitch_type || "?";
+      if (!followCounts[current]) followCounts[current] = {};
+      followCounts[current][next] = (followCounts[current][next] || 0) + 1;
+    }
+  });
+
+  return Object.entries(followCounts).map(([type, nextCounts]) => {
+    const total = Object.values(nextCounts).reduce((a, b) => a + b, 0);
+    const ranked = Object.entries(nextCounts)
+      .map(([nextType, count]) => ({ nextType, count, pct: ((count / total) * 100).toFixed(1) }))
+      .sort((a, b) => b.count - a.count);
+    return { type, totalFollowed: total, topFollowUp: ranked[0] || null, breakdown: ranked };
+  }).sort((a, b) => b.totalFollowed - a.totalFollowed);
+}
+
+// ======================================
+// AI GENERATED SCOUTING REPORT
+// ======================================
+// Rule-based report generation (not a live LLM call) — same approach as the
+// existing Pitch Shape Summary. Arm angle follows Statcast's public
+// definition (0deg = sidearm, 90deg = over the top), but since Trackman
+// doesn't give us actual pitcher height, shoulder height is an assumed
+// constant (5.5 ft) rather than derived per-pitcher — treat the angle as an
+// estimate, not an exact Statcast-style measurement.
+function calculateArmAngle(pitches) {
+  const withRelease = pitches.filter(p => p.rel_height !== null && p.rel_height !== undefined && p.rel_side !== null && p.rel_side !== undefined);
+  if (withRelease.length === 0) return null;
+
+  const avgRelHeight = withRelease.reduce((sum, p) => sum + parseFloat(p.rel_height), 0) / withRelease.length;
+  const avgRelSide = withRelease.reduce((sum, p) => sum + Math.abs(parseFloat(p.rel_side)), 0) / withRelease.length;
+
+  const ASSUMED_SHOULDER_HEIGHT_FT = 5.5;
+  const verticalComponent = avgRelHeight - ASSUMED_SHOULDER_HEIGHT_FT;
+  const angleDegrees = Math.atan2(verticalComponent, avgRelSide) * (180 / Math.PI);
+
+  let classification;
+  if (angleDegrees >= 65) classification = "Over the Top";
+  else if (angleDegrees >= 45) classification = "High 3/4";
+  else if (angleDegrees >= 25) classification = "Low 3/4";
+  else if (angleDegrees >= 5) classification = "Side Arm";
+  else classification = "Submarine";
+
+  return { angleDegrees: Math.round(angleDegrees), classification, avgRelHeight: avgRelHeight.toFixed(2), avgRelSide: avgRelSide.toFixed(2) };
+}
+
+// 20-80 scouting-scale estimate. 50 = MLB-average velocity for that pitch
+// type (roughly 93mph fastball, per Baseball America's published benchmark)
+// blended with CSW% vs a ~28% MLB-average baseline. This is an approximation
+// from tracked data, not an official scout's grade.
+const PITCH_VELO_BASELINES = { FB: 93, SN: 93, CT: 89, SL: 85, CB: 79, CH: 85, SP: 85, KN: 77 };
+const CSW_BASELINE = 28;
+
+function estimatePitchGrade(pitchType, avgVelo, csw) {
+  const veloBaseline = PITCH_VELO_BASELINES[pitchType] ?? 88;
+  const velo = parseFloat(avgVelo);
+  const cswNum = parseFloat(csw);
+
+  const veloComponent = isNaN(velo) ? 50 : 50 + ((velo - veloBaseline) / 3) * 10;
+  const cswComponent = isNaN(cswNum) ? 50 : 50 + ((cswNum - CSW_BASELINE) / 5) * 10;
+
+  const combined = (veloComponent * 0.6) + (cswComponent * 0.4);
+  const clamped = Math.max(20, Math.min(80, combined));
+  return Math.round(clamped / 5) * 5;
+}
+
+function estimateOverallGrade(pitchStats, pitchGrades) {
+  let weightedSum = 0, totalUsage = 0;
+  Object.entries(pitchStats).forEach(([type, stats]) => {
+    const usage = parseFloat(stats.usage);
+    weightedSum += pitchGrades[type] * usage;
+    totalUsage += usage;
+  });
+  const raw = totalUsage > 0 ? weightedSum / totalUsage : 50;
+  return Math.max(20, Math.min(80, Math.round(raw / 5) * 5));
+}
+
+function generateAIScoutingReport(metrics) {
+  const nameParts = (metrics.pitcherName || "Unknown Pitcher").trim().split(/\s+/);
+  const firstName = nameParts[0] || "—";
+  const lastName = nameParts.slice(1).join(" ") || "—";
+
+  const throwSide = metrics.pitcherThrows === "Left" ? "LHP" : (metrics.pitcherThrows === "Right" ? "RHP" : "—");
+  const armAngle = calculateArmAngle(metrics.allPitches);
+
+  const pitchGrades = {};
+  Object.entries(metrics.pitchStats).forEach(([type, stats]) => {
+    pitchGrades[type] = estimatePitchGrade(type, stats.avgVelo, stats.csw);
+  });
+  const overallGrade = estimateOverallGrade(metrics.pitchStats, pitchGrades);
+
+  const veloRanges = Object.entries(metrics.pitchStats).map(([type, stats]) => ({
+    type, min: stats.minVelo, max: stats.maxVelo, grade: pitchGrades[type]
+  }));
+
+  let weaknesses = [];
+  if (metrics.weakestPitch) {
+    weaknesses.push(`${metrics.weakestPitch.type} gets hit hard (${metrics.weakestPitch.hardHitPercent}% hard-hit, ${metrics.weakestPitch.avgEV} mph avg EV allowed).`);
+  }
+  const worstZonePitch = Object.entries(metrics.pitchStats)
+    .filter(([, s]) => s.zonePercent !== "—")
+    .sort((a, b) => parseFloat(a[1].zonePercent) - parseFloat(b[1].zonePercent))[0];
+  if (worstZonePitch) {
+    weaknesses.push(`${worstZonePitch[0]} lands in the zone only ${worstZonePitch[1].zonePercent}% of the time.`);
+  }
+  const weaknessesSummary = weaknesses.length ? weaknesses.join(" ") : "Not enough data yet to identify clear weaknesses.";
+
+  let strengths = [];
+  if (metrics.outPitches?.primary) {
+    strengths.push(`${metrics.outPitches.primary.type} is a reliable put-away pitch (${metrics.outPitches.primary.csw}% CSW in two-strike counts).`);
+  }
+  const bestCSWPitch = Object.entries(metrics.pitchStats)
+    .filter(([, s]) => s.csw !== "—")
+    .sort((a, b) => parseFloat(b[1].csw) - parseFloat(a[1].csw))[0];
+  if (bestCSWPitch) {
+    strengths.push(`${bestCSWPitch[0]} generates the most called strikes and whiffs (${bestCSWPitch[1].csw}% CSW).`);
+  }
+  const strengthsSummary = strengths.length ? strengths.join(" ") : "Not enough data yet to identify clear strengths.";
+
+  const attackPitch = metrics.outPitches?.primary?.type || metrics.firstPitchTendencies?.primaryType || "their primary pitch";
+  const improvePitch = metrics.weakestPitch?.type || worstZonePitch?.[0] || "their secondary offerings";
+  const overallSummary = `${firstName} ${lastName} should continue to lean on ${attackPitch} as a foundation of the arsenal. ` +
+    `The clearest area for improvement is ${improvePitch} — tightening its location and usage in counts where it's currently getting hit or missing the zone would raise the overall profile.`;
+
+  return {
+    firstName, lastName, throwSide, armAngle, pitchGrades, overallGrade,
+    veloRanges, weaknessesSummary, strengthsSummary, overallSummary
+  };
+}
+
 // Helper: Get most common item in array
 function getMostCommon(arr) {
   const counts = {};
@@ -1742,6 +1897,8 @@ app.get("/session/:sessionId/metrics", async (req, res) => {
       weakestPitch: metrics.weakestPitch,
       kdeData: kdeData,
       advancedStats: metrics.advancedStats,
+      pitchSequencing: metrics.pitchSequencing,
+      aiScoutingReport: metrics.aiScoutingReport
     });
   } catch (err) {
     console.error("Metrics error:", err);
@@ -1859,9 +2016,11 @@ app.get("/pitcher-aggregated/:pitcherId", async (req, res) => {
       outPitches: metrics.outPitches,
       weakestPitch: metrics.weakestPitch,
       kdeData: kdeData,
-      advancedStats: metrics.advancedStats
+      advancedStats: metrics.advancedStats,
+      pitchSequencing: metrics.pitchSequencing,
+      aiScoutingReport: metrics.aiScoutingReport
     });
-
+    
   } catch (err) {
     console.error("Pitcher aggregated error:", err);
     res.json({ success: false, error: err.message });
