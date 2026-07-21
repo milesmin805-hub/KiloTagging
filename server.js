@@ -1795,7 +1795,7 @@ app.get("/all-pitchers", async (req, res) => {
   try {
     // Get all pitchers for this user
     const result = await pool.query(
-      `SELECT DISTINCT p.id, p.name, p.pitcher_throws
+      `SELECT DISTINCT p.id, p.name, p.pitcher_throws, p.team
        FROM pitchers p
        JOIN pitches pt ON p.id = pt.pitcher_id
        JOIN sessions s ON pt.session_id = s.id
