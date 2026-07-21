@@ -1,279 +1,1956 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pitcher Profile</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+<meta charset="UTF-8" />
+<title>Kilo - Pitcher Report</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #050816;
+  color: #e5e7eb;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  padding: 16px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+  background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.15), transparent 55%);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.brand-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #22d3ee, #0f172a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.brand-text .title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.brand-text .subtitle {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.header-right {
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  padding: 8px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  background: rgba(15, 23, 42, 0.9);
+  color: #e5e7eb;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.15s ease;
+}
+
+.btn:hover {
+  border-color: rgba(56, 189, 248, 0.9);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+}
+
+main {
+  flex: 1;
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #9ca3af;
+}
+
+.error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  color: #fca5a5;
+  padding: 16px;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.report-header {
+  text-align: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.report-header h1 {
+  font-size: 32px;
+  color: #22d3ee;
+  margin-bottom: 8px;
+}
+
+.report-header p {
+  font-size: 14px;
+  color: #9ca3af;
+}
+
+.summary-boxes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 30px;
+}
+
+.summary-box {
+  background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), #020617);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  padding: 16px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.summary-label {
+  font-size: 11px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.summary-value {
+  font-size: 20px;
+  color: #22d3ee;
+  font-weight: 600;
+}
+
+.card {
+  background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), #020617);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #22d3ee;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 16px;
+}
+
+th {
+  background: rgba(56, 189, 248, 0.1);
+  color: #22d3ee;
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  font-size: 13px;
+}
+
+tr:hover {
+  background: rgba(56, 189, 248, 0.05);
+}
+
+.chart-container {
+  position: relative;
+  height: 300px;
+  margin-bottom: 20px;
+}
+
+.intel-box {
+  background: rgba(56, 189, 248, 0.05);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.intel-label {
+  font-weight: 600;
+  color: #22d3ee;
+  margin-bottom: 6px;
+}
+
+.count-board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.count-cell {
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.count-cell:hover {
+  border-color: rgba(56, 189, 248, 0.9);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+}
+
+.count-label {
+  font-size: 11px;
+  color: #9ca3af;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.count-pitch {
+  font-size: 13px;
+  color: #22d3ee;
+}
+
+.heatmap-placeholder {
+  background: rgba(56, 189, 248, 0.05);
+  border: 2px dashed rgba(56, 189, 248, 0.3);
+  padding: 40px;
+  text-align: center;
+  border-radius: 8px;
+  color: #9ca3af;
+  margin-bottom: 16px;
+}
+
+.two-column {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 900px) {
+  .two-column {
+    grid-template-columns: 1fr;
+  }
+
+  .count-board {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .summary-boxes {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  main {
+    padding: 12px;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .report-header h1 {
+    font-size: 24px;
+  }
+
+  .summary-boxes {
+    grid-template-columns: 1fr;
+  }
+
+  .count-board {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  th, td {
+    padding: 8px;
+    font-size: 12px;
+  }
+}
+
+@media print {
+  header {
+    display: none;
+  }
+
+  body {
+    background: white;
+    color: #000;
+  }
+
+  .card {
+    background: white;
+    border: 1px solid #ccc;
+    page-break-inside: avoid;
+  }
+
+  .btn {
+    display: none;
+  }
+}
+
+.count-bubble {
+  background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), #020617);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+  color: #e5e7eb;
+  transition: all 0.2s ease;
+}
+
+.count-bubble:hover {
+  border-color: rgba(56, 189, 248, 0.9);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+  transform: translateY(-4px);
+}
+
+.count-bubble.active {
+  border-color: rgba(56, 189, 248, 0.9);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.6);
+  background: rgba(56, 189, 248, 0.1);
+}
+</style>
 </head>
 <body>
-  <!-- Loading State -->
-  <div id="loading" style="display: flex; justify-content: center; align-items: center; height: 100vh; background: rgba(15, 23, 42, 0.95);">
-    <div style="text-align: center;">
-      <div style="color: #22d3ee; font-size: 24px; margin-bottom: 16px;">⚾</div>
-      <div style="color: #9ca3af;">Loading pitcher profile...</div>
+<header>
+  <div class="brand" onclick="goHome()">
+    <div class="brand-mark">⚾</div>
+    <div class="brand-text">
+      <div class="title">Kilo</div>
+      <div class="subtitle">Baseball</div>
     </div>
   </div>
 
-  <!-- Report Content -->
+  <div class="header-right">
+    <button class="btn" onclick="window.print()">🖨️ Print</button>
+    <button class="btn" onclick="goBack()">← Back</button>
+  </div>
+</header>
+
+<main>
+  <div class="loading" id="loading">Loading report...</div>
+
+  <div id="errorMsg" class="error" style="display: none;"></div>
+
   <div id="reportContent" style="display: none;">
-    <!-- Header -->
-    <div style="background: rgba(15, 23, 42, 0.95); padding: 20px; border-bottom: 1px solid rgba(148, 163, 184, 0.3); display: flex; justify-content: space-between; align-items: center;">
-      <h1 id="pitcherTitle" style="color: #22d3ee; margin: 0;">Pitcher Report</h1>
-      <div style="display: flex; gap: 12px;">
-        <button onclick="window.location.href='/all-pitchers.html'" style="padding: 10px 16px; background: rgba(34, 211, 238, 0.2); border: 1px solid rgba(34, 211, 238, 0.5); color: #22d3ee; border-radius: 6px; cursor: pointer; font-weight: 600;">
-          ← All Pitchers
-        </button>
-        <button onclick="window.location.href='/dashboard.html'" style="padding: 10px 16px; background: rgba(107, 114, 128, 0.2); border: 1px solid rgba(107, 114, 128, 0.5); color: #d1d5db; border-radius: 6px; cursor: pointer;">
-          🏠 Dashboard
-        </button>
+    <!-- REPORT HEADER -->
+    <div class="report-header">
+      <h1 id="pitcherName">Pitcher Name</h1>
+      <p>Career Scouting Report — All Sessions</p>
+    </div>
+
+    <!-- SECTION 1: 5 SUMMARY BOXES -->
+    <div class="summary-boxes">
+      <div class="summary-box">
+        <div class="summary-label">Pitches Tracked</div>
+        <div class="summary-value" id="totalPitches">0</div>
+      </div>
+      <div class="summary-box">
+        <div class="summary-label">Peak Velo</div>
+        <div class="summary-value" id="peakVelo">0 mph</div>
+      </div>
+      <div class="summary-box">
+        <div class="summary-label">First Pitch</div>
+        <div class="summary-value" id="firstPitch">—</div>
+      </div>
+      <div class="summary-box">
+        <div class="summary-label">Out Pitch</div>
+        <div class="summary-value" id="outPitch">—</div>
+      </div>
+      <div class="summary-box">
+        <div class="summary-label">Shrink Zone</div>
+        <div class="summary-value" id="shrinkZone">—%</div>
+        <div class="summary-box" style="padding: 12px; min-height: auto;">
+          <div class="summary-label" style="font-size: 10px;">Pitcher Hand</div>
+          <div class="summary-value" id="pitcherHand" style="font-size: 16px;">—</div>
+        </div>
       </div>
     </div>
 
-    <!-- Main Content -->
-    <main style="max-width: 1400px; margin: 0 auto; padding: 24px;">
-      <!-- SECTION 1: SUMMARY STATS -->
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 12px; margin-bottom: 24px;">
-        <div class="summary-box">
-          <div class="summary-label">Throws</div>
-          <div class="summary-value" id="throws">—</div>
-        </div>
-        <div class="summary-box">
-          <div class="summary-label">Total Pitches</div>
-          <div class="summary-value" id="totalPitches">—</div>
-        </div>
-        <div class="summary-box">
-          <div class="summary-label">Peak Velo</div>
-          <div class="summary-value" id="peakVelo">—</div>
-        </div>
-        <div class="summary-box">
-          <div class="summary-label">Avg Velo</div>
-          <div class="summary-value" id="avgVelo">—</div>
-        </div>
-      </div>
+    <!-- ADVANCED STATS ANALYTICS -->
+    <div class="card">
+      <div class="card-title">Advanced Stats Analytics</div>
+      <table style="width: 100%; font-size: 13px;">
+        <thead>
+          <tr style="border-bottom: 2px solid rgba(34, 211, 238, 0.5);">
+            <th style="padding: 12px; text-align: left; color: #22d3ee; font-weight: 600;">Stat</th>
+            <th style="padding: 12px; text-align: right; color: #22d3ee; font-weight: 600;">Value</th>
+          </tr>
+        </thead>
+        <tbody id="advancedStatsTable">
+          <!-- Populated by JavaScript -->
+        </tbody>
+      </table>
+    </div>
 
-      <!-- SECTION 2: ADVANCED STATS -->
-      <div class="card">
-        <div class="card-title">Advanced Stats Analytics</div>
-        <table style="width: 100%; font-size: 13px;">
+    <!-- SECTION 2: ARSENAL SUMMARY -->
+    <div class="card">
+      <div class="card-title">Arsenal Summary</div>
+      <div style="overflow-x: auto;">
+        <table style="table-layout: fixed; width: 100%;">
           <thead>
-            <tr style="border-bottom: 2px solid rgba(34, 211, 238, 0.5);">
-              <th style="padding: 12px; text-align: left; color: #22d3ee; font-weight: 600;">Stat</th>
-              <th style="padding: 12px; text-align: right; color: #22d3ee; font-weight: 600;">Value</th>
-            </tr>
-          </thead>
-          <tbody id="advancedStatsTable">
-            <!-- Populated by JavaScript -->
-          </tbody>
-        </table>
-      </div>
-
-      <!-- SECTION 3: PITCH MIX -->
-      <div class="card">
-        <div class="card-title">Pitch Mix</div>
-        <div style="position: relative; height: 300px;">
-          <canvas id="pitchMixChart"></canvas>
-        </div>
-      </div>
-
-      <!-- SECTION 4: ARSENAL SUMMARY -->
-      <div class="card">
-        <div class="card-title">Arsenal Summary</div>
-        <table style="width: 100%; font-size: 12px;">
-          <thead>
-            <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.3);">
-              <th onclick="sortArsenal('pitch')" style="cursor: pointer; padding: 12px; text-align: left; color: #22d3ee; font-weight: 600;">Pitch <span id="arsenalSort-pitch"></span></th>
-              <th onclick="sortArsenal('count')" style="cursor: pointer; padding: 12px; text-align: center; color: #22d3ee; font-weight: 600;"># <span id="arsenalSort-count"></span></th>
-              <th onclick="sortArsenal('usage')" style="cursor: pointer; padding: 12px; text-align: center; color: #22d3ee; font-weight: 600;">Use% <span id="arsenalSort-usage"></span></th>
-              <th onclick="sortArsenal('avgVelo')" style="cursor: pointer; padding: 12px; text-align: center; color: #22d3ee; font-weight: 600;">Velo <span id="arsenalSort-avgVelo"></span></th>
-              <th onclick="sortArsenal('avgSpin')" style="cursor: pointer; padding: 12px; text-align: center; color: #22d3ee; font-weight: 600;">Spin <span id="arsenalSort-avgSpin"></span></th>
-              <th onclick="sortArsenal('csw')" style="cursor: pointer; padding: 12px; text-align: center; color: #22d3ee; font-weight: 600;">CSW% <span id="arsenalSort-csw"></span></th>
+            <tr>
+              <th onclick="sortArsenal('pitch')" style="cursor: pointer;">Pitch <span id="arsenalSort-pitch"></span></th>
+              <th onclick="sortArsenal('count')" style="cursor: pointer;"># <span id="arsenalSort-count"></span></th>
+              <th onclick="sortArsenal('usage')" style="cursor: pointer;">Use% <span id="arsenalSort-usage"></span></th>
+              <th onclick="sortArsenal('avgVelo')" style="cursor: pointer;">Velo <span id="arsenalSort-avgVelo"></span></th>
+              <th onclick="sortArsenal('avgSpin')" style="cursor: pointer;">Spin <span id="arsenalSort-avgSpin"></span></th>
+              <th onclick="sortArsenal('avgIVB')" style="cursor: pointer;">IVB <span id="arsenalSort-avgIVB"></span></th>
+              <th onclick="sortArsenal('avgHB')" style="cursor: pointer;">HB <span id="arsenalSort-avgHB"></span></th>
+              <th onclick="sortArsenal('extension')" style="cursor: pointer;">Extension <span id="arsenalSort-extension"></span></th>
+              <th onclick="sortArsenal('zonePercent')" style="cursor: pointer;">Zone% <span id="arsenalSort-zonePercent"></span></th>
+              <th onclick="sortArsenal('csw')" style="cursor: pointer;">CSW% <span id="arsenalSort-csw"></span></th>
             </tr>
           </thead>
           <tbody id="arsenalTable">
-            <!-- Populated by JavaScript -->
+            <!-- Populated by JS -->
           </tbody>
         </table>
       </div>
-    </main>
+    </div>
+
+    <!-- SECTION 2B: HANDEDNESS APPROACH (vs RHH / LHH) -->
+    <div class="card">
+      <div class="card-title">Approach vs RHH / LHH</div>
+      <div class="two-column">
+        <div>
+          <h3 style="font-size: 13px; color: #9ca3af; margin-bottom: 8px; font-weight: 600;">
+            Vs Right-Handed Hitters (<span id="rhhCount">0</span> pitches)
+          </h3>
+          <div style="overflow-x: auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th onclick="sortRHH('pitch')" style="cursor: pointer;">Pitch <span id="rhhSort-pitch"></span></th>
+                  <th onclick="sortRHH('pct')" style="cursor: pointer;">Use% <span id="rhhSort-pct"></span></th>
+                  <th onclick="sortRHH('avgVelo')" style="cursor: pointer;">Velo <span id="rhhSort-avgVelo"></span></th>
+                  <th onclick="sortRHH('zonePercent')" style="cursor: pointer;">Zone% <span id="rhhSort-zonePercent"></span></th>
+                  <th onclick="sortRHH('csw')" style="cursor: pointer;">CSW% <span id="rhhSort-csw"></span></th>
+                </tr>
+              </thead>
+              <tbody id="rhhTable"></tbody>
+            </table>
+          </div>
+        </div>
+        <div>
+          <h3 style="font-size: 13px; color: #9ca3af; margin-bottom: 8px; font-weight: 600;">
+            Vs Left-Handed Hitters (<span id="lhhCount">0</span> pitches)
+          </h3>
+          <div style="overflow-x: auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th onclick="sortLHH('pitch')" style="cursor: pointer;">Pitch <span id="lhhSort-pitch"></span></th>
+                  <th onclick="sortLHH('pct')" style="cursor: pointer;">Use% <span id="lhhSort-pct"></span></th>
+                  <th onclick="sortLHH('avgVelo')" style="cursor: pointer;">Velo <span id="lhhSort-avgVelo"></span></th>
+                  <th onclick="sortLHH('zonePercent')" style="cursor: pointer;">Zone% <span id="lhhSort-zonePercent"></span></th>
+                  <th onclick="sortLHH('csw')" style="cursor: pointer;">CSW% <span id="lhhSort-csw"></span></th>
+                </tr>
+              </thead>
+              <tbody id="lhhTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2C: FIRST PITCH TENDENCIES -->
+    <div class="card">
+      <div class="card-title">First Pitch Tendencies (0-0 Counts)</div>
+      <p style="font-size: 13px; color: #9ca3af; margin-bottom: 12px;">
+        <strong id="firstPitchPrimaryType" style="color: #22d3ee;">—</strong> is thrown
+        <strong id="firstPitchPrimaryPct">0</strong>% of the time on 0-0
+        (<span id="firstPitchTotal">0</span> pitches tracked)
+      </p>
+      <div style="overflow-x: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th onclick="sortFirstPitch('pitch')" style="cursor: pointer;">Pitch <span id="firstPitchSort-pitch"></span></th>
+              <th onclick="sortFirstPitch('count')" style="cursor: pointer;">Count <span id="firstPitchSort-count"></span></th>
+              <th onclick="sortFirstPitch('pct')" style="cursor: pointer;">% <span id="firstPitchSort-pct"></span></th>
+              <th onclick="sortFirstPitch('zonePercent')" style="cursor: pointer;">Zone% <span id="firstPitchSort-zonePercent"></span></th>
+            </tr>
+          </thead>
+          <tbody id="firstPitchTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SECTION 2D: TWO-STRIKE INTEL -->
+    <div class="card">
+      <div class="card-title">Two-Strike Intel</div>
+      <p style="font-size: 13px; color: #9ca3af; margin-bottom: 12px;">
+        <strong id="twoStrikePrimaryType" style="color: #22d3ee;">—</strong> is the primary two-strike pitch, thrown
+        <strong id="twoStrikePrimaryPct">0</strong>% of the time
+        (<span id="twoStrikeTotal">0</span> pitches tracked)
+      </p>
+      <div style="overflow-x: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th onclick="sortTwoStrike('pitch')" style="cursor: pointer;">Pitch <span id="twoStrikeSort-pitch"></span></th>
+              <th onclick="sortTwoStrike('count')" style="cursor: pointer;">Count <span id="twoStrikeSort-count"></span></th>
+              <th onclick="sortTwoStrike('pct')" style="cursor: pointer;">% <span id="twoStrikeSort-pct"></span></th>
+              <th onclick="sortTwoStrike('csw')" style="cursor: pointer;">CSW% <span id="twoStrikeSort-csw"></span></th>
+              <th onclick="sortTwoStrike('whiffs')" style="cursor: pointer;">Whiffs <span id="twoStrikeSort-whiffs"></span></th>
+            </tr>
+          </thead>
+          <tbody id="twoStrikeTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SECTION 2E: PUT-AWAY PITCH & WEAK POINT -->
+    <div class="card">
+      <div class="card-title">Put-Away Pitch &amp; Weak Point</div>
+      <div class="two-column">
+        <div>
+          <div class="intel-box">
+            <div class="intel-label">Primary Out Pitch</div>
+            <div id="primaryOutPitch" style="font-size: 20px; color: #22d3ee; font-weight: 600;">—</div>
+            <div id="primaryOutPitchDetail" style="font-size: 12px; color: #9ca3af; margin-top: 4px;"></div>
+          </div>
+          <div class="intel-box">
+            <div class="intel-label">Secondary Out Pitch</div>
+            <div id="secondaryOutPitch" style="font-size: 16px; color: #e5e7eb; font-weight: 600;">—</div>
+            <div id="secondaryOutPitchDetail" style="font-size: 12px; color: #9ca3af; margin-top: 4px;"></div>
+          </div>
+        </div>
+        <div>
+          <div class="intel-box" style="border-color: rgba(252, 165, 165, 0.4); background: rgba(239, 68, 68, 0.06);">
+            <div class="intel-label" style="color: #fca5a5;">Weakest Pitch</div>
+            <div id="weakestPitchType" style="font-size: 20px; color: #fca5a5; font-weight: 600;">—</div>
+            <div id="weakestPitchDetail" style="font-size: 12px; color: #9ca3af; margin-top: 4px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 3: PITCH MIX -->
+    <div class="card">
+      <div class="card-title">Pitch Mix</div>
+      <div class="chart-container">
+        <canvas id="pitchMixChart"></canvas>
+      </div>
+    </div>
+
+    <!-- SECTION 4: MOVEMENT PROFILE -->
+    <div class="card">
+      <div class="card-title">Movement Profile (IVB vs HB)</div>
+      <div class="chart-container">
+        <canvas id="movementChart"></canvas>
+
+        <!-- Release Point Chart -->
+        <div class="card" style="margin-top: 60px;">
+          <div class="card-title">Release Point — Release Height vs Release Side</div>
+          <div style="position: relative; height: 400px; margin-bottom: 80px;">
+            <canvas id="releasePointChart"></canvas>
+          </div>
+        </div>
+
+        <!-- SECTION 5: OOZ TENDENCY -->
+        <div class="card">
+          <div class="card-title">OOZ Tendency — What Not To Chase</div>
+          <div style="overflow-x: auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th onclick="sortOOZ('pitch')" style="cursor: pointer;">Pitch <span id="oozSort-pitch"></span></th>
+                  <th onclick="sortOOZ('total')" style="cursor: pointer;">Total <span id="oozSort-total"></span></th>
+                  <th onclick="sortOOZ('oozCount')" style="cursor: pointer;">OOZ# <span id="oozSort-oozCount"></span></th>
+                  <th onclick="sortOOZ('oozPercent')" style="cursor: pointer;">OOZ% <span id="oozSort-oozPercent"></span></th>
+                  <th onclick="sortOOZ('zonePercent')" style="cursor: pointer;">Zone% <span id="oozSort-zonePercent"></span></th>
+                </tr>
+              </thead>
+              <tbody id="oozTable">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SECTION 6: CONTACT QUALITY -->
+        <div class="card">
+          <div class="card-title">Contact Quality Against — Where To Do Damage</div>
+          <div style="overflow-x: auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th onclick="sortContactQuality('pitch')" style="cursor: pointer;">Pitch <span id="contactSort-pitch"></span></th>
+                  <th onclick="sortContactQuality('bip')" style="cursor: pointer;">BIP <span id="contactSort-bip"></span></th>
+                  <th onclick="sortContactQuality('avgEV')" style="cursor: pointer;">Avg EV <span id="contactSort-avgEV"></span></th>
+                  <th onclick="sortContactQuality('hardHit')" style="cursor: pointer;">HH% <span id="contactSort-hardHit"></span></th>
+                  <th onclick="sortContactQuality('maxEV')" style="cursor: pointer;">Max EV <span id="contactSort-maxEV"></span></th>
+                </tr>
+              </thead>
+              <tbody id="contactTable">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SECTION 7: PITCH SEQUENCING (PLACEHOLDER) -->
+        <div class="card">
+          <div class="card-title">Pitch Sequencing</div>
+          <div class="heatmap-placeholder">
+            🔄 Pitch sequencing analysis will be generated in next phase
+          </div>
+        </div>
+
+        <!-- SECTION 7B: INTERACTIVE COUNT SEQUENCING BOARD -->
+        <div class="card">
+          <div class="card-title">Count Sequencing — What To Expect By Count</div>
+
+          <!-- Count Grid -->
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 32px;">
+            <!-- B=0 Row -->
+            <div class="count-bubble" onclick="selectCount(0, 0, event)" style="cursor: pointer;">
+              <div style="font-size: 18px; font-weight: 700;">0-0</div>
+              <div style="font-size: 11px; color: #9ca3af; margin-top: 4px;" id="pitch-0-0">—</div>
+            </div>
+            <div class="count-bubble" onclick="selectCount(0, 1, event)" style="cursor: pointer;">
+              <div style="font-size: 18px; font-weight: 700;">0-1</div>
+              <div style="font-size: 11px; color: #9ca3af; margin-top: 4px;" id="pitch-0-1">—</div>
+            </div>
+            <div class="count-bubble" onclick="selectCount(0, 2, event)" style="cursor: pointer;">
+              <div style="font-size: 18px; font-weight: 700;">0-2</div>
+              <div style="font-size: 11px; color: #9ca3af; margin-top: 4px;" id="pitch-0-2">—</div>
+            </div>
+
+            <!-- B=1 Row -->
+            <div class="count-bubble" onclick="selectCount(1, 0, event)" style="cursor: pointer;">
+              <div style="font-size: 18px; font-weight: 700;">1-0</div>
+              <div style="font-size: 11px; color: #9ca3af; margin-top: 4px;" id="pitch-1-0">—</div>
+            </div>
+            <div class="count-bubble" onclick="selectCount(1, 1, event)" style="cursor: pointer;">
+              <div style="font-size: 18px; font-weight: 700;">1-1</div>
+              <div style="font-size: 11px; color: #9ca3af; margin-top: 4px;" id="pitch-1-1">—</div>
+            </div>
+            <div class="count-bubble" onclick="selectCount(1, 2, event)" style="cursor: pointer;">
+              <div style="font-size: 18px; font-weight: 700;">1-2</div>
+              <div style="font-size: 11px; color: #9ca3af; margin-top: 4px;" id="pitch-1-2">—</div>
+            </div>
+
+            <!-- B=2 Row -->
+            <div class="count-bubble" onclick="selectCount(2, 0, event)" style="cursor: pointer;">
+              <div style="font-size: 18px; font-weight: 700;">2-0</div>
+              <div style="font-size: 11px; color: #9ca3af; margin-top: 4px;" id="pitch-2-0">—</div>
+            </div>
+            <div class="count-bubble" onclick="selectCount(2, 1, event)" style="cursor: pointer;">
+              <div style="font-size: 18px; font-weight: 700;">2-1</div>
+              <div style="font-size: 11px; color: #9ca3af; margin-top: 4px;" id="pitch-2-1">—</div>
+            </div>
+            <div class="count-bubble" onclick="selectCount(2, 2, event)" style="cursor: pointer;">
+              <div style="font-size: 18px; font-weight: 700;">2-2</div>
+              <div style="font-size: 11px; color: #9ca3af; margin-top: 4px;" id="pitch-2-2">—</div>
+            </div>
+
+            <!-- B=3 Row -->
+            <div class="count-bubble" onclick="selectCount(3, 0, event)" style="cursor: pointer;">
+              <div style="font-size: 18px; font-weight: 700;">3-0</div>
+              <div style="font-size: 11px; color: #9ca3af; margin-top: 4px;" id="pitch-3-0">—</div>
+            </div>
+            <div class="count-bubble" onclick="selectCount(3, 1, event)" style="cursor: pointer;">
+              <div style="font-size: 18px; font-weight: 700;">3-1</div>
+              <div style="font-size: 11px; color: #9ca3af; margin-top: 4px;" id="pitch-3-1">—</div>
+            </div>
+            <div class="count-bubble" onclick="selectCount(3, 2, event)" style="cursor: pointer;">
+              <div style="font-size: 18px; font-weight: 700;">3-2</div>
+              <div style="font-size: 11px; color: #9ca3af; margin-top: 4px;" id="pitch-3-2">—</div>
+            </div>
+          </div>
+          <!-- Count Details -->
+          <div id="countDetails" style="display: none; background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(148, 163, 184, 0.35); padding: 20px; border-radius: 12px;">
+            <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
+              <div style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.5); padding: 12px 20px; border-radius: 8px;">
+                <div style="font-size: 24px; font-weight: 700; color: #22d3ee;" id="selectedCount">0-0</div>
+              </div>
+              <div style="color: #9ca3af; font-size: 13px;">
+                <div><span id="countPitches">0</span> pitches tracked</div>
+              </div>
+            </div>
+
+            <div id="pitchBreakdown" style="display: grid; gap: 12px;">
+              <!-- Populated by JS -->
+            </div>
+
+            <div id="countNote" style="background: rgba(239, 68, 68, 0.1); border-left: 3px solid #fca5a5; padding: 12px; border-radius: 4px; color: #e5e7eb; font-size: 13px; line-height: 1.5; margin-top: 16px;">
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 8: LOCATION HEATMAPS -->
+        <div class="card">
+          <div class="card-title">Location Heatmaps</div>
+          <div id="heatmapsContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px;">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+
+        <!-- SECTION 9: 13-BOX STRIKE ZONE HEATMAPS -->
+
+        <!-- PART 1: PITCH LOCATION BY TYPE -->
+        <div class="card">
+          <div class="card-title">Pitch Location by Type — 13-Box Heat Map</div>
+          <div id="thirteenBoxLocation" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+
+        <!-- PART 2: PITCH LOCATION SPLIT BY HANDEDNESS -->
+        <div class="card">
+          <div class="card-title">Pitch Location by Type &amp; Handedness — RHH vs LHH</div>
+          <div id="thirteenBoxHandedness" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(650px, 1fr)); gap: 24px;">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+
+        <!-- PART 3: CONTACT QUALITY BY TYPE -->
+        <div class="card">
+          <div class="card-title">Contact Quality by Type — Hard Hit % by Location</div>
+          <div id="thirteenBoxContact" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div style="text-align: center; color: #9ca3af; font-size: 12px; margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(148, 163, 184, 0.2);">
+          <p>Report generated on <span id="reportDate"></span></p>
+        </div>
+      </div>
+    </div>
   </div>
+</main>
 
-  <script>
-    let metricsData = {};
-    let currentPitcherId = null;
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script>
+let currentPitcherId = null;
+let metricsData = null;
+let pitchMixChart = null;
+let movementChart = null;
 
-    window.addEventListener('load', initReport);
+window.addEventListener("load", () => {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    window.location.href = "/login.html";
+    return;
+  }
 
-    async function initReport() {
-      const params = new URLSearchParams(window.location.search);
-      currentPitcherId = params.get('pitcherId');
+  const params = new URLSearchParams(window.location.search);
+  currentPitcherId = params.get("pitcherId");
 
-      if (!currentPitcherId) {
-        document.getElementById('loading').innerHTML = '<p style="color: #ef4444;">Missing pitcher ID</p>';
-        return;
-      }
+  if (!currentPitcherId) {
+    showError("Missing pitcher ID");
+    return;
+  }
 
-      await loadReport();
+  loadReport();
+});
+
+async function loadReport() {
+  const token = localStorage.getItem("token");
+
+  try {
+    const res = await fetch(
+      `/pitcher-aggregated/${currentPitcherId}?token=${token}`
+    );
+    const data = await res.json();
+
+    if (!data.success) {
+      showError("Failed to load report: " + data.error);
+      return;
     }
 
-    async function loadReport() {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`/pitcher-aggregated/${currentPitcherId}?token=${token}`);
-        const data = await response.json();
+    metricsData = data;
 
-        if (!data.success) {
-          document.getElementById('loading').innerHTML = `<p style="color: #ef4444;">Error: ${data.error}</p>`;
-          return;
-        }
+    // Note: AI Coach Summary and per-session PDF export both depend on a
+    // specific sessionId, which this aggregated (all-sessions) view doesn't
+    // have — so both are intentionally left out here rather than silently failing.
 
-        metricsData = data.metrics;
-        displayReport();
+    displayReport();
+  } catch (err) {
+    showError("Error: " + err.message);
+  }
+}
 
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('reportContent').style.display = 'block';
-      } catch (err) {
-        console.error('Error loading report:', err);
-        document.getElementById('loading').innerHTML = '<p style="color: #ef4444;">Error loading report</p>';
-      }
-    }
+function displayReport() {
+  const m = metricsData;
 
-    function displayReport() {
-      // Title
-      document.getElementById('pitcherTitle').textContent = metricsData.pitcherName || 'Pitcher';
+  // Header
+  document.getElementById("pitcherName").textContent = m.pitcherName;
+  document.getElementById("reportDate").textContent = new Date().toLocaleString();
 
-      // Summary stats
-      document.getElementById('throws').textContent = metricsData.pitcherThrows === 'Right' ? 'RHH' : 'LHH';
-      document.getElementById('totalPitches').textContent = metricsData.totalPitches || 0;
-      document.getElementById('peakVelo').textContent = (metricsData.peakVelo || 0) + ' mph';
-      document.getElementById('avgVelo').textContent = metricsData.avgVelo || '—';
+  // Summary boxes
+  document.getElementById("totalPitches").textContent = m.totalPitches;
+  document.getElementById("peakVelo").textContent = m.peakVelo + " mph";
+  document.getElementById("firstPitch").textContent = m.firstPitchType + ` (${m.firstPitchPercent}%)`;
+  document.getElementById("outPitch").textContent = m.outPitch + ` (${m.outPitchCount})`;
+  document.getElementById("shrinkZone").textContent = m.shrinkZonePercent || "—";
+  document.getElementById("pitcherHand").textContent = m.pitcherThrows ?
+    (m.pitcherThrows === "Left" ? "Left" : "Right") : "—";
 
-      // Advanced stats table
-      const stats = metricsData.advancedStats || {};
-      const statsData = [
-        { label: 'ERA', value: stats.era || '—' },
-        { label: 'FIP', value: stats.fip || '—' },
-        { label: 'Strikeouts', value: stats.strikeouts || 0 },
-        { label: 'Walks', value: stats.walks || 0 },
-        { label: 'HBP', value: stats.hbp || 0 },
-        { label: 'Home Runs', value: stats.homeRuns || 0 },
-        { label: 'Innings Pitched', value: stats.inningsPitched || '—' },
-        { label: 'wOBA (opponent)', value: stats.woba || '—' }
-      ];
+  // Arsenal table
+  const arsenalHtml = Object.entries(m.pitchStats).map(([type, stats]) => `
+    <tr>
+      <td><strong>${type}</strong></td>
+      <td>${stats.count}</td>
+      <td>${stats.usage}%</td>
+      <td>${stats.avgVelo}</td>
+      <td>${stats.avgSpin}</td>
+      <td>${stats.avgIVB}</td>
+      <td>${stats.avgHB}</td>
+      <td>${stats.extension}</td>
+      <td>${stats.zonePercent}%</td>
+      <td>${stats.csw}%</td>
+    </tr>
+  `).join("");
+  document.getElementById("arsenalTable").innerHTML = arsenalHtml;
 
-      const tableHtml = statsData.map(stat => `
-        <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.2);">
-          <td style="padding: 12px; color: #e5e7eb;">${stat.label}</td>
-          <td style="padding: 12px; text-align: right; color: #22d3ee; font-weight: 600;">${stat.value}</td>
+  // OOZ table
+  const oozHtml = Object.entries(m.pitchStats).map(([type, stats]) => {
+    const oozCount = stats.count - Math.round(stats.count * (stats.zonePercent / 100));
+    const oozPercent = (100 - stats.zonePercent).toFixed(1);
+    return `
+      <tr>
+        <td><strong>${type}</strong></td>
+        <td>${stats.count}</td>
+        <td>${oozCount}</td>
+        <td>${oozPercent}%</td>
+        <td>${stats.zonePercent}%</td>
+      </tr>
+    `;
+  }).join("");
+  document.getElementById("oozTable").innerHTML = oozHtml;
+
+  // Contact quality table
+  const contactHtml = Object.entries(m.pitchStats).map(([type, stats]) => `
+    <tr>
+      <td><strong>${type}</strong></td>
+      <td>${stats.bipCount || 0}</td>
+      <td>${stats.avgEV}</td>
+      <td>${stats.hardHitPercent}%</td>
+      <td>${stats.maxEV}</td>
+    </tr>
+  `).join("");
+  document.getElementById("contactTable").innerHTML = contactHtml;
+
+  // Advanced Stats table
+  populateAdvancedStats(m);
+
+  // Pitch mix pie chart
+  drawPitchMixChart();
+
+  // Movement profile scatter
+  drawMovementChart();
+
+  // Release point chart
+  drawReleasePointChart();
+
+  // Handedness approach, first-pitch tendencies, two-strike intel, out pitches, weakest pitch
+  populateHandednessApproach(m);
+  populateFirstPitchTendencies(m);
+  populateTwoStrikeIntel(m);
+  populateOutAndWeakestPitch(m);
+
+  // Populate count board
+  populateCountBubbles();
+
+  generateLocationHeatmaps();
+
+  render13BoxHeatmaps();
+
+  // Show report, hide loading
+  document.getElementById("loading").style.display = "none";
+  document.getElementById("reportContent").style.display = "block";
+}
+
+// ======================================
+// HANDEDNESS APPROACH (vs RHH / LHH)
+// ======================================
+function populateHandednessApproach(m) {
+  const ha = m.handednessApproach;
+  if (!ha) return;
+
+  document.getElementById("rhhCount").textContent = ha.RHH.pitchCount;
+  document.getElementById("lhhCount").textContent = ha.LHH.pitchCount;
+
+  const noDataRow = (cols) => `<tr><td colspan="${cols}" style="text-align:center;color:#9ca3af;">No data yet</td></tr>`;
+
+  document.getElementById("rhhTable").innerHTML = ha.RHH.breakdown.length
+    ? ha.RHH.breakdown.map(b => `
+        <tr>
+          <td><strong>${b.type}</strong></td>
+          <td>${b.pct}%</td>
+          <td>${b.avgVelo}</td>
+          <td>${b.zonePercent}%</td>
+          <td>${b.csw}%</td>
         </tr>
-      `).join('');
+      `).join("")
+    : noDataRow(5);
 
-      document.getElementById('advancedStatsTable').innerHTML = tableHtml;
+  document.getElementById("lhhTable").innerHTML = ha.LHH.breakdown.length
+    ? ha.LHH.breakdown.map(b => `
+        <tr>
+          <td><strong>${b.type}</strong></td>
+          <td>${b.pct}%</td>
+          <td>${b.avgVelo}</td>
+          <td>${b.zonePercent}%</td>
+          <td>${b.csw}%</td>
+        </tr>
+      `).join("")
+    : noDataRow(5);
+}
 
-      // Charts
-      drawPitchMixChart();
-      drawArsenalTable();
+// ======================================
+// FIRST PITCH TENDENCIES (0-0 counts)
+// ======================================
+function populateFirstPitchTendencies(m) {
+  const fp = m.firstPitchTendencies;
+  if (!fp) return;
+
+  document.getElementById("firstPitchPrimaryType").textContent = fp.primaryType;
+  document.getElementById("firstPitchPrimaryPct").textContent = fp.primaryPct;
+  document.getElementById("firstPitchTotal").textContent = fp.totalFirstPitches;
+
+  document.getElementById("firstPitchTable").innerHTML = fp.breakdown.length
+    ? fp.breakdown.map(b => `
+        <tr>
+          <td><strong>${b.type}</strong></td>
+          <td>${b.count}</td>
+          <td>${b.pct}%</td>
+          <td>${b.zonePercent}%</td>
+        </tr>
+      `).join("")
+    : `<tr><td colspan="4" style="text-align:center;color:#9ca3af;">No data yet</td></tr>`;
+}
+
+// ======================================
+// TWO-STRIKE INTEL
+// ======================================
+function populateTwoStrikeIntel(m) {
+  const ts = m.twoStrikeIntel;
+  if (!ts) return;
+
+  document.getElementById("twoStrikePrimaryType").textContent = ts.primaryType;
+  document.getElementById("twoStrikePrimaryPct").textContent = ts.primaryPct;
+  document.getElementById("twoStrikeTotal").textContent = ts.totalTwoStrikePitches;
+
+  document.getElementById("twoStrikeTable").innerHTML = ts.breakdown.length
+    ? ts.breakdown.map(b => `
+        <tr>
+          <td><strong>${b.type}</strong></td>
+          <td>${b.count}</td>
+          <td>${b.pct}%</td>
+          <td>${b.csw}%</td>
+          <td>${b.whiffs}</td>
+        </tr>
+      `).join("")
+    : `<tr><td colspan="5" style="text-align:center;color:#9ca3af;">No data yet</td></tr>`;
+}
+
+// ======================================
+// PRIMARY/SECONDARY OUT PITCH & WEAKEST PITCH
+// ======================================
+function populateOutAndWeakestPitch(m) {
+  const op = m.outPitches;
+  if (op) {
+    if (op.primary) {
+      document.getElementById("primaryOutPitch").textContent = op.primary.type;
+      document.getElementById("primaryOutPitchDetail").textContent =
+        `${op.primary.outCount} of ${op.primary.sampleSize} two-strike pitches (CSW ${op.primary.csw}%)`;
+    } else {
+      document.getElementById("primaryOutPitch").textContent = "—";
+      document.getElementById("primaryOutPitchDetail").textContent = "Not enough two-strike data yet";
     }
 
-    function drawPitchMixChart() {
-      const ctx = document.getElementById('pitchMixChart').getContext('2d');
-      const pitchStats = metricsData.pitchStats || {};
-      
-      const labels = Object.keys(pitchStats);
-      const data = labels.map(type => pitchStats[type].count || 0);
-      const colors = ['#22d3ee', '#fca5a5', '#86efac', '#fbbf24', '#a78bfa', '#f472b6'];
+    if (op.secondary) {
+      document.getElementById("secondaryOutPitch").textContent = op.secondary.type;
+      document.getElementById("secondaryOutPitchDetail").textContent =
+        `${op.secondary.outCount} of ${op.secondary.sampleSize} two-strike pitches (CSW ${op.secondary.csw}%)`;
+    } else {
+      document.getElementById("secondaryOutPitch").textContent = "—";
+      document.getElementById("secondaryOutPitchDetail").textContent = "Not enough two-strike data yet";
+    }
+  }
 
-      new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-          labels: labels,
-          datasets: [{
-            data: data,
-            backgroundColor: colors.slice(0, labels.length),
-            borderColor: 'rgba(15, 23, 42, 0.95)',
-            borderWidth: 2
-          }]
+  const wp = m.weakestPitch;
+  if (wp) {
+    document.getElementById("weakestPitchType").textContent = wp.type;
+    document.getElementById("weakestPitchDetail").textContent =
+      `${wp.hardHitPercent}% hard-hit, ${wp.avgEV} mph avg EV (${wp.battedBallCount} batted balls)`;
+  } else {
+    document.getElementById("weakestPitchType").textContent = "—";
+    document.getElementById("weakestPitchDetail").textContent = "Not enough batted-ball data yet";
+  }
+}
+
+function drawPitchMixChart() {
+  const ctx = document.getElementById("pitchMixChart").getContext("2d");
+  const labels = Object.keys(metricsData.pitchStats);
+  const data = Object.values(metricsData.pitchStats).map(s => s.count);
+  const colors = ["#22d3ee", "#fca5a5", "#86efac", "#fbbf24", "#a78bfa", "#f472b6"];
+
+  pitchMixChart = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels: labels,
+      datasets: [{
+        data: data,
+        backgroundColor: colors.slice(0, labels.length),
+        borderColor: "rgba(15, 23, 42, 0.9)",
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: "bottom",
+          labels: {
+            color: "#e5e7eb",
+            padding: 15,
+            font: { size: 12 }
+          }
+        }
+      }
+    }
+  });
+}
+
+function drawMovementChart() {
+  const ctx = document.getElementById("movementChart").getContext("2d");
+  const datasets = [];
+  const pitchTypes = [];
+  const colors = ["#22d3ee", "#fca5a5", "#86efac", "#fbbf24", "#a78bfa", "#f472b6"];
+  let colorIndex = 0;
+
+  Object.entries(metricsData.pitchStats).forEach(([type, stats]) => {
+    const avgHB = typeof stats.avgHB === 'string' ? parseFloat(stats.avgHB) : stats.avgHB;
+    const avgIVB = typeof stats.avgIVB === 'string' ? parseFloat(stats.avgIVB) : stats.avgIVB;
+
+    if (isNaN(avgHB) || isNaN(avgIVB)) return;
+
+    const color = colors[colorIndex % colors.length];
+    pitchTypes.push(type);
+    datasets.push({
+      label: type,
+      data: [{ x: avgHB, y: avgIVB, pitchType: type, usage: stats.usage }],
+      borderRadius: 50,
+      pointRadius: 10,
+      pointHoverRadius: 12,
+      borderWidth: 2,
+      borderColor: color,
+      backgroundColor: color,
+      pointBackgroundColor: color,
+      pointBorderColor: color
+    });
+    colorIndex++;
+  });
+
+  const chart = new Chart(ctx, {
+    type: "scatter",
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      onClick: (event, elements) => {
+        if (elements.length > 0) {
+          const datasetIndex = elements[0].datasetIndex;
+          const pitchType = pitchTypes[datasetIndex];
+          showMovementDetails(pitchType);
+        }
+      },
+      plugins: {
+        legend: {
+          labels: {
+            color: "#e5e7eb",
+            usePointStyle: true,
+            padding: 15
+          }
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              labels: {
-                color: '#e5e7eb',
-                padding: 15,
-                font: { size: 12 }
-              }
+        tooltip: {
+          backgroundColor: "rgba(15, 23, 42, 0.9)",
+          titleColor: "#22d3ee",
+          bodyColor: "#e5e7eb",
+          borderColor: "rgba(56, 189, 248, 0.5)",
+          borderWidth: 1,
+          callbacks: {
+            title: (context) => context[0].raw.pitchType,
+            label: (context) => {
+              const data = context.raw;
+              return [
+                `HB: ${data.x.toFixed(2)}"`,
+                `IVB: ${data.y.toFixed(2)}"`,
+                `Usage: ${data.usage}%`
+              ];
             }
           }
         }
-      });
-    }
-
-    function drawArsenalTable() {
-      const pitchStats = metricsData.pitchStats || {};
-      const arsenalHtml = Object.entries(pitchStats).map(([type, stats]) => `
-        <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.2);">
-          <td style="padding: 12px; color: #e5e7eb;"><strong>${type}</strong></td>
-          <td style="padding: 12px; text-align: center; color: #e5e7eb;">${stats.count || 0}</td>
-          <td style="padding: 12px; text-align: center; color: #e5e7eb;">${stats.usage || 0}%</td>
-          <td style="padding: 12px; text-align: center; color: #e5e7eb;">${stats.avgVelo || '—'}</td>
-          <td style="padding: 12px; text-align: center; color: #e5e7eb;">${stats.avgSpin || '—'}</td>
-          <td style="padding: 12px; text-align: center; color: #e5e7eb;">${stats.csw || '—'}%</td>
-        </tr>
-      `).join('');
-
-      document.getElementById('arsenalTable').innerHTML = arsenalHtml;
-    }
-
-    let arsenalSortColumn = 'pitch';
-
-    let arsenalSortAsc = true;
-
-    function sortArsenal(column) {
-      const indicators = ['pitch', 'count', 'usage', 'avgVelo', 'avgSpin', 'csw'];
-      indicators.forEach(c => {
-        document.getElementById(`arsenalSort-${c}`).textContent = '';
-      });
-
-      if (arsenalSortColumn === column) {
-        arsenalSortAsc = !arsenalSortAsc;
-      } else {
-        arsenalSortAsc = true;
-      }
-      arsenalSortColumn = column;
-
-      document.getElementById(`arsenalSort-${column}`).textContent = arsenalSortAsc ? '↑' : '↓';
-
-      const pitchStats = metricsData.pitchStats || {};
-      const sorted = Object.entries(pitchStats).sort((a, b) => {
-        const aVal = a[1][column === 'pitch' ? 'type' : column];
-        const bVal = b[1][column === 'pitch' ? 'type' : column];
-
-        if (column === 'pitch') {
-          return arsenalSortAsc ? a[0].localeCompare(b[0]) : b[0].localeCompare(a[0]);
+      },
+      scales: {
+        x: {
+          min: -30,
+          max: 30,
+          title: { display: true, text: "Horizontal Break (inches)", color: "#e5e7eb" },
+          grid: { color: "rgba(148, 163, 184, 0.2)" },
+          ticks: { color: "#e5e7eb" }
+        },
+        y: {
+          min: -20,
+          max: 30,
+          title: { display: true, text: "Induced Vertical Break (inches)", color: "#e5e7eb" },
+          grid: { color: "rgba(148, 163, 184, 0.2)" },
+          ticks: { color: "#e5e7eb" }
         }
+      }
+    }
+  });
+}
 
-        const aNum = parseFloat(aVal) || 0;
-        const bNum = parseFloat(bVal) || 0;
-        return arsenalSortAsc ? aNum - bNum : bNum - aNum;
+function showMovementDetails(pitchType) {
+  const stats = metricsData.pitchStats[pitchType];
+  if (!stats) return;
+
+  alert(`${pitchType} Profile:\nCount: ${stats.count}\nUsage: ${stats.usage}%\nAvg Velo: ${stats.avgVelo} mph\nIVB: ${stats.avgIVB}"\nHB: ${stats.avgHB}"\nZone%: ${stats.zonePercent}%`);
+}
+
+function showError(msg) {
+  document.getElementById("errorMsg").textContent = msg;
+  document.getElementById("errorMsg").style.display = "block";
+  document.getElementById("loading").style.display = "none";
+}
+
+function goHome() {
+  window.location.href = "/dashboard.html";
+}
+
+function goBack() {
+  window.location.href = "/all-pitchers.html";
+}
+
+function selectCount(balls, strikes, event) {
+  const countKey = `${balls}-${strikes}`;
+  const pitchesAtCount = metricsData.allPitches.filter(p => p.balls === balls && p.strikes === strikes);
+
+  if (pitchesAtCount.length === 0) {
+    document.getElementById("countDetails").style.display = "none";
+    return;
+  }
+
+  // Group by pitch type
+  const pitchCounts = {};
+  pitchesAtCount.forEach(p => {
+    const type = p.pitch_type || "?";
+    if (!pitchCounts[type]) {
+      pitchCounts[type] = { count: 0, inZone: 0 };
+    }
+    pitchCounts[type].count++;
+    if (p.x >= 0.3 && p.x <= 0.7 && p.y >= 0.3 && p.y <= 0.7) {
+      pitchCounts[type].inZone++;
+    }
+  });
+
+  // Sort by usage
+  const sorted = Object.entries(pitchCounts).sort((a, b) => b[1].count - a[1].count);
+
+  // Generate pitch breakdown
+  let breakdownHtml = "";
+  sorted.forEach(([type, data]) => {
+    const usage = ((data.count / pitchesAtCount.length) * 100).toFixed(1);
+    const zonePercent = ((data.inZone / data.count) * 100).toFixed(1);
+    breakdownHtml += `
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="width: 100px; color: #e5e7eb; font-weight: 600;">● ${type}</div>
+        <div style="flex: 1; background: rgba(56, 189, 248, 0.2); border-radius: 4px; height: 24px; display: flex; align-items: center; padding: 0 8px;">
+          <div style="background: rgba(56, 189, 248, 0.7); height: 100%; border-radius: 4px; width: ${usage}%; display: flex; align-items: center; justify-content: center;">
+            <span style="font-size: 11px; color: #fff; font-weight: 600;">${usage}%</span>
+          </div>
+        </div>
+        <div style="width: 80px; text-align: right; color: #9ca3af; font-size: 12px;">${zonePercent}% zone</div>
+      </div>
+    `;
+  });
+
+  // Generate insight note
+  let note = "";
+  sorted.forEach(([type, data]) => {
+    const zonePercent = (data.inZone / data.count) * 100;
+    const usage = (data.count / pitchesAtCount.length) * 100;
+
+    if (usage > 40 && zonePercent < 40) {
+      note = `⚠️ SHRINK ZONE — ${type} only ${zonePercent.toFixed(0)}% in zone; waste pitch likely`;
+    } else if (usage > 50 && zonePercent > 80) {
+      note = `🎯 DANGER ZONE — ${type} in zone ${zonePercent.toFixed(0)}% at this count; protect`;
+    } else if (usage > 60) {
+      note = `🔄 PATTERN — ${type} comes ${usage.toFixed(0)}% of the time here`;
+    }
+  });
+
+  if (!note) {
+    note = `📊 Mixed arsenal at ${countKey}`;
+  }
+
+  // Update UI
+  document.getElementById("selectedCount").textContent = countKey;
+  document.getElementById("countPitches").textContent = pitchesAtCount.length;
+  document.getElementById("pitchBreakdown").innerHTML = breakdownHtml;
+  document.getElementById("countNote").textContent = note;
+  document.getElementById("countDetails").style.display = "block";
+}
+
+function populateCountBubbles() {
+  for (let b = 0; b <= 3; b++) {
+    for (let s = 0; s <= 2; s++) {
+      const pitchesAtCount = metricsData.allPitches.filter(p => p.balls === b && p.strikes === s);
+      if (pitchesAtCount.length === 0) continue;
+
+      const pitchCounts = {};
+      pitchesAtCount.forEach(p => {
+        const type = p.pitch_type || "?";
+        pitchCounts[type] = (pitchCounts[type] || 0) + 1;
       });
 
-      const arsenalHtml = sorted.map(([type, stats]) => `
-        <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.2);">
-          <td style="padding: 12px; color: #e5e7eb;"><strong>${type}</strong></td>
-          <td style="padding: 12px; text-align: center; color: #e5e7eb;">${stats.count || 0}</td>
-          <td style="padding: 12px; text-align: center; color: #e5e7eb;">${stats.usage || 0}%</td>
-          <td style="padding: 12px; text-align: center; color: #e5e7eb;">${stats.avgVelo || '—'}</td>
-          <td style="padding: 12px; text-align: center; color: #e5e7eb;">${stats.avgSpin || '—'}</td>
-          <td style="padding: 12px; text-align: center; color: #e5e7eb;">${stats.csw || '—'}%</td>
-        </tr>
-      `).join('');
-
-      document.getElementById('arsenalTable').innerHTML = arsenalHtml;
+      const mostCommon = Object.entries(pitchCounts).sort((a, b) => b[1] - a[1])[0];
+      const elem = document.getElementById(`pitch-${b}-${s}`);
+      if (elem && mostCommon) {
+        elem.textContent = mostCommon[0];
+      }
     }
-  </script>
+  }
+}
+
+let contactQualitySortColumn = 'pitch';
+let contactQualitySortAsc = true;
+
+function sortContactQuality(column) {
+  document.getElementById('contactSort-pitch').textContent = '';
+  document.getElementById('contactSort-bip').textContent = '';
+  document.getElementById('contactSort-avgEV').textContent = '';
+  document.getElementById('contactSort-hardHit').textContent = '';
+  document.getElementById('contactSort-maxEV').textContent = '';
+
+  if (contactQualitySortColumn === column) {
+    contactQualitySortAsc = !contactQualitySortAsc;
+  } else {
+    contactQualitySortAsc = true;
+  }
+  contactQualitySortColumn = column;
+
+  document.getElementById(`contactSort-${column}`).textContent = contactQualitySortAsc ? '↑' : '↓';
+
+  const sorted = Object.entries(metricsData.pitchStats).sort((a, b) => {
+    const aVal = a[1][column === 'pitch' ? 'type' : column];
+    const bVal = b[1][column === 'pitch' ? 'type' : column];
+
+    if (column === 'pitch') {
+      return contactQualitySortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+    }
+
+    const aNum = parseFloat(aVal) || 0;
+    const bNum = parseFloat(bVal) || 0;
+    return contactQualitySortAsc ? aNum - bNum : bNum - aNum;
+  });
+
+  const contactHtml = sorted.map(([type, stats]) => `
+    <tr>
+      <td><strong>${type}</strong></td>
+      <td>${stats.bipCount || 0}</td>
+      <td>${stats.avgEV}</td>
+      <td>${stats.hardHitPercent}%</td>
+      <td>${stats.maxEV}</td>
+    </tr>
+  `).join("");
+  document.getElementById("contactTable").innerHTML = contactHtml;
+}
+
+let arsenalSortColumn = 'pitch';
+let arsenalSortAsc = true;
+
+function sortArsenal(column) {
+  document.getElementById('arsenalSort-pitch').textContent = '';
+  document.getElementById('arsenalSort-count').textContent = '';
+  document.getElementById('arsenalSort-usage').textContent = '';
+  document.getElementById('arsenalSort-avgVelo').textContent = '';
+  document.getElementById('arsenalSort-avgSpin').textContent = '';
+  document.getElementById('arsenalSort-avgIVB').textContent = '';
+  document.getElementById('arsenalSort-avgHB').textContent = '';
+  document.getElementById('arsenalSort-zonePercent').textContent = '';
+  document.getElementById('arsenalSort-csw').textContent = '';
+
+  if (arsenalSortColumn === column) {
+    arsenalSortAsc = !arsenalSortAsc;
+  } else {
+    arsenalSortAsc = true;
+  }
+  arsenalSortColumn = column;
+
+  document.getElementById(`arsenalSort-${column}`).textContent = arsenalSortAsc ? '↑' : '↓';
+
+  const sorted = Object.entries(metricsData.pitchStats).sort((a, b) => {
+    const aVal = a[1][column === 'pitch' ? 'type' : column];
+    const bVal = b[1][column === 'pitch' ? 'type' : column];
+
+    if (column === 'pitch') {
+      return arsenalSortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+    }
+
+    const aNum = parseFloat(aVal) || 0;
+    const bNum = parseFloat(bVal) || 0;
+    return arsenalSortAsc ? aNum - bNum : bNum - aNum;
+  });
+
+  const arsenalHtml = sorted.map(([type, stats]) => `
+    <tr>
+      <td><strong>${type}</strong></td>
+      <td>${stats.count}</td>
+      <td>${stats.usage}%</td>
+      <td>${stats.avgVelo}</td>
+      <td>${stats.avgSpin}</td>
+      <td>${stats.avgIVB}</td>
+      <td>${stats.avgHB}</td>
+      <td>${stats.zonePercent}%</td>
+      <td>${stats.csw}%</td>
+    </tr>
+  `).join("");
+  document.getElementById("arsenalTable").innerHTML = arsenalHtml;
+}
+
+let oozSortColumn = 'pitch';
+let oozSortAsc = true;
+
+function sortOOZ(column) {
+  document.getElementById('oozSort-pitch').textContent = '';
+  document.getElementById('oozSort-total').textContent = '';
+  document.getElementById('oozSort-oozCount').textContent = '';
+  document.getElementById('oozSort-oozPercent').textContent = '';
+  document.getElementById('oozSort-zonePercent').textContent = '';
+
+  if (oozSortColumn === column) {
+    oozSortAsc = !oozSortAsc;
+  } else {
+    oozSortAsc = true;
+  }
+  oozSortColumn = column;
+
+  document.getElementById(`oozSort-${column}`).textContent = oozSortAsc ? '↑' : '↓';
+
+  const sorted = Object.entries(metricsData.pitchStats).sort((a, b) => {
+    const stats_a = a[1];
+    const stats_b = b[1];
+
+    if (column === 'pitch') {
+      return oozSortAsc ? a[0].localeCompare(b[0]) : b[0].localeCompare(a[0]);
+    }
+
+    let aVal, bVal;
+    if (column === 'total') {
+      aVal = stats_a.count;
+      bVal = stats_b.count;
+    } else if (column === 'oozCount') {
+      aVal = stats_a.count - Math.round(stats_a.count * (stats_a.zonePercent / 100));
+      bVal = stats_b.count - Math.round(stats_b.count * (stats_b.zonePercent / 100));
+    } else if (column === 'oozPercent') {
+      aVal = (100 - stats_a.zonePercent);
+      bVal = (100 - stats_b.zonePercent);
+    } else if (column === 'zonePercent') {
+      aVal = stats_a.zonePercent;
+      bVal = stats_b.zonePercent;
+    }
+
+    const aNum = parseFloat(aVal) || 0;
+    const bNum = parseFloat(bVal) || 0;
+    return oozSortAsc ? aNum - bNum : bNum - aNum;
+  });
+
+  const oozHtml = sorted.map(([type, stats]) => {
+    const oozCount = stats.count - Math.round(stats.count * (stats.zonePercent / 100));
+    const oozPercent = (100 - stats.zonePercent).toFixed(1);
+    return `
+      <tr>
+        <td><strong>${type}</strong></td>
+        <td>${stats.count}</td>
+        <td>${oozCount}</td>
+        <td>${oozPercent}%</td>
+        <td>${stats.zonePercent}%</td>
+      </tr>
+    `;
+  }).join("");
+  document.getElementById("oozTable").innerHTML = oozHtml;
+}
+
+let twoStrikeSortColumn = 'pitch';
+let twoStrikeSortAsc = true;
+
+function sortTwoStrike(column) {
+  document.getElementById('twoStrikeSort-pitch').textContent = '';
+  document.getElementById('twoStrikeSort-count').textContent = '';
+  document.getElementById('twoStrikeSort-pct').textContent = '';
+  document.getElementById('twoStrikeSort-csw').textContent = '';
+  document.getElementById('twoStrikeSort-whiffs').textContent = '';
+
+  if (twoStrikeSortColumn === column) {
+    twoStrikeSortAsc = !twoStrikeSortAsc;
+  } else {
+    twoStrikeSortAsc = true;
+  }
+  twoStrikeSortColumn = column;
+
+  document.getElementById(`twoStrikeSort-${column}`).textContent = twoStrikeSortAsc ? '↑' : '↓';
+
+  const sorted = [...metricsData.twoStrikeIntel.breakdown].sort((a, b) => {
+    const aVal = a[column];
+    const bVal = b[column];
+
+    if (column === 'pitch') {
+      return twoStrikeSortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+    }
+
+    const aNum = parseFloat(aVal) || 0;
+    const bNum = parseFloat(bVal) || 0;
+    return twoStrikeSortAsc ? aNum - bNum : bNum - aNum;
+  });
+
+  const twoStrikeHtml = sorted.map(b => `
+    <tr>
+      <td><strong>${b.type}</strong></td>
+      <td>${b.count}</td>
+      <td>${b.pct}%</td>
+      <td>${b.csw}%</td>
+      <td>${b.whiffs}</td>
+    </tr>
+  `).join("");
+  document.getElementById("twoStrikeTable").innerHTML = twoStrikeHtml;
+}
+
+let firstPitchSortColumn = 'pitch';
+let firstPitchSortAsc = true;
+
+function sortFirstPitch(column) {
+  document.getElementById('firstPitchSort-pitch').textContent = '';
+  document.getElementById('firstPitchSort-count').textContent = '';
+  document.getElementById('firstPitchSort-pct').textContent = '';
+  document.getElementById('firstPitchSort-zonePercent').textContent = '';
+
+  if (firstPitchSortColumn === column) {
+    firstPitchSortAsc = !firstPitchSortAsc;
+  } else {
+    firstPitchSortAsc = true;
+  }
+  firstPitchSortColumn = column;
+
+  document.getElementById(`firstPitchSort-${column}`).textContent = firstPitchSortAsc ? '↑' : '↓';
+
+  const sorted = [...metricsData.firstPitchTendencies.breakdown].sort((a, b) => {
+    const aVal = a[column];
+    const bVal = b[column];
+
+    if (column === 'pitch') {
+      return firstPitchSortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+    }
+
+    const aNum = parseFloat(aVal) || 0;
+    const bNum = parseFloat(bVal) || 0;
+    return firstPitchSortAsc ? aNum - bNum : bNum - aNum;
+  });
+
+  const firstPitchHtml = sorted.map(b => `
+    <tr>
+      <td><strong>${b.type}</strong></td>
+      <td>${b.count}</td>
+      <td>${b.pct}%</td>
+      <td>${b.zonePercent}%</td>
+    </tr>
+  `).join("");
+  document.getElementById("firstPitchTable").innerHTML = firstPitchHtml;
+}
+
+let rhhSortColumn = 'pitch';
+let rhhSortAsc = true;
+
+function sortRHH(column) {
+  document.getElementById('rhhSort-pitch').textContent = '';
+  document.getElementById('rhhSort-pct').textContent = '';
+  document.getElementById('rhhSort-avgVelo').textContent = '';
+  document.getElementById('rhhSort-zonePercent').textContent = '';
+  document.getElementById('rhhSort-csw').textContent = '';
+
+  if (rhhSortColumn === column) {
+    rhhSortAsc = !rhhSortAsc;
+  } else {
+    rhhSortAsc = true;
+  }
+  rhhSortColumn = column;
+
+  document.getElementById(`rhhSort-${column}`).textContent = rhhSortAsc ? '↑' : '↓';
+
+  const sorted = [...metricsData.handednessApproach.RHH.breakdown].sort((a, b) => {
+    const aVal = a[column];
+    const bVal = b[column];
+
+    if (column === 'pitch') {
+      return rhhSortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+    }
+
+    const aNum = parseFloat(aVal) || 0;
+    const bNum = parseFloat(bVal) || 0;
+    return rhhSortAsc ? aNum - bNum : bNum - aNum;
+  });
+
+  const rhhHtml = sorted.map(b => `
+    <tr>
+      <td><strong>${b.type}</strong></td>
+      <td>${b.pct}%</td>
+      <td>${b.avgVelo}</td>
+      <td>${b.zonePercent}%</td>
+      <td>${b.csw}%</td>
+    </tr>
+  `).join("");
+  document.getElementById("rhhTable").innerHTML = rhhHtml;
+}
+
+let lhhSortColumn = 'pitch';
+let lhhSortAsc = true;
+
+function sortLHH(column) {
+  document.getElementById('lhhSort-pitch').textContent = '';
+  document.getElementById('lhhSort-pct').textContent = '';
+  document.getElementById('lhhSort-avgVelo').textContent = '';
+  document.getElementById('lhhSort-zonePercent').textContent = '';
+  document.getElementById('lhhSort-csw').textContent = '';
+
+  if (lhhSortColumn === column) {
+    lhhSortAsc = !lhhSortAsc;
+  } else {
+    lhhSortAsc = true;
+  }
+  lhhSortColumn = column;
+
+  document.getElementById(`lhhSort-${column}`).textContent = lhhSortAsc ? '↑' : '↓';
+
+  const sorted = [...metricsData.handednessApproach.LHH.breakdown].sort((a, b) => {
+    const aVal = a[column];
+    const bVal = b[column];
+
+    if (column === 'pitch') {
+      return lhhSortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+    }
+
+    const aNum = parseFloat(aVal) || 0;
+    const bNum = parseFloat(bVal) || 0;
+    return lhhSortAsc ? aNum - bNum : bNum - aNum;
+  });
+
+  const lhhHtml = sorted.map(b => `
+    <tr>
+      <td><strong>${b.type}</strong></td>
+      <td>${b.pct}%</td>
+      <td>${b.avgVelo}</td>
+      <td>${b.zonePercent}%</td>
+      <td>${b.csw}%</td>
+    </tr>
+  `).join("");
+  document.getElementById("lhhTable").innerHTML = lhhHtml;
+}
+
+function generateLocationHeatmaps() {
+  const container = document.getElementById('heatmapsContainer');
+  container.innerHTML = ''; // Clear
+
+  Object.entries(metricsData.pitchStats).forEach(([pitchType, stats]) => {
+    const kde = metricsData.kdeData[pitchType];
+
+    if (!kde) return; // Skip if no KDE data
+
+    // Create div for this heatmap
+    const mapId = `heatmap-${pitchType}`;
+    const mapDiv = document.createElement('div');
+    mapDiv.id = mapId;
+    mapDiv.style.height = '400px';
+    container.appendChild(mapDiv);
+
+    // Create contour trace from KDE data
+    const trace = {
+      x: kde.grid.map(p => p.x),
+      y: kde.grid.map(p => p.y),
+      z: kde.densities,
+      type: 'contour',
+      colorscale: 'RdBu',
+      showscale: true,
+      colorbar: {
+        title: 'Density',
+        thickness: 15,
+        len: 0.7
+      }
+    };
+
+    // Strike zone box (overlay)
+    const strikeZoneX = [-0.83, 0.83, 0.83, -0.83, -0.83];
+    const strikeZoneY = [1.5, 1.5, 3.5, 3.5, 1.5];
+
+    const strikeZoneTrace = {
+      x: strikeZoneX,
+      y: strikeZoneY,
+      type: 'scatter',
+      mode: 'lines',
+      name: 'Strike Zone',
+      line: {
+        color: '#000000',
+        width: 3
+      },
+      hoverinfo: 'none',
+      showlegend: false
+    };
+
+    const layout = {
+      title: `${pitchType} (${metricsData.allPitches.filter(p => p.pitch_type === pitchType).length})`,
+      xaxis: {
+        title: 'Plate X',
+        range: [-2, 2]
+      },
+      yaxis: {
+        title: 'Plate Z',
+        range: [0, 5]
+      },
+      plot_bgcolor: '#001a4d',
+      paper_bgcolor: 'rgba(15, 23, 42, 0.9)',
+      font: { color: '#e5e7eb' },
+      margin: { l: 60, r: 60, t: 60, b: 60 },
+      hovermode: 'closest'
+    };
+
+    const config = {
+      responsive: true,
+      displayModeBar: false
+    };
+
+    Plotly.newPlot(mapId, [trace, strikeZoneTrace], layout, config);
+  });
+}
+
+// ===== 13-BOX STRIKE ZONE HEATMAPS =====
+function get13BoxZone(x, y) {
+  let col, row;
+
+  if (x < -0.83) col = 0;
+  else if (x < 0.83) col = 1;
+  else col = 2;
+
+  if (y < 1.5) row = 3;
+  else if (y < 2.5) row = 2;
+  else if (y < 3.5) row = 1;
+  else row = 0;
+
+  return { row, col };
+}
+
+function generate13BoxHeatmap(title, boxData, colorMode = 'count') {
+  const html = `
+    <div style="background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(148, 163, 184, 0.3); padding: 16px; border-radius: 12px;">
+      <div style="font-size: 13px; font-weight: 600; color: #22d3ee; margin-bottom: 12px; text-align: center;">${title}</div>
+      <table style="width: 100%; border-collapse: collapse;">
+        ${[0, 1, 2, 3].map(row => `
+          <tr>
+            ${[0, 1, 2].map(col => {
+              const box = boxData.find(b => b.row === row && b.col === col);
+              const value = colorMode === 'count' ? box?.count || 0 : box?.hardHitPercent || 0;
+              const color = getBoxColor(value, colorMode);
+              const displayValue = colorMode === 'count' ? value : (box?.hardHitPercent || 0).toFixed(0) + '%';
+
+              return `
+                <td style="
+                  width: 33%;
+                  height: 60px;
+                  background: ${color};
+                  border: 1px solid rgba(148, 163, 184, 0.3);
+                  text-align: center;
+                  vertical-align: middle;
+                  font-weight: 600;
+                  color: ${value > 50 ? '#fff' : '#000'};
+                  font-size: 14px;
+                ">
+                  ${displayValue}
+                </td>
+              `;
+            }).join('')}
+          </tr>
+        `).join('')}
+      </table>
+      ${colorMode === 'count' ? `
+        <div style="font-size: 11px; color: #9ca3af; margin-top: 8px; text-align: center;">
+          Blue = 0 pitches | White = some | Red = many
+        </div>
+      ` : `
+        <div style="font-size: 11px; color: #9ca3af; margin-top: 8px; text-align: center;">
+          Blue = low HH% | White = medium | Red = high HH%
+        </div>
+      `}
+    </div>
+  `;
+
+  return html;
+}
+
+function getBoxColor(value, colorMode) {
+  if (colorMode === 'count') {
+    if (value === 0) return '#1e3a8a';
+    if (value === 1) return '#3b82f6';
+    if (value === 2) return '#60a5fa';
+    if (value === 3) return '#93c5fd';
+    if (value <= 5) return '#e5e7eb';
+    if (value <= 8) return '#fca5a5';
+    if (value <= 12) return '#f87171';
+    if (value <= 15) return '#ef4444';
+    return '#dc2626';
+  } else {
+    if (value < 20) return '#1e3a8a';
+    if (value < 30) return '#3b82f6';
+    if (value < 40) return '#60a5fa';
+    if (value < 50) return '#93c5fd';
+    if (value < 60) return '#e5e7eb';
+    if (value < 70) return '#fca5a5';
+    if (value < 80) return '#f87171';
+    if (value < 90) return '#ef4444';
+    return '#dc2626';
+  }
+}
+
+function render13BoxHeatmaps() {
+  // PART 1: Pitch Location by Type
+  const locationContainer = document.getElementById('thirteenBoxLocation');
+  const locationHtml = Object.entries(metricsData.pitchStats).map(([pitchType, stats]) => {
+    const pitchesOfType = metricsData.allPitches.filter(p => p.pitch_type === pitchType);
+
+    const boxData = [0, 1, 2, 3].flatMap(row =>
+      [0, 1, 2].map(col => ({
+        row,
+        col,
+        count: pitchesOfType.filter(p => {
+          const zone = get13BoxZone(parseFloat(p.x) * 4 - 2, parseFloat(p.y) * 5);
+          return zone.row === row && zone.col === col;
+        }).length
+      }))
+    );
+
+    return generate13BoxHeatmap(`${pitchType} (${pitchesOfType.length})`, boxData, 'count');
+  }).join('');
+  locationContainer.innerHTML = locationHtml;
+
+  // PART 2: Pitch Location by Handedness
+  const handednessContainer = document.getElementById('thirteenBoxHandedness');
+  const handednessHtml = Object.entries(metricsData.pitchStats).map(([pitchType, stats]) => {
+    const rhh = metricsData.allPitches.filter(p => p.pitch_type === pitchType && p.batter_handedness === 'RHH');
+    const lhh = metricsData.allPitches.filter(p => p.pitch_type === pitchType && p.batter_handedness === 'LHH');
+
+    const rhhBoxData = [0, 1, 2, 3].flatMap(row =>
+      [0, 1, 2].map(col => ({
+        row, col,
+        count: rhh.filter(p => {
+          const zone = get13BoxZone(parseFloat(p.x) * 4 - 2, parseFloat(p.y) * 5);
+          return zone.row === row && zone.col === col;
+        }).length
+      }))
+    );
+
+    const lhhBoxData = [0, 1, 2, 3].flatMap(row =>
+      [0, 1, 2].map(col => ({
+        row, col,
+        count: lhh.filter(p => {
+          const zone = get13BoxZone(parseFloat(p.x) * 4 - 2, parseFloat(p.y) * 5);
+          return zone.row === row && zone.col === col;
+        }).length
+      }))
+    );
+
+    return `
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div>${generate13BoxHeatmap(`${pitchType} vs RHH (${rhh.length})`, rhhBoxData, 'count')}</div>
+        <div>${generate13BoxHeatmap(`${pitchType} vs LHH (${lhh.length})`, lhhBoxData, 'count')}</div>
+      </div>
+    `;
+  }).join('');
+  handednessContainer.innerHTML = handednessHtml;
+
+  // PART 3: Contact Quality by Type
+  const contactContainer = document.getElementById('thirteenBoxContact');
+  const contactHtml = Object.entries(metricsData.pitchStats).map(([pitchType, stats]) => {
+    const pitchesOfType = metricsData.allPitches.filter(p => p.pitch_type === pitchType && p.exit_velocity);
+
+    const boxData = [0, 1, 2, 3].flatMap(row =>
+      [0, 1, 2].map(col => {
+        const boxPitches = pitchesOfType.filter(p => {
+          const zone = get13BoxZone(parseFloat(p.x) * 4 - 2, parseFloat(p.y) * 5);
+          return zone.row === row && zone.col === col;
+        });
+
+        const hardHits = boxPitches.filter(p => parseFloat(p.exit_velocity) >= 88.5).length;
+        const hardHitPercent = boxPitches.length > 0 ? (hardHits / boxPitches.length) * 100 : 0;
+
+        return { row, col, count: boxPitches.length, hardHitPercent };
+      })
+    );
+
+    return generate13BoxHeatmap(`${pitchType} Hard Hit % (${pitchesOfType.length} BIP)`, boxData, 'contact');
+  }).join('');
+  contactContainer.innerHTML = contactHtml;
+}
+
+function drawReleasePointChart() {
+  const ctx = document.getElementById("releasePointChart").getContext("2d");
+  const datasets = [];
+  const pitchTypes = [];
+  const colors = ["#22d3ee", "#fca5a5", "#86efac", "#fbbf24", "#a78bfa", "#f472b6"];
+  let colorIndex = 0;
+
+  Object.entries(metricsData.pitchStats).forEach(([type, stats]) => {
+    const pitchesOfType = metricsData.allPitches.filter(p => p.pitch_type === type && p.rel_height && p.rel_side);
+
+    if (pitchesOfType.length === 0) return;
+
+    const color = colors[colorIndex % colors.length];
+    pitchTypes.push(type);
+
+    datasets.push({
+      label: type,
+      data: pitchesOfType.map(p => ({
+        x: parseFloat(p.rel_side),
+        y: parseFloat(p.rel_height),
+        pitchType: type
+      })),
+      borderRadius: 50,
+      pointRadius: 6,
+      pointHoverRadius: 8,
+      borderWidth: 2,
+      borderColor: color,
+      backgroundColor: color,
+      pointBackgroundColor: color,
+      pointBorderColor: color
+    });
+    colorIndex++;
+  });
+
+  new Chart(ctx, {
+    type: "scatter",
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: {
+            color: "#e5e7eb",
+            usePointStyle: true,
+            padding: 15
+          }
+        },
+        tooltip: {
+          backgroundColor: "rgba(15, 23, 42, 0.9)",
+          titleColor: "#22d3ee",
+          bodyColor: "#e5e7eb",
+          borderColor: "rgba(56, 189, 248, 0.5)",
+          borderWidth: 1,
+          callbacks: {
+            title: (context) => context[0].raw.pitchType,
+            label: (context) => {
+              const data = context.raw;
+              return [
+                `Release Side: ${data.x.toFixed(2)} ft`,
+                `Release Height: ${data.y.toFixed(2)} ft`
+              ];
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          min: -5,
+          max: 5,
+          title: { display: true, text: "Release Side (ft)", color: "#e5e7eb" },
+          grid: { color: "rgba(148, 163, 184, 0.2)" },
+          ticks: { color: "#e5e7eb" }
+        },
+        y: {
+          min: 5.0,
+          max: 6.5,
+          title: { display: true, text: "Release Height (ft)", color: "#e5e7eb" },
+          grid: { color: "rgba(148, 163, 184, 0.2)" },
+          ticks: { color: "#e5e7eb" }
+        }
+      }
+    }
+  });
+}
+
+function populateAdvancedStats(m) {
+  const stats = m.advancedStats;
+  if (!stats) return;
+
+  const statsData = [
+    { label: 'ERA', value: stats.era || '—' },
+    { label: 'FIP', value: stats.fip || '—' },
+    { label: 'Strikeouts', value: stats.strikeouts || 0 },
+    { label: 'Walks', value: stats.walks || 0 },
+    { label: 'HBP', value: stats.hbp || 0 },
+    { label: 'Home Runs', value: stats.homeRuns || 0 },
+    { label: 'Innings Pitched', value: stats.inningsPitched || '—' },
+    { label: 'wOBA (opponent)', value: stats.woba || '—' }
+  ];
+
+  const tableHtml = statsData.map(stat => `
+    <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.2);">
+      <td style="padding: 12px; color: #e5e7eb;">${stat.label}</td>
+      <td style="padding: 12px; text-align: right; color: #22d3ee; font-weight: 600;">${stat.value}</td>
+    </tr>
+  `).join('');
+
+  document.getElementById('advancedStatsTable').innerHTML = tableHtml;
+}
+</script>
 </body>
 </html>
