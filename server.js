@@ -1823,7 +1823,15 @@ app.get("/all-pitchers", async (req, res) => {
       })
     );
 
-    res.json({ success: true, pitchers: pitcherStats });
+    const pitchersFormatted = pitcherStats.map(p => ({
+      id: p.pitcher.id,
+      name: p.pitcher.name,
+      pitcher_throws: p.pitcher.pitcher_throws,
+      team: p.pitcher.team
+    }));
+
+    res.json({ success: true, pitchers: pitchersFormatted });
+   
   } catch (err) {
     console.error("All pitchers error:", err);
     res.json({ success: false, error: err.message });
