@@ -1682,12 +1682,17 @@ function calculateArmAngle(pitches) {
   const avgRelHeight = withRelease.reduce((sum, p) => sum + parseFloat(p.rel_height), 0) / withRelease.length;
   const avgRelSide = withRelease.reduce((sum, p) => sum + Math.abs(parseFloat(p.rel_side)), 0) / withRelease.length;
 
-  const ASSUMED_SHOULDER_HEIGHT_FT = 5.5;
+  // Recalibrated against a real known example (5ft release height, 2ft
+  // release side = textbook High 3/4). Without actual pitcher height on
+  // file, this constant can't be exactly right at every arm slot at once —
+  // if you run into another clearly-mislabeled real pitcher, that's a sign
+  // this needs another calibration pass, not a one-time fix.
+  const ASSUMED_SHOULDER_HEIGHT_FT = 1.5;
   const verticalComponent = avgRelHeight - ASSUMED_SHOULDER_HEIGHT_FT;
   const angleDegrees = Math.atan2(verticalComponent, avgRelSide) * (180 / Math.PI);
 
   let classification;
-  if (angleDegrees >= 65) classification = "Over the Top";
+  if (angleDegrees >= 68) classification = "Over the Top";
   else if (angleDegrees >= 45) classification = "High 3/4";
   else if (angleDegrees >= 25) classification = "Low 3/4";
   else if (angleDegrees >= 5) classification = "Side Arm";
