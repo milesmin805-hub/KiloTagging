@@ -955,6 +955,7 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
       const pitcherKey = `${pitcherName}`;
       if (!pitchers.has(pitcherKey)) {
         const pitcherThrows = record.PitcherThrows || null;
+        const pitcherTeam = record.PitcherTeam || null;
         pitchers.set(pitcherKey, { name: pitcherName, team: pitcherTeam, throws: pitcherThrows });
       }
 
@@ -1035,8 +1036,8 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
       } else {
       // Create new pitcher
         const newPitcher = await pool.query(
-          "INSERT INTO pitchers (id, name, pitcher_throws) VALUES ($1, $2, $3) RETURNING id",
-          [crypto.randomUUID(), pitcher.name, pitcher.throws]
+          "INSERT INTO pitchers (id, name, pitcher_throws, team) VALUES ($1, $2, $3, $4) RETURNING id",
+          [crypto.randomUUID(), pitcher.name, pitcher.throws, pitcher.team]
         );
         pitcherId = newPitcher.rows[0].id;
       }
