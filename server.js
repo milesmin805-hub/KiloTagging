@@ -1839,7 +1839,7 @@ app.get("/all-pitchers", async (req, res) => {
 });
 
 // Get aggregated pitcher stats across all sessions
-app.get("/pitcher-report-aggregated/:pitcherId", async (req, res) => {
+app.get("/pitcher-aggregated/:pitcherId", async (req, res) => {
   const { pitcherId } = req.params;
   const token = req.headers.authorization?.split(" ")[1] || req.query.token;
   const user = await verifyToken(token);
