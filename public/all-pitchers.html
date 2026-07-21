@@ -91,13 +91,9 @@
       `).join('');
     }
 
-    function viewPitcherProfile(pitcherId) {
-      const pitcher = allPitchers.find(p => p.id === pitcherId);
-      if (!pitcher) return;
-
-      // Load the full pitcher profile data
-      loadPitcherProfileData(pitcherId);
-    }
+function viewPitcherProfile(pitcherId) {
+  window.location.href = `/pitcher-report.html?pitcherId=${pitcherId}&view=aggregated`;
+}
 
     async function loadPitcherProfileData(pitcherId) {
       try {
