@@ -92,9 +92,8 @@
     }
 
 function viewPitcherProfile(pitcherId) {
-  window.location.href = `/pitcher-report.html?pitcherId=${pitcherId}&view=aggregated`;
+  window.location.href = `/pitcher-report-aggregated.html?pitcherId=${pitcherId}`;
 }
-
     async function loadPitcherProfileData(pitcherId) {
       try {
         const token = localStorage.getItem('token');
