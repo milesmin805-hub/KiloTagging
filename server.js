@@ -132,8 +132,22 @@ async function initializeDatabase() {
       ALTER TABLE pitches ADD COLUMN IF NOT EXISTS clip_start_time BIGINT DEFAULT NULL;
     `);
 
-    await pool.query(`
+   await pool.query(`
       ALTER TABLE pitches ADD COLUMN IF NOT EXISTS clip_end_time BIGINT DEFAULT NULL;
+    `);
+
+    // Strikeout/walk flag, batted-ball outcome, and runs scored — needed for
+    // the Advanced Stats (K/BB/HBP/HR/ERA/FIP) calculations to actually work.
+    await pool.query(`
+      ALTER TABLE pitches ADD COLUMN IF NOT EXISTS kor_bb VARCHAR(20) DEFAULT NULL;
+    `);
+
+    await pool.query(`
+      ALTER TABLE pitches ADD COLUMN IF NOT EXISTS play_result VARCHAR(50) DEFAULT NULL;
+    `);
+
+    await pool.query(`
+      ALTER TABLE pitches ADD COLUMN IF NOT EXISTS runs_scored INTEGER DEFAULT NULL;
     `);
 
     await pool.query(`
@@ -993,8 +1007,11 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
       const spinRate = record.SpinRate ? parseInt(record.SpinRate) : null;
       const ivb = record.InducedVertBreak ? parseFloat(record.InducedVertBreak) : null;
       const hb = record.HorzBreak ? parseFloat(record.HorzBreak) : null;
-      const batterHandedness = record.BatterSide ? (record.BatterSide === "Left" ? "LHH" : "RHH") : null;
+const batterHandedness = record.BatterSide ? (record.BatterSide === "Left" ? "LHH" : "RHH") : null;
       const exitVelocity = record.ExitSpeed ? parseInt(record.ExitSpeed) : null;
+      const korBB = record.KorBB || null;
+      const playResult = record.PlayResult || null;
+      const runsScored = record.RunsScored ? parseInt(record.RunsScored) : null;
 
       pitchesToInsert.push({
         pitcherName,
@@ -1012,7 +1029,10 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
         relHeight: relHeight,
         relSide: relSide,
         batterHandedness,
-        exitVelocity
+        exitVelocity,
+        korBB,
+        playResult,
+        runsScored
       });
     }
 
@@ -1057,9 +1077,9 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
     for (const pitch of pitchesToInsert) {
       const pitcherId = pitcherMap[pitch.pitcherName];
 
-      await pool.query(
-        `INSERT INTO pitches (id, session_id, pitcher_id, pitch_type, balls, strikes, result, x, y, mph, spin_rate, ivb, hb, extension, rel_height, rel_side, batter_handedness, exit_velocity, csv_import_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)`,
+await pool.query(
+        `INSERT INTO pitches (id, session_id, pitcher_id, pitch_type, balls, strikes, result, x, y, mph, spin_rate, ivb, hb, extension, rel_height, rel_side, batter_handedness, exit_velocity, csv_import_id, kor_bb, play_result, runs_scored)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)`,
         [
           crypto.randomUUID(),
           sessionId,
@@ -1079,7 +1099,10 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
           pitch.relSide,
           pitch.batterHandedness,
           pitch.exitVelocity,
-          csvImportId
+          csvImportId,
+          pitch.korBB,
+          pitch.playResult,
+          pitch.runsScored
         ]
       );
     }
@@ -1233,21 +1256,20 @@ function calculateAdvancedStats(allPitches) {
   // Count outcomes
   let strikeouts = 0, walks = 0, hbp = 0, homeRuns = 0, runsAllowed = 0;
 
-  allPitches.forEach(p => {
-    // Strikeouts
-    if (p.result === 'Strikeout' || (p.pitch_call && p.pitch_call.includes('Strikeout'))) {
+allPitches.forEach(p => {
+    // Strikeouts / walks — Trackman's KorBB column, "Strikeout" or "Walk"
+    if (p.kor_bb === 'Strikeout') {
       strikeouts++;
     }
-    // Walks
-    if (p.result === 'Walk' || (p.pitch_call && p.pitch_call.includes('BallCalled'))) {
+    if (p.kor_bb === 'Walk') {
       walks++;
     }
-    // HBP
-    if (p.pitch_call === 'HitByPitch') {
+    // HBP — already captured correctly via the existing result column
+    if (p.result === 'HBP') {
       hbp++;
     }
-    // Home Runs
-    if (p.play_result === 'HomeRun') {
+    // Home Runs — Trackman's PlayResult is "Homerun" (one word, lowercase r)
+    if (p.play_result === 'Homerun') {
       homeRuns++;
     }
     // Runs allowed
