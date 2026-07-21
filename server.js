@@ -1878,6 +1878,27 @@ app.get("/pitcher-aggregated/:pitcherId", async (req, res) => {
     const metrics = await calculatePitcherMetrics(null, pitcherId, allPitches);
     const advancedStats = calculateAdvancedStats(allPitches);
 
+    // Calculate full metrics
+    const pitchStats = {};
+    const pitchGroups = {};
+    
+    allPitches.forEach(p => {
+      const type = p.pitch_type || '?';
+      if (!pitchGroups[type]) pitchGroups[type] = [];
+      pitchGroups[type].push(p);
+    });
+
+    Object.entries(pitchGroups).forEach(([type, typePitches]) => {
+      const count = typePitches.length;
+      const usage = ((count / allPitches.length) * 100).toFixed(1);
+      const avgVelo = (typePitches.reduce((sum, p) => sum + (parseInt(p.mph) || 0), 0) / count).toFixed(0);
+      const avgSpin = (typePitches.reduce((sum, p) => sum + (parseInt(p.spin_rate) || 0), 0) / count).toFixed(0);
+      const csw = typePitches.filter(p => p.result === 'Strike' || p.result === 'Strikeout').length;
+      const cswPercent = ((csw / count) * 100).toFixed(1);
+
+      pitchStats[type] = { count, usage, avgVelo, avgSpin, csw: cswPercent };
+    });
+
     res.json({
       success: true,
       metrics: {
@@ -1885,9 +1906,11 @@ app.get("/pitcher-aggregated/:pitcherId", async (req, res) => {
         pitcherThrows: pitcherResult.rows[0].pitcher_throws,
         totalPitches: allPitches.length,
         peakVelo: Math.max(...allPitches.map(p => parseInt(p.mph) || 0)),
+        pitchStats: pitchStats,
         advancedStats: advancedStats
       }
     });
+   
   } catch (err) {
     console.error("Pitcher aggregated error:", err);
     res.json({ success: false, error: err.message });
