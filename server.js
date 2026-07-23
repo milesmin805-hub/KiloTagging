@@ -150,6 +150,22 @@ async function initializeDatabase() {
       ALTER TABLE pitches ADD COLUMN IF NOT EXISTS runs_scored INTEGER DEFAULT NULL;
     `);
 
+   // Hitters table — mirrors pitchers, one row per batter identity
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS hitters (
+        id UUID PRIMARY KEY,
+        name VARCHAR(255) NOT NULL UNIQUE,
+        bats VARCHAR(10) DEFAULT NULL,
+        team VARCHAR(255) DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Links each pitch to the batter who faced it, alongside the existing pitcher_id
+    await pool.query(`
+      ALTER TABLE pitches ADD COLUMN IF NOT EXISTS batter_id UUID REFERENCES hitters(id) DEFAULT NULL;
+    `);
+
     await pool.query(`
       CREATE TABLE IF NOT EXISTS clips (
         id UUID PRIMARY KEY,
@@ -951,8 +967,9 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
     }
 
     const pitchers = new Map(); // Track unique pitchers
+    const hitters = new Map(); // Track unique hitters
     const pitchesToInsert = [];
-
+    
     // Process each record
     for (const record of records) {
       const pitcherName = record.Pitcher?.trim();
@@ -971,6 +988,14 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
         const pitcherThrows = record.PitcherThrows || null;
         const pitcherTeam = record.PitcherTeam || null;
         pitchers.set(pitcherKey, { name: pitcherName, team: pitcherTeam, throws: pitcherThrows });
+      }
+
+      // Track hitter (same row already has the batter's info alongside the pitcher's)
+      const batterName = record.Batter?.trim();
+      if (batterName && !hitters.has(batterName)) {
+        const batterBats = record.BatterSide || null;
+        const batterTeam = record.BatterTeam || null;
+        hitters.set(batterName, { name: batterName, team: batterTeam, bats: batterBats });
       }
 
       // Normalize coordinates (Trackman feet → 0-1 scale)
@@ -1013,8 +1038,9 @@ const batterHandedness = record.BatterSide ? (record.BatterSide === "Left" ? "LH
       const playResult = record.PlayResult || null;
       const runsScored = record.RunsScored ? parseInt(record.RunsScored) : null;
 
-      pitchesToInsert.push({
+pitchesToInsert.push({
         pitcherName,
+        batterName,
         pitchType,
         balls,
         strikes,
@@ -1065,6 +1091,29 @@ const batterHandedness = record.BatterSide ? (record.BatterSide === "Left" ? "LH
       pitcherMap[pitcher.name] = pitcherId;
     }
 
+    // Create hitter records (same find-or-create pattern as pitchers)
+    const hitterMap = {}; // hitter name → hitter_id
+
+    for (const [key, hitter] of hitters.entries()) {
+      const existing = await pool.query(
+        "SELECT id FROM hitters WHERE name = $1",
+        [hitter.name]
+      );
+
+      let hitterId;
+      if (existing.rows.length > 0) {
+        hitterId = existing.rows[0].id;
+      } else {
+        const newHitter = await pool.query(
+          "INSERT INTO hitters (id, name, bats, team) VALUES ($1, $2, $3, $4) RETURNING id",
+          [crypto.randomUUID(), hitter.name, hitter.bats, hitter.team]
+        );
+        hitterId = newHitter.rows[0].id;
+      }
+
+      hitterMap[hitter.name] = hitterId;
+    }
+
     // Create CSV import record
     const csvImportId = crypto.randomUUID();
     await pool.query(
@@ -1076,14 +1125,16 @@ const batterHandedness = record.BatterSide ? (record.BatterSide === "Left" ? "LH
     // Insert all pitches
     for (const pitch of pitchesToInsert) {
       const pitcherId = pitcherMap[pitch.pitcherName];
+      const batterId = pitch.batterName ? hitterMap[pitch.batterName] : null;
 
-await pool.query(
-        `INSERT INTO pitches (id, session_id, pitcher_id, pitch_type, balls, strikes, result, x, y, mph, spin_rate, ivb, hb, extension, rel_height, rel_side, batter_handedness, exit_velocity, csv_import_id, kor_bb, play_result, runs_scored)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)`,
+      await pool.query(
+        `INSERT INTO pitches (id, session_id, pitcher_id, batter_id, pitch_type, balls, strikes, result, x, y, mph, spin_rate, ivb, hb, extension, rel_height, rel_side, batter_handedness, exit_velocity, csv_import_id, kor_bb, play_result, runs_scored)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)`,
         [
           crypto.randomUUID(),
           sessionId,
           pitcherId,
+          batterId,
           pitch.pitchType,
           pitch.balls,
           pitch.strikes,
@@ -1945,6 +1996,41 @@ app.get("/all-pitchers", async (req, res) => {
 
   } catch (err) {
     console.error("All pitchers error:", err);
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// Get all hitters with sessions belonging to this user (mirrors /all-pitchers)
+app.get("/all-hitters", async (req, res) => {
+  const token = req.headers.authorization?.split(" ")[1] || req.query.token;
+  const user = await verifyToken(token);
+
+  if (!user) {
+    return res.json({ success: false, error: "Invalid token" });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT DISTINCT h.id, h.name, h.bats, h.team
+       FROM hitters h
+       JOIN pitches pt ON h.id = pt.batter_id
+       JOIN sessions s ON pt.session_id = s.id
+       WHERE s.user_id = $1
+       ORDER BY h.name`,
+      [user.id]
+    );
+
+    const hittersFormatted = result.rows.map(h => ({
+      id: h.id,
+      name: h.name,
+      bats: h.bats,
+      team: h.team
+    }));
+
+    res.json({ success: true, hitters: hittersFormatted });
+
+  } catch (err) {
+    console.error("All hitters error:", err);
     res.json({ success: false, error: err.message });
   }
 });
