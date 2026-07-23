@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Kilo - Hitters</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #050816;
+      color: #e5e7eb;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 16px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.15), transparent 55%);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #22d3ee, #0f172a);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .brand-text .title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .brand-text .subtitle {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .btn {
+      padding: 8px 12px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      background: rgba(15, 23, 42, 0.9);
+      color: #e5e7eb;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.15s ease;
+    }
+
+    .btn:hover {
+      border-color: rgba(56, 189, 248, 0.9);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+    }
+
+    main {
+      flex: 1;
+      padding: 20px;
+      max-width: 1000px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .page-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .page-header h1 {
+      font-size: 28px;
+      color: #22d3ee;
+      margin-bottom: 6px;
+    }
+
+    .page-header p {
+      font-size: 13px;
+      color: #9ca3af;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #9ca3af;
+    }
+
+    .error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      color: #fca5a5;
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .hitter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .hitter-card {
+      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), #020617);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 12px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .hitter-card:hover {
+      border-color: rgba(56, 189, 248, 0.9);
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+      transform: translateY(-4px);
+    }
+
+    .hitter-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: #e5e7eb;
+      margin-bottom: 8px;
+    }
+
+    .hitter-meta {
+      font-size: 12px;
+      color: #9ca3af;
+      display: flex;
+      gap: 10px;
+    }
+
+    .hitter-meta span strong {
+      color: #22d3ee;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #9ca3af;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand" onclick="goHome()">
+      <div class="brand-mark">⚾</div>
+      <div class="brand-text">
+        <div class="title">Kilo</div>
+        <div class="subtitle">Baseball</div>
+      </div>
+    </div>
+    <button class="btn" onclick="goHome()">← Home</button>
+  </header>
+
+  <main>
+    <div class="page-header">
+      <h1>Hitters</h1>
+      <p>All hitters tracked across your sessions</p>
+    </div>
+
+    <div class="loading" id="loading">Loading hitters...</div>
+    <div id="errorMsg" class="error" style="display: none;"></div>
+    <div id="hitterGrid" class="hitter-grid" style="display: none;"></div>
+    <div id="emptyState" class="empty-state" style="display: none;">
+      No hitters tracked yet — upload a CSV with batter data to get started.
+    </div>
+  </main>
+
+  <script>
+    window.addEventListener("load", () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        window.location.href = "/login.html";
+        return;
+      }
+      loadHitters();
+    });
+
+    async function loadHitters() {
+      const token = localStorage.getItem("token");
+
+      try {
+        const res = await fetch(`/all-hitters?token=${token}`);
+        const data = await res.json();
+
+        document.getElementById("loading").style.display = "none";
+
+        if (!data.success) {
+          showError("Failed to load hitters: " + data.error);
+          return;
+        }
+
+        if (data.hitters.length === 0) {
+          document.getElementById("emptyState").style.display = "block";
+          return;
+        }
+
+        const grid = document.getElementById("hitterGrid");
+        grid.innerHTML = data.hitters.map(h => `
+          <div class="hitter-card" onclick="viewHitterReport('${h.id}')">
+            <div class="hitter-name">${h.name}</div>
+            <div class="hitter-meta">
+              <span>Bats: <strong>${h.bats || "—"}</strong></span>
+              <span>${h.team || ""}</span>
+            </div>
+          </div>
+        `).join("");
+        grid.style.display = "grid";
+
+      } catch (err) {
+        document.getElementById("loading").style.display = "none";
+        showError("Error: " + err.message);
+      }
+    }
+
+    function showError(msg) {
+      const el = document.getElementById("errorMsg");
+      el.textContent = msg;
+      el.style.display = "block";
+    }
+
+    function viewHitterReport(hitterId) {
+      // Hitter report page isn't built yet — this is milestone 1 (data + list only).
+      alert("Hitter reports are coming in the next milestone — this hitter's data is being tracked already.");
+    }
+
+    function goHome() {
+      window.location.href = "/dashboard.html";
+    }
+  </script>
+</body>
+</html>
