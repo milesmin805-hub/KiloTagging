@@ -2662,6 +2662,15 @@ app.get("/debug/extension", async (req, res) => {
     res.json({ error: err.message });
   }
 });
+
+app.get("/debug/results", async (req, res) => {
+  try {
+    const result = await pool.query('SELECT DISTINCT result FROM pitches ORDER BY result');
+    res.json(result.rows);
+  } catch (err) {
+    res.json({ error: err.message });
+  }
+});
 // ======================================
 // START SERVER
 // ======================================
