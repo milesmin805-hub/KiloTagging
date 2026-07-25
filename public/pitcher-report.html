@@ -847,6 +847,53 @@
     let currentSessionId = null;
     let currentPitcherId = null;
     let metricsData = null;
+
+function renderUnknownPitchDropdown() {
+  return `<select onchange="reclassifyUnknownPitch(this.value)" style="background:#0f172a; color:#fca5a5; border:1px solid rgba(252,165,165,0.5); border-radius:4px; padding:2px 4px; font-size:12px;">
+    <option value="">? (click to fix)</option>
+    <option value="FB">FB - Fastball</option>
+    <option value="SN">SN - Sinker</option>
+    <option value="CT">CT - Cutter</option>
+    <option value="SL">SL - Slider</option>
+    <option value="CB">CB - Curveball</option>
+    <option value="CH">CH - Changeup</option>
+    <option value="SP">SP - Splitter</option>
+    <option value="KN">KN - Knuckleball</option>
+  </select>`;
+}
+
+async function reclassifyUnknownPitch(newType) {
+  if (!newType) return;
+
+  const confirmed = confirm(`Reclassify every "?" pitch for this pitcher as ${newType}? You can still fix an individual pitch back later if one was wrong.`);
+  if (!confirmed) return;
+
+  const token = localStorage.getItem("token");
+  const body = { token, newPitchType: newType };
+  if (typeof currentSessionId !== "undefined" && currentSessionId) {
+    body.sessionId = currentSessionId;
+  }
+
+  try {
+    const res = await fetch(`/pitcher/${currentPitcherId}/reclassify-unknown`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+
+    if (!data.success) {
+      alert("Failed to reclassify: " + data.error);
+      return;
+    }
+
+    alert(`Updated ${data.updatedCount} pitch(es) to ${newType}.`);
+    loadReport();
+  } catch (err) {
+    alert("Error reclassifying pitch: " + err.message);
+  }
+}
+
     let pitchMixChart = null;
     let movementChart = null;
 
@@ -921,10 +968,10 @@
       document.getElementById("pitcherHand").textContent = m.pitcherThrows ? 
         (m.pitcherThrows === "Left" ? "Left" : "Right") : "—";
 
-      // Arsenal table
+           // Arsenal table
       const arsenalHtml = Object.entries(m.pitchStats).map(([type, stats]) => `
         <tr>
-          <td><strong>${type}</strong></td>
+          <td>${type === "?" ? renderUnknownPitchDropdown() : `<strong>${type}</strong>`}</td>
           <td>${stats.count}</td>
           <td>${stats.usage}%</td>
           <td>${stats.avgVelo}</td>
