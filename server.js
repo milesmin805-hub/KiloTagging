@@ -982,13 +982,20 @@ app.post("/upload-csv", upload.single("csv"), async (req, res) => {
         continue;
       }
 
-      // Track pitcher
+      // Track pitcher — keep backfilling throws/team if a later row has data
+      // that an earlier row for this same pitcher was missing (Trackman
+      // exports sometimes have incomplete metadata on a pitcher's first row).
       const pitcherKey = `${pitcherName}`;
+      const pitcherThrows = record.PitcherThrows || null;
+      const pitcherTeam = record.PitcherTeam || null;
       if (!pitchers.has(pitcherKey)) {
-        const pitcherThrows = record.PitcherThrows || null;
-        const pitcherTeam = record.PitcherTeam || null;
         pitchers.set(pitcherKey, { name: pitcherName, team: pitcherTeam, throws: pitcherThrows });
+      } else {
+        const existingPitcher = pitchers.get(pitcherKey);
+        if (!existingPitcher.throws && pitcherThrows) existingPitcher.throws = pitcherThrows;
+        if (!existingPitcher.team && pitcherTeam) existingPitcher.team = pitcherTeam;
       }
+
 
       // Track hitter (same row already has the batter's info alongside the pitcher's)
       const batterName = record.Batter?.trim();
@@ -1079,6 +1086,17 @@ pitchesToInsert.push({
       let pitcherId;
       if (existing.rows.length > 0) {
         pitcherId = existing.rows[0].id;
+
+        // Backfill throws/team only where the existing record is missing
+        // them — COALESCE keeps whatever's already there and only fills a
+        // NULL, so this never overwrites already-correct data.
+        await pool.query(
+          `UPDATE pitchers SET
+             pitcher_throws = COALESCE(pitcher_throws, $1),
+             team = COALESCE(team, $2)
+           WHERE id = $3`,
+          [pitcher.throws, pitcher.team, pitcherId]
+        );
       } else {
         // Create new pitcher
         const newPitcher = await pool.query(
