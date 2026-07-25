@@ -2018,7 +2018,59 @@ app.get("/all-pitchers", async (req, res) => {
   }
 });
 
+// Bulk-reclassify every "?" pitch for a pitcher to a real pitch type. If
+// sessionId is provided, scoped to just that session; otherwise scoped to
+// every session this user owns for that pitcher (career-wide).
+app.patch("/pitcher/:pitcherId/reclassify-unknown", async (req, res) => {
+  const { pitcherId } = req.params;
+  const { token, newPitchType, sessionId } = req.body;
+
+  const user = await verifyToken(token);
+  if (!user) {
+    return res.json({ success: false, error: "Invalid token" });
+  }
+
+  if (!newPitchType) {
+    return res.json({ success: false, error: "Missing newPitchType" });
+  }
+
+  try {
+    let result;
+    if (sessionId) {
+      const sessionCheck = await pool.query(
+        "SELECT id FROM sessions WHERE id = $1 AND user_id = $2",
+        [sessionId, user.id]
+      );
+      if (sessionCheck.rows.length === 0) {
+        return res.json({ success: false, error: "Session not found" });
+      }
+
+      result = await pool.query(
+        `UPDATE pitches SET pitch_type = $1
+         WHERE pitcher_id = $2 AND pitch_type = '?' AND session_id = $3
+         RETURNING id`,
+        [newPitchType, pitcherId, sessionId]
+      );
+    } else {
+      result = await pool.query(
+        `UPDATE pitches SET pitch_type = $1
+         WHERE pitcher_id = $2 AND pitch_type = '?'
+           AND session_id IN (SELECT id FROM sessions WHERE user_id = $3)
+         RETURNING id`,
+        [newPitchType, pitcherId, user.id]
+      );
+    }
+
+    res.json({ success: true, updatedCount: result.rows.length });
+
+  } catch (err) {
+    console.error("Reclassify unknown pitch error:", err);
+    res.json({ success: false, error: err.message });
+  }
+});
+
 // Get all hitters with sessions belonging to this user (mirrors /all-pitchers)
+
 app.get("/all-hitters", async (req, res) => {
   const token = req.headers.authorization?.split(" ")[1] || req.query.token;
   const user = await verifyToken(token);
