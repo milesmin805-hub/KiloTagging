@@ -865,7 +865,20 @@ const storage = multer.diskStorage({
   }
 });
 
+const csvStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(__dirname, "uploads");
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, Date.now() + ext);
+  }
+});
+
 const upload = multer({ storage });
+const csvUpload = multer({ storage: csvStorage });
 
 app.post("/uploadClip", upload.single("clip"), (req, res) => {
   const webmPath = req.file.path;
@@ -928,14 +941,172 @@ app.get("/", (req, res) => {
 // CSV UPLOAD & PARSING
 // ======================================
 const csv = require("csv-parse/sync");
+const xlsx = require("xlsx");
 
-app.post("/upload-csv", upload.single("csv"), async (req, res) => {
+// ======================================
+// RAPSODO HELPERS
+// ======================================
+
+// Detects whether an uploaded file is from Rapsodo or Trackman based on
+// its header row — so you can upload either format without doing anything special.
+function detectFileSource(headers) {
+  if (headers.includes("Pitch TotalSpeed (MPH)") || headers.includes("Pitcher First Name")) return "rapsodo";
+  if (headers.includes("RelSpeed") || headers.includes("Pitcher")) return "trackman";
+  return "unknown";
+}
+
+// Rapsodo uses its own pitch-type shortcodes (FA, CU, etc.) that differ
+// from Trackman's verbose labels (FourSeamFastBall, Curveball, etc.)
+function mapRapsodoPitchType(rapsodoType) {
+  if (!rapsodoType) return "?";
+  const t = rapsodoType.trim().toUpperCase();
+  const map = {
+    "FA": "FB", "FF": "FB", "FT": "SN", "SI": "SN",
+    "FC": "CT", "SL": "SL", "CU": "CB", "KC": "CB",
+    "CH": "CH", "FS": "SP", "KN": "KN", "SC": "SL"
+  };
+  return map[t] || "?";
+}
+
+// Rapsodo coordinates are in inches; normalize to the same 0-1 scale
+// Trackman uses, so all downstream metrics work identically regardless of source.
+function normalizeRapsodoCoords(sideInches, heightInches) {
+  const sideFeet = parseFloat(sideInches) / 12;
+  const heightFeet = parseFloat(heightInches) / 12;
+  const x = Math.max(0, Math.min(1, (sideFeet + 2.0) / 5.2));
+  const y = Math.max(0, Math.min(1, heightFeet / 5.0));
+  return { x, y };
+}
+
+// Parses a Rapsodo .xlsx export into the same pitch-object shape that the
+// Trackman CSV path produces, so one insert loop handles both.
+function parseRapsodoXlsx(filePath) {
+  const workbook = xlsx.readFile(filePath);
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const rows = xlsx.utils.sheet_to_json(sheet, { defval: null });
+
+  const pitchers = new Map();
+  const hitters = new Map();
+  const pitchesToInsert = [];
+
+  rows.forEach(record => {
+    const pitcherFirst = record["Pitcher First Name"]?.toString().trim();
+    const pitcherLast = record["Pitcher Last Name"]?.toString().trim();
+    if (!pitcherFirst && !pitcherLast) return;
+    const pitcherName = `${pitcherFirst || ""} ${pitcherLast || ""}`.trim();
+
+    const speed = record["Pitch TotalSpeed (MPH)"];
+    if (!speed || speed === "-" || isNaN(parseFloat(speed))) return; // skip rows with no real pitch data
+
+    const pitcherThrows = record["Pitch Throws"] === "L" ? "Left" : record["Pitch Throws"] === "R" ? "Right" : null;
+    if (!pitchers.has(pitcherName)) {
+      pitchers.set(pitcherName, { name: pitcherName, team: null, throws: pitcherThrows });
+    } else {
+      const ep = pitchers.get(pitcherName);
+      if (!ep.throws && pitcherThrows) ep.throws = pitcherThrows;
+    }
+
+    const hitterFirst = record["Hitter First Name"]?.toString().trim();
+    const hitterLast = record["Hitter Last Name"]?.toString().trim();
+    const batterName = hitterFirst || hitterLast ? `${hitterFirst || ""} ${hitterLast || ""}`.trim() : null;
+    const batterBats = record["Hit Bats"] === "L" ? "LHH" : record["Hit Bats"] === "R" ? "RHH" : null;
+    if (batterName && !hitters.has(batterName)) {
+      hitters.set(batterName, { name: batterName, team: null, bats: batterBats });
+    }
+
+    const sideRaw = record["Strike Zone Side (Inches)"];
+    const heightRaw = record["Strike Zone Height (Inches)"];
+    const hasCords = sideRaw && sideRaw !== "-" && heightRaw && heightRaw !== "-";
+    const { x, y } = hasCords ? normalizeRapsodoCoords(sideRaw, heightRaw) : { x: null, y: null };
+
+    const hb = record["Pitch HorizontalBreakSpin (Inches)"];
+    const vb = record["Pitch VerticalBreakSpin (Inches)"];
+    const evRaw = record["Hit TotalSpeed (MPH)"];
+
+    pitchesToInsert.push({
+      pitcherName,
+      batterName,
+      pitchType: mapRapsodoPitchType(record["Pitch Type"]),
+      balls: null,
+      strikes: null,
+      result: null, // Rapsodo doesn't track pitch call (ball/strike) per pitch
+      x,
+      y,
+      mph: parseFloat(speed) || null,
+      spinRate: record["Pitch TotalSpin (RPM)"] && record["Pitch TotalSpin (RPM)"] !== "-" ? parseInt(record["Pitch TotalSpin (RPM)"]) : null,
+      ivb: vb && vb !== "-" && parseFloat(vb) !== 0 ? parseFloat(vb) : null,
+      hb: hb && hb !== "-" && parseFloat(hb) !== 0 ? parseFloat(hb) : null,
+      extension: null,
+      relHeight: record["Pitch ReleaseHeight (Feet)"] && record["Pitch ReleaseHeight (Feet)"] !== "-" ? parseFloat(record["Pitch ReleaseHeight (Feet)"]) : null,
+      relSide: record["Pitch ReleaseSide (Feet)"] && record["Pitch ReleaseSide (Feet)"] !== "-" ? parseFloat(record["Pitch ReleaseSide (Feet)"]) : null,
+      batterHandedness: batterBats,
+      exitVelocity: evRaw && evRaw !== "-" && parseFloat(evRaw) > 0 ? parseInt(evRaw) : null,
+      korBB: null,
+      playResult: null,
+      runsScored: null
+    });
+  });
+
+  return { pitchers, hitters, pitchesToInsert };
+}
+
+app.post("/upload-csv", csvUpload.single("csv"), async (req, res) => {
   const file = req.file;
   const { sessionId, token } = req.body;
 
-   if (!file) {
+  if (!file) {
     return res.json({ success: false, error: "No file received - check upload" });
   }
+
+  const user = await verifyToken(token);
+  if (!user) {
+    return res.json({ success: false, error: "Invalid token" });
+  }
+
+  const sessionCheck = await pool.query(
+    "SELECT id FROM sessions WHERE id = $1 AND user_id = $2",
+    [sessionId, user.id]
+  );
+  if (sessionCheck.rows.length === 0) {
+    return res.json({ success: false, error: "Session not found" });
+  }
+
+  try {
+    let pitchers, hitters, pitchesToInsert;
+
+    const ext = path.extname(file.originalname).toLowerCase();
+
+    if (ext === ".xlsx") {
+      // ===== RAPSODO PATH =====
+      const parsed = parseRapsodoXlsx(file.path);
+      pitchers = parsed.pitchers;
+      hitters = parsed.hitters;
+      pitchesToInsert = parsed.pitchesToInsert;
+    } else {
+      // ===== TRACKMAN PATH (existing logic) =====
+      const fileContent = fs.readFileSync(file.path, "utf8");
+      const records = csv.parse(fileContent, {
+        columns: true,
+        skip_empty_lines: true,
+        trim: true
+      });
+
+      if (records.length === 0) {
+        return res.json({ success: false, error: "CSV is empty" });
+      }
+
+      // Detect source from headers just in case a Trackman CSV comes in
+      const headers = Object.keys(records[0]);
+      const source = detectFileSource(headers);
+      if (source === "unknown") {
+        return res.json({ success: false, error: "Unrecognized CSV format — expected Trackman or Rapsodo headers" });
+      }
+
+      pitchers = new Map();
+      hitters = new Map();
+      pitchesToInsert = [];
+
+      for (const record of records) {
 
   // Auth check
   const user = await verifyToken(token);
