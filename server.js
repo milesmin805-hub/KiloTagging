@@ -1158,7 +1158,6 @@ app.post("/upload-csv", csvUpload.single("csv"), async (req, res) => {
       // exports sometimes have incomplete metadata on a pitcher's first row).
       const pitcherKey = `${pitcherName}`;
       const pitcherThrows = record.PitcherThrows || null;
-      const pitcherTeam = record.PitcherTeam || null;
       if (!pitchers.has(pitcherKey)) {
         pitchers.set(pitcherKey, { name: pitcherName, team: pitcherTeam, throws: pitcherThrows });
       } else {
