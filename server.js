@@ -136,6 +136,10 @@ async function initializeDatabase() {
       ALTER TABLE pitches ADD COLUMN IF NOT EXISTS clip_end_time BIGINT DEFAULT NULL;
     `);
 
+    await pool.query(`
+      ALTER TABLE pitches ADD COLUMN IF NOT EXISTS vert_appr_angle DECIMAL(6,3) DEFAULT NULL;
+    `);
+    
     // Strikeout/walk flag, batted-ball outcome, and runs scored — needed for
     // the Advanced Stats (K/BB/HBP/HR/ERA/FIP) calculations to actually work.
     await pool.query(`
@@ -1209,35 +1213,37 @@ app.post("/upload-csv", csvUpload.single("csv"), async (req, res) => {
       const spinRate = record.SpinRate ? parseInt(record.SpinRate) : null;
       const ivb = record.InducedVertBreak ? parseFloat(record.InducedVertBreak) : null;
       const hb = record.HorzBreak ? parseFloat(record.HorzBreak) : null;
-const batterHandedness = record.BatterSide ? (record.BatterSide === "Left" ? "LHH" : "RHH") : null;
+      const batterHandedness = record.BatterSide ? (record.BatterSide === "Left" ? "LHH" : "RHH") : null;
       const exitVelocity = record.ExitSpeed ? parseInt(record.ExitSpeed) : null;
       const korBB = record.KorBB || null;
       const playResult = record.PlayResult || null;
       const runsScored = record.RunsScored ? parseInt(record.RunsScored) : null;
+      const vertApprAngle = record.VertApprAngle ? parseFloat(record.VertApprAngle) : null;
 
-pitchesToInsert.push({
-        pitcherName,
-        batterName,
-        pitchType,
-        balls,
-        strikes,
-        result,
-        x,
-        y,
-        mph,
-        spinRate,
-        ivb,
-        hb,
-        extension: extension,
-        relHeight: relHeight,
-        relSide: relSide,
-        batterHandedness,
-        exitVelocity,
-        korBB,
-        playResult,
-        runsScored
-      });
-    }
+        pitchesToInsert.push({
+          pitcherName,
+          batterName,
+          pitchType,
+          balls,
+          strikes,
+          result,
+          x,
+          y,
+          mph,
+          spinRate,
+          ivb,
+          hb,
+          extension: extension,
+          relHeight: relHeight,
+          relSide: relSide,
+          batterHandedness,
+          exitVelocity,
+          korBB,
+          playResult,
+          runsScored,
+          vertApprAngle
+        });
+      }
 
     if (pitchesToInsert.length === 0) {
       return res.json({ success: false, error: "No valid pitch data found" });
@@ -1316,8 +1322,8 @@ pitchesToInsert.push({
       const batterId = pitch.batterName ? hitterMap[pitch.batterName] : null;
 
       await pool.query(
-        `INSERT INTO pitches (id, session_id, pitcher_id, batter_id, pitch_type, balls, strikes, result, x, y, mph, spin_rate, ivb, hb, extension, rel_height, rel_side, batter_handedness, exit_velocity, csv_import_id, kor_bb, play_result, runs_scored)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)`,
+        `INSERT INTO pitches (id, session_id, pitcher_id, batter_id, pitch_type, balls, strikes, result, x, y, mph, spin_rate, ivb, hb, extension, rel_height, rel_side, batter_handedness, exit_velocity, csv_import_id, kor_bb, play_result, runs_scored, vert_appr_angle)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)`,
         [
           crypto.randomUUID(),
           sessionId,
@@ -1341,7 +1347,8 @@ pitchesToInsert.push({
           csvImportId,
           pitch.korBB,
           pitch.playResult,
-          pitch.runsScored
+          pitch.runsScored,
+          pitch.vertApprAngle
         ]
       );
     }
@@ -1629,6 +1636,12 @@ async function calculatePitcherMetrics(sessionId, pitcherId, preloadedPitches) {
         ? (hbs.reduce((a,b) => a+b) / hbs.length).toFixed(2)
         : "—";
 
+      // VAA (Vertical Approach Angle)
+      const vaas = typePitches.filter(p => p.vert_appr_angle !== null && p.vert_appr_angle !== undefined).map(p => parseFloat(p.vert_appr_angle));
+      const avgVAA = vaas.length > 0
+        ? (vaas.reduce((a,b) => a+b) / vaas.length).toFixed(2)
+        : "—";
+
       // Zone %
       const inZone = typePitches.filter(p => isInZone(p.x, p.y)).length;
       const zonePercent = ((inZone / count) * 100).toFixed(1);
@@ -1652,7 +1665,7 @@ async function calculatePitcherMetrics(sessionId, pitcherId, preloadedPitches) {
       const hardHits = bipPitches.filter(p => p.exit_velocity && p.exit_velocity > 90);
       const hardHitPercent = bipCount > 0 ? ((hardHits.length / bipCount) * 100).toFixed(1) : "—";
 
-      pitchStats[type] = {
+    pitchStats[type] = {
         count,
         usage,
         avgVelo,
@@ -1661,6 +1674,7 @@ async function calculatePitcherMetrics(sessionId, pitcherId, preloadedPitches) {
         avgSpin,
         avgIVB,
         avgHB,
+        avgVAA,
         extension: avgExtension,
         zonePercent,
         csw,
