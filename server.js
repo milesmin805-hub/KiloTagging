@@ -1110,115 +1110,61 @@ app.post("/upload-csv", csvUpload.single("csv"), async (req, res) => {
       hitters = new Map();
       pitchesToInsert = [];
 
-      for (const record of records) {
+  for (const record of records) {
+        const pitcherName = record.Pitcher?.trim();
+        const pitcherTeam = record.PitcherTeam?.trim();
 
-  // Auth check
-  const user = await verifyToken(token);
-  if (!user) {
-    return res.json({ success: false, error: "Invalid token" });
-  }
+        if (!pitcherName) continue;
 
-  // Validate session belongs to user
-  const sessionCheck = await pool.query(
-    "SELECT id FROM sessions WHERE id = $1 AND user_id = $2",
-    [sessionId, user.id]
-  );
-  if (sessionCheck.rows.length === 0) {
-    return res.json({ success: false, error: "Session not found" });
-  }
+        if (!record.PlateLocSide || !record.PlateLocHeight || !record.RelSpeed) {
+          continue;
+        }
 
-  try {
-    // Parse CSV
-    const fs = require("fs");
-    const fileContent = fs.readFileSync(file.path, "utf8");
-    const records = csv.parse(fileContent, {
-      columns: true,
-      skip_empty_lines: true,
-      trim: true
-    });
+        const pitcherKey = `${pitcherName}`;
+        const pitcherThrows = record.PitcherThrows || null;
+        if (!pitchers.has(pitcherKey)) {
+          pitchers.set(pitcherKey, { name: pitcherName, team: pitcherTeam, throws: pitcherThrows });
+        } else {
+          const existingPitcher = pitchers.get(pitcherKey);
+          if (!existingPitcher.throws && pitcherThrows) existingPitcher.throws = pitcherThrows;
+          if (!existingPitcher.team && pitcherTeam) existingPitcher.team = pitcherTeam;
+        }
 
-    if (records.length === 0) {
-      return res.json({ success: false, error: "CSV is empty" });
-    }
+        const batterName = record.Batter?.trim();
+        if (batterName && !hitters.has(batterName)) {
+          const batterBats = record.BatterSide || null;
+          const batterTeam = record.BatterTeam || null;
+          hitters.set(batterName, { name: batterName, team: batterTeam, bats: batterBats });
+        }
 
-    const pitchers = new Map(); // Track unique pitchers
-    const hitters = new Map(); // Track unique hitters
-    const pitchesToInsert = [];
-    
-    // Process each record
-    for (const record of records) {
-      const pitcherName = record.Pitcher?.trim();
-      const pitcherTeam = record.PitcherTeam?.trim();
+        const plateLocSide = parseFloat(record.PlateLocSide) || 0;
+        const plateLocHeight = parseFloat(record.PlateLocHeight) || 0;
+        const normalizedX = (plateLocSide + 2.0) / 5.2;
+        const normalizedY = plateLocHeight / 5.0;
+        const x = Math.max(0, Math.min(1, normalizedX));
+        const y = Math.max(0, Math.min(1, normalizedY));
 
-      if (!pitcherName) continue; // Skip if no pitcher name
-           
-      // Skip rows with missing critical pitch data
-      if (!record.PlateLocSide || !record.PlateLocHeight || !record.RelSpeed) {
-        continue;
-      }
+        if (!record.TaggedPitchType && !record.AutoPitchType) {
+          continue;
+        }
 
-      // Track pitcher — keep backfilling throws/team if a later row has data
-      // that an earlier row for this same pitcher was missing (Trackman
-      // exports sometimes have incomplete metadata on a pitcher's first row).
-      const pitcherKey = `${pitcherName}`;
-      const pitcherThrows = record.PitcherThrows || null;
-      if (!pitchers.has(pitcherKey)) {
-        pitchers.set(pitcherKey, { name: pitcherName, team: pitcherTeam, throws: pitcherThrows });
-      } else {
-        const existingPitcher = pitchers.get(pitcherKey);
-        if (!existingPitcher.throws && pitcherThrows) existingPitcher.throws = pitcherThrows;
-        if (!existingPitcher.team && pitcherTeam) existingPitcher.team = pitcherTeam;
-      }
-
-
-      // Track hitter (same row already has the batter's info alongside the pitcher's)
-      const batterName = record.Batter?.trim();
-      if (batterName && !hitters.has(batterName)) {
-        const batterBats = record.BatterSide || null;
-        const batterTeam = record.BatterTeam || null;
-        hitters.set(batterName, { name: batterName, team: batterTeam, bats: batterBats });
-      }
-
-      // Normalize coordinates (Trackman feet → 0-1 scale)
-      const plateLocSide = parseFloat(record.PlateLocSide) || 0;
-      const plateLocHeight = parseFloat(record.PlateLocHeight) || 0;
-
-      const normalizedX = (plateLocSide + 2.0) / 5.2; // -3.4 to 3.2 → ~0 to 1
-      const normalizedY = plateLocHeight / 5.0; // 0-5 → 0-1
-
-      // Clamp to 0-1
-      const x = Math.max(0, Math.min(1, normalizedX));
-      const y = Math.max(0, Math.min(1, normalizedY));
-
-           // Skip if no pitch type data
-      if (!record.TaggedPitchType && !record.AutoPitchType) {
-        continue;
-      }
-
-      // Map pitch type (Trackman → Kilo)
-      const pitchType = (record.TaggedPitchType || record.AutoPitchType) ? mapPitchType(record.TaggedPitchType || record.AutoPitchType) : "?";
-      const extension = record.Extension ? parseFloat(record.Extension) : null;
-      const relHeight = record.RelHeight ? parseFloat(record.RelHeight) : null;
-      const relSide = record.RelSide ? parseFloat(record.RelSide) : null;
-
-      // Map result
-      const result = mapPitchResult(record.PitchCall);
-
-      // Get balls and strikes
-      const balls = parseInt(record.Balls) || 0;
-      const strikes = parseInt(record.Strikes) || 0;
-
-      // Get other metrics (safely handle blanks)
-      const mph = record.RelSpeed ? parseInt(record.RelSpeed) : null;
-      const spinRate = record.SpinRate ? parseInt(record.SpinRate) : null;
-      const ivb = record.InducedVertBreak ? parseFloat(record.InducedVertBreak) : null;
-      const hb = record.HorzBreak ? parseFloat(record.HorzBreak) : null;
-      const batterHandedness = record.BatterSide ? (record.BatterSide === "Left" ? "LHH" : "RHH") : null;
-      const exitVelocity = record.ExitSpeed ? parseInt(record.ExitSpeed) : null;
-      const korBB = record.KorBB || null;
-      const playResult = record.PlayResult || null;
-      const runsScored = record.RunsScored ? parseInt(record.RunsScored) : null;
-      const vertApprAngle = record.VertApprAngle ? parseFloat(record.VertApprAngle) : null;
+        const pitchType = (record.TaggedPitchType || record.AutoPitchType) ? mapPitchType(record.TaggedPitchType || record.AutoPitchType) : "?";
+        const extension = record.Extension ? parseFloat(record.Extension) : null;
+        const relHeight = record.RelHeight ? parseFloat(record.RelHeight) : null;
+        const relSide = record.RelSide ? parseFloat(record.RelSide) : null;
+        const result = mapPitchResult(record.PitchCall);
+        const balls = parseInt(record.Balls) || 0;
+        const strikes = parseInt(record.Strikes) || 0;
+        const mph = record.RelSpeed ? parseInt(record.RelSpeed) : null;
+        const spinRate = record.SpinRate ? parseInt(record.SpinRate) : null;
+        const ivb = record.InducedVertBreak ? parseFloat(record.InducedVertBreak) : null;
+        const hb = record.HorzBreak ? parseFloat(record.HorzBreak) : null;
+        const batterHandedness = record.BatterSide ? (record.BatterSide === "Left" ? "LHH" : "RHH") : null;
+        const exitVelocity = record.ExitSpeed ? parseInt(record.ExitSpeed) : null;
+        const korBB = record.KorBB || null;
+        const playResult = record.PlayResult || null;
+        const runsScored = record.RunsScored ? parseInt(record.RunsScored) : null;
+        const vertApprAngle = record.VertApprAngle ? parseFloat(record.VertApprAngle) : null;
 
         pitchesToInsert.push({
           pitcherName,
@@ -1245,15 +1191,15 @@ app.post("/upload-csv", csvUpload.single("csv"), async (req, res) => {
         });
       }
 
-    if (pitchesToInsert.length === 0) {
-      return res.json({ success: false, error: "No valid pitch data found" });
-    }
+      if (pitchesToInsert.length === 0) {
+        return res.json({ success: false, error: "No valid pitch data found" });
+      }
+    } // end Trackman else block
 
-    // Create pitcher records and insert pitches
-    const pitcherMap = {}; // pitcher name → pitcher_id
+    // ===== SHARED INSERT LOGIC (runs for both Rapsodo and Trackman) =====
+    const pitcherMap = {};
 
     for (const [key, pitcher] of pitchers.entries()) {
-      // Check if pitcher exists
       const existing = await pool.query(
         "SELECT id FROM pitchers WHERE name = $1",
         [pitcher.name]
@@ -1262,10 +1208,6 @@ app.post("/upload-csv", csvUpload.single("csv"), async (req, res) => {
       let pitcherId;
       if (existing.rows.length > 0) {
         pitcherId = existing.rows[0].id;
-
-        // Backfill throws/team only where the existing record is missing
-        // them — COALESCE keeps whatever's already there and only fills a
-        // NULL, so this never overwrites already-correct data.
         await pool.query(
           `UPDATE pitchers SET
              pitcher_throws = COALESCE(pitcher_throws, $1),
@@ -1274,7 +1216,6 @@ app.post("/upload-csv", csvUpload.single("csv"), async (req, res) => {
           [pitcher.throws, pitcher.team, pitcherId]
         );
       } else {
-        // Create new pitcher
         const newPitcher = await pool.query(
           "INSERT INTO pitchers (id, name, pitcher_throws, team) VALUES ($1, $2, $3, $4) RETURNING id",
           [crypto.randomUUID(), pitcher.name, pitcher.throws, pitcher.team]
@@ -1285,8 +1226,7 @@ app.post("/upload-csv", csvUpload.single("csv"), async (req, res) => {
       pitcherMap[pitcher.name] = pitcherId;
     }
 
-    // Create hitter records (same find-or-create pattern as pitchers)
-    const hitterMap = {}; // hitter name → hitter_id
+    const hitterMap = {};
 
     for (const [key, hitter] of hitters.entries()) {
       const existing = await pool.query(
@@ -1308,7 +1248,6 @@ app.post("/upload-csv", csvUpload.single("csv"), async (req, res) => {
       hitterMap[hitter.name] = hitterId;
     }
 
-    // Create CSV import record
     const csvImportId = crypto.randomUUID();
     await pool.query(
       `INSERT INTO csv_imports (id, session_id, pitch_count, pitcher_count)
@@ -1316,7 +1255,6 @@ app.post("/upload-csv", csvUpload.single("csv"), async (req, res) => {
       [csvImportId, sessionId, pitchesToInsert.length, pitchers.size]
     );
 
-    // Insert all pitches
     for (const pitch of pitchesToInsert) {
       const pitcherId = pitcherMap[pitch.pitcherName];
       const batterId = pitch.batterName ? hitterMap[pitch.batterName] : null;
@@ -1352,6 +1290,7 @@ app.post("/upload-csv", csvUpload.single("csv"), async (req, res) => {
         ]
       );
     }
+
     res.json({
       success: true,
       message: `Imported ${pitchesToInsert.length} pitches from ${pitchers.size} pitchers`,
