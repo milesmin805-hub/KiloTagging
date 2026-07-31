@@ -8,12 +8,89 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
 </head>
+<style> 
+  .hamburger-btn {
+  background: none;
+  border: none;
+  color: #e5e7eb;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+.side-menu-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 998;
+}
+.side-menu-overlay.open { display: block; }
+.side-menu {
+  position: fixed;
+  top: 0;
+  left: -280px;
+  width: 280px;
+  height: 100vh;
+  background: #0f172a;
+  border-right: 1px solid rgba(148,163,184,0.3);
+  z-index: 999;
+  transition: left 0.25s ease;
+  display: flex;
+  flex-direction: column;
+}
+.side-menu.open { left: 0; }
+.side-menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 16px;
+  border-bottom: 1px solid rgba(148,163,184,0.2);
+  font-weight: 600;
+  color: #22d3ee;
+}
+.side-menu-close {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  width: auto;
+}
+.side-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  cursor: pointer;
+  color: #e5e7eb;
+  font-size: 14px;
+  border-bottom: 1px solid rgba(148,163,184,0.1);
+  transition: background 0.15s ease;
+}
+.side-menu-item:hover { background: rgba(56,189,248,0.1); }
+.side-menu-icon { font-size: 18px; }
+</style>
 <body>
+  <div id="sideMenuOverlay" class="side-menu-overlay" onclick="toggleMenu()"></div>
+<div id="sideMenu" class="side-menu">
+  <div class="side-menu-header">
+    <span>Menu</span>
+    <button class="side-menu-close" onclick="toggleMenu()">✕</button>
+  </div>
+  <div class="side-menu-item" onclick="goToPitchers()"><span class="side-menu-icon">⚾</span><span>Pitchers</span></div>
+  <div class="side-menu-item" onclick="goToPitchersByTeam()"><span class="side-menu-icon">🏆</span><span>Pitchers by Team</span></div>
+  <div class="side-menu-item" onclick="goToHitters()"><span class="side-menu-icon">🏏</span><span>Hitters</span></div>
+  <div class="side-menu-item" onclick="goToHittersByTeam()"><span class="side-menu-icon">🏆</span><span>Hitters by Team</span></div>
+</div>
   <!-- Header -->
-  <div style="background: rgba(15, 23, 42, 0.95); padding: 20px; border-bottom: 1px solid rgba(148, 163, 184, 0.3); display: flex; justify-content: space-between; align-items: center;">
-    <h1 style="color: #22d3ee; margin: 0;">All Pitcher Profiles</h1>
-    <button onclick="window.location.href='/dashboard.html'" style="padding: 10px 16px; background: rgba(34, 211, 238, 0.2); border: 1px solid rgba(34, 211, 238, 0.5); color: #22d3ee; border-radius: 6px; cursor: pointer; font-weight: 600;">
-      ← Back to Dashboard
+ <div style="background: rgba(15, 23, 42, 0.95); padding: 20px; border-bottom: 1px solid rgba(148, 163, 184, 0.3); display: flex; justify-content: space-between; align-items: center;">
+<div style="display:flex; align-items:center; gap:12px;">
+  <button class="hamburger-btn" onclick="toggleMenu()">☰</button>
+  <h1 style="color: #22d3ee; margin: 0;">All Pitcher Profiles</h1>
+</div>
+<button onclick="window.location.href='/dashboard.html'" style="padding: 10px 16px; background: rgba(34, 211, 238, 0.2); border: 1px solid rgba(34, 211, 238, 0.5); color: #22d3ee; border-radius: 6px; cursor: pointer; font-weight: 600;">      ← Back to Dashboard
     </button>
   </div>
 
@@ -159,6 +236,14 @@ function viewPitcherProfile(pitcherId) {
         closeModal();
       }
     });
+    function toggleMenu() {
+  document.getElementById("sideMenu").classList.toggle("open");
+  document.getElementById("sideMenuOverlay").classList.toggle("open");
+}
+function goToPitchers() { window.location.href = "/all-pitchers.html"; }
+function goToPitchersByTeam() { window.location.href = "/pitchers-by-team.html"; }
+function goToHitters() { window.location.href = "/all-hitters.html"; }
+function goToHittersByTeam() { window.location.href = "/hitters-by-team.html"; }
   </script>
 </body>
 </html>
