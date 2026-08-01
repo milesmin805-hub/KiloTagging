@@ -139,6 +139,29 @@ async function initializeDatabase() {
     await pool.query(`
       ALTER TABLE pitches ADD COLUMN IF NOT EXISTS vert_appr_angle DECIMAL(6,3) DEFAULT NULL;
     `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS teams (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        raw_name TEXT UNIQUE NOT NULL,
+        display_name TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+
+    // Seed teams table from any team names already in pitchers/hitters tables
+    await pool.query(`
+      INSERT INTO teams (raw_name, display_name)
+      SELECT DISTINCT team, team FROM pitchers
+      WHERE team IS NOT NULL AND team != ''
+      ON CONFLICT (raw_name) DO NOTHING;
+    `);
+    await pool.query(`
+      INSERT INTO teams (raw_name, display_name)
+      SELECT DISTINCT team, team FROM hitters
+      WHERE team IS NOT NULL AND team != ''
+      ON CONFLICT (raw_name) DO NOTHING;
+    `);
     
     // Strikeout/walk flag, batted-ball outcome, and runs scored — needed for
     // the Advanced Stats (K/BB/HBP/HR/ERA/FIP) calculations to actually work.
@@ -1226,6 +1249,17 @@ app.post("/upload-csv", csvUpload.single("csv"), async (req, res) => {
       pitcherMap[pitcher.name] = pitcherId;
     }
 
+    // Seed any new team names into the teams table
+    for (const [key, pitcher] of pitchers.entries()) {
+      if (pitcher.team) {
+        await pool.query(
+          `INSERT INTO teams (raw_name, display_name) VALUES ($1, $1)
+           ON CONFLICT (raw_name) DO NOTHING`,
+          [pitcher.team]
+        );
+      }
+    }
+
     const hitterMap = {};
 
     for (const [key, hitter] of hitters.entries()) {
@@ -1300,6 +1334,95 @@ app.post("/upload-csv", csvUpload.single("csv"), async (req, res) => {
 
   } catch (err) {
     console.error("CSV upload error:", err);
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// Get all teams with display names
+app.get("/teams", async (req, res) => {
+  const token = req.headers.authorization?.split(" ")[1] || req.query.token;
+  const user = await verifyToken(token);
+  if (!user) return res.json({ success: false, error: "Invalid token" });
+
+  try {
+    const result = await pool.query(
+      `SELECT raw_name, display_name FROM teams ORDER BY display_name ASC`
+    );
+    res.json({ success: true, teams: result.rows });
+  } catch (err) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// Rename a team's display name everywhere
+app.patch("/team/rename", async (req, res) => {
+  const { token, rawName, displayName } = req.body;
+  const user = await verifyToken(token);
+  if (!user) return res.json({ success: false, error: "Invalid token" });
+
+  if (!rawName || !displayName) {
+    return res.json({ success: false, error: "Missing rawName or displayName" });
+  }
+
+  try {
+    await pool.query(
+      `INSERT INTO teams (raw_name, display_name) VALUES ($1, $2)
+       ON CONFLICT (raw_name) DO UPDATE SET display_name = $2`,
+      [rawName, displayName]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// Assign a pitcher to a team
+app.patch("/pitcher/:pitcherId/team", async (req, res) => {
+  const { pitcherId } = req.params;
+  const { token, team } = req.body;
+  const user = await verifyToken(token);
+  if (!user) return res.json({ success: false, error: "Invalid token" });
+
+  try {
+    await pool.query(
+      `UPDATE pitchers SET team = $1 WHERE id = $2`,
+      [team, pitcherId]
+    );
+    // Make sure this team exists in the teams table
+    if (team) {
+      await pool.query(
+        `INSERT INTO teams (raw_name, display_name) VALUES ($1, $1)
+         ON CONFLICT (raw_name) DO NOTHING`,
+        [team]
+      );
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// Assign a hitter to a team
+app.patch("/hitter/:hitterId/team", async (req, res) => {
+  const { hitterId } = req.params;
+  const { token, team } = req.body;
+  const user = await verifyToken(token);
+  if (!user) return res.json({ success: false, error: "Invalid token" });
+
+  try {
+    await pool.query(
+      `UPDATE hitters SET team = $1 WHERE id = $2`,
+      [team, hitterId]
+    );
+    if (team) {
+      await pool.query(
+        `INSERT INTO teams (raw_name, display_name) VALUES ($1, $1)
+         ON CONFLICT (raw_name) DO NOTHING`,
+        [team]
+      );
+    }
+    res.json({ success: true });
+  } catch (err) {
     res.json({ success: false, error: err.message });
   }
 });
