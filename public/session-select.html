@@ -317,10 +317,44 @@
       font-size: 14px;
     }
 
-    .role-btn .desc {
-      font-size: 12px;
-      color: #9ca3af;
-    }
+.role-btn .desc {
+    font-size: 12px;
+    color: #9ca3af;
+  }
+
+  .hamburger-btn {
+    background: none; border: none; color: #e5e7eb;
+    font-size: 20px; cursor: pointer; padding: 4px 8px; line-height: 1;
+  }
+  .side-menu-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5); z-index: 998;
+  }
+  .side-menu-overlay.open { display: block; }
+  .side-menu {
+    position: fixed; top: 0; left: -280px;
+    width: 280px; height: 100vh; background: #0f172a;
+    border-right: 1px solid rgba(148,163,184,0.3);
+    z-index: 999; transition: left 0.25s ease;
+    display: flex; flex-direction: column;
+  }
+  .side-menu.open { left: 0; }
+  .side-menu-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 20px 16px; border-bottom: 1px solid rgba(148,163,184,0.2);
+    font-weight: 600; color: #22d3ee;
+  }
+  .side-menu-close {
+    background: none; border: none; color: #9ca3af;
+    font-size: 18px; cursor: pointer; padding: 4px; width: auto;
+  }
+  .side-menu-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 16px; cursor: pointer; color: #e5e7eb; font-size: 14px;
+    border-bottom: 1px solid rgba(148,163,184,0.1);
+    transition: background 0.15s ease;
+  }
+  .side-menu-item:hover { background: rgba(56,189,248,0.1); }
 
     @media (max-width: 600px) {
       main {
@@ -405,18 +439,21 @@
   </style>
 </head>
 <body>
-  <div id="sideMenuOverlay" class="side-menu-overlay" onclick="toggleMenu()"></div>
+<div id="sideMenuOverlay" class="side-menu-overlay" onclick="toggleMenu()"></div>
 <div id="sideMenu" class="side-menu">
   <div class="side-menu-header">
     <span>Menu</span>
     <button class="side-menu-close" onclick="toggleMenu()">✕</button>
   </div>
-  <div class="side-menu-item" onclick="goToPitchers()"><span class="side-menu-icon">⚾</span><span>Pitchers</span></div>
-  <div class="side-menu-item" onclick="goToPitchersByTeam()"><span class="side-menu-icon">🏆</span><span>Pitchers by Team</span></div>
-  <div class="side-menu-item" onclick="goToHitters()"><span class="side-menu-icon">🏏</span><span>Hitters</span></div>
-  <div class="side-menu-item" onclick="goToHittersByTeam()"><span class="side-menu-icon">🏆</span><span>Hitters by Team</span></div>
+  <div class="side-menu-item" onclick="window.location.href='/all-pitchers.html'">Pitchers</div>
+  <div class="side-menu-item" onclick="window.location.href='/all-hitters.html'">Hitters</div>
+  <div class="side-menu-item" onclick="window.location.href='/pitchers-by-team.html'">Pitchers by Team</div>
+  <div class="side-menu-item" onclick="window.location.href='/hitters-by-team.html'">Hitters by Team</div>
+  <div class="side-menu-item" onclick="window.location.href='/matchups.html'">Matchups</div>
 </div>
-  <header>
+<header>
+    <div style="display:flex; align-items:center; gap:12px;">
+    <button class="hamburger-btn" onclick="toggleMenu()">☰</button>
     <div class="brand">
       <div class="brand-mark">⚾</div>
       <div class="brand-text">
@@ -424,10 +461,8 @@
         <div class="subtitle" id="userEmail"></div>
       </div>
     </div>
-    <div style="display:flex; gap:8px; align-items:center;">
-    <button class="hamburger-btn" onclick="toggleMenu()">☰</button>
-    <button class="logout-btn" onclick="logout()">Log Out</button>
   </div>
+  <button class="logout-btn" onclick="logout()">Log Out</button>
   </header>
 
   <main>
@@ -464,16 +499,38 @@
       </div>
     </div>
 
-     <!-- ALL PITCHER PROFILES -->
-    <div class="card">
-      <div class="card-title">All Pitcher Profiles</div>
-      <button class="btn btn-secondary" onclick="location.href='/all-pitchers.html'" style="background: radial-gradient(circle at top left, #86efac, #0f172a); border-color: rgba(134, 239, 172, 0.8); color: #000; font-weight: 600;">
-        👥 View All Pitchers
-      </button>
-      <div class="info-box">
-        View complete profiles and aggregated stats for all pitchers across all sessions.
+<!-- ALL PITCHER PROFILES -->
+      <div class="card">
+        <div class="card-title">All Pitcher Profiles</div>
+        <button class="btn btn-secondary" onclick="location.href='/all-pitchers.html'" style="background: radial-gradient(circle at top left, #86efac, #0f172a); border-color: rgba(134, 239, 172, 0.8); color: #000; font-weight: 600;">
+          View All Pitchers
+        </button>
+        <div class="info-box">
+          View complete profiles and aggregated stats for all pitchers across all sessions.
+        </div>
       </div>
-    </div>
+
+      <!-- ALL HITTER PROFILES -->
+      <div class="card">
+        <div class="card-title">All Hitter Profiles</div>
+        <button class="btn btn-secondary" onclick="location.href='/all-hitters.html'" style="background: radial-gradient(circle at top left, #86efac, #0f172a); border-color: rgba(134, 239, 172, 0.8); color: #000; font-weight: 600;">
+          View All Hitters
+        </button>
+        <div class="info-box">
+          View complete profiles and stats for all hitters across all sessions.
+        </div>
+      </div>
+
+      <!-- MATCHUPS -->
+      <div class="card">
+        <div class="card-title">Matchups</div>
+        <button class="btn btn-secondary" onclick="location.href='/matchups.html'" style="background: radial-gradient(circle at top left, rgba(251,191,36,0.4), #0f172a); border-color: rgba(251,191,36,0.8); color: #fbbf24; font-weight: 600;">
+          Open Matchup Tool
+        </button>
+        <div class="info-box">
+          Compare any pitcher vs any hitter and get an AI-powered attack plan.
+        </div>
+      </div>
     
     <!-- EXISTING SESSIONS -->
     <div class="card">
@@ -630,11 +687,16 @@
     }
 
     function showSuccess(msg) {
-      const el = document.getElementById("successMsg");
-      el.textContent = msg;
-      el.classList.add("show");
-      setTimeout(() => el.classList.remove("show"), 3000);
-    }
+    const el = document.getElementById("successMsg");
+    el.textContent = msg;
+    el.classList.add("show");
+    setTimeout(() => el.classList.remove("show"), 3000);
+  }
+
+  function toggleMenu() {
+    document.getElementById("sideMenu").classList.toggle("open");
+    document.getElementById("sideMenuOverlay").classList.toggle("open");
+  }
     function toggleMenu() {
   document.getElementById("sideMenu").classList.toggle("open");
   document.getElementById("sideMenuOverlay").classList.toggle("open");
