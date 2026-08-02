@@ -330,24 +330,24 @@ function renderTeams() {
     const displayName = isUnknown ? "Unknown Team" : getDisplayName(rawTeam);
     const sectionId = `team-${rawTeam.replace(/[^a-zA-Z0-9]/g, "_")}`;
 
-    const pitcherCards = pitchers.map(p => `
-      <div class="pitcher-card" onclick="window.location.href='/pitcher-report-aggregated.html?pitcherId=${p.id}'">
-        <div class="pitcher-card-name">${p.name}</div>
-        <div class="pitcher-card-meta">${p.pitcher_throws ? (p.pitcher_throws === 'Right' ? 'RHP' : 'LHP') : '—'}</div>
-      </div>
-    `).join("");
-
-    const unknownAssignHtml = isUnknown ? `
-      <div class="unknown-assign">
-        <span class="assign-label">Assign all to team:</span>
-        <select class="assign-select" onchange="assignUnknownPitchers(this.value)" onclick="event.stopPropagation()">
-          <option value="">Select team...</option>
-          ${teamsList.filter(t => t.raw_name !== '__unknown__').map(t =>
-            `<option value="${t.raw_name}">${t.display_name}</option>`
-          ).join("")}
+const pitcherCards = pitchers.map(p => {
+      const isUnknownCard = !p.team;
+      const assignDropdown = isUnknownCard ? `
+        <select class="assign-select" onchange="assignPitcher('${p.id}', this.value)" onclick="event.stopPropagation()" style="margin-top:8px; width:100%;">
+          <option value="">Assign to team...</option>
+          ${teamsList.map(t => `<option value="${t.raw_name}">${t.display_name}</option>`).join("")}
         </select>
-      </div>
-    ` : "";
+      ` : "";
+      return `
+        <div class="pitcher-card" onclick="!event.target.matches('select, option') && (window.location.href='/pitcher-report-aggregated.html?pitcherId=${p.id}')">
+          <div class="pitcher-card-name">${p.name}</div>
+          <div class="pitcher-card-meta">${p.pitcher_throws ? (p.pitcher_throws === 'Right' ? 'RHP' : 'LHP') : '—'}</div>
+          ${assignDropdown}
+        </div>
+      `;
+    }).join("");
+
+const unknownAssignHtml = "";
 
     const renameHtml = !isUnknown ? `
       <div class="rename-form" id="rename-${sectionId}">
@@ -415,27 +415,23 @@ async function saveRename(rawTeam, sectionId) {
   }
 }
 
-async function assignUnknownPitchers(rawTeam) {
+async function assignPitcher(pitcherId, rawTeam) {
   if (!rawTeam) return;
   const token = localStorage.getItem("token");
-  const unknownPitchers = allPitchers.filter(p => !p.team);
-  if (unknownPitchers.length === 0) return;
-
-  const displayName = getDisplayName(rawTeam);
-  const confirmed = confirm(`Assign all ${unknownPitchers.length} unknown pitcher(s) to ${displayName}?`);
-  if (!confirmed) return;
-
   try {
-    await Promise.all(unknownPitchers.map(p =>
-      fetch(`/pitcher/${p.id}/team`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, team: rawTeam })
-      })
-    ));
-    await loadData();
+    const res = await fetch(`/pitcher/${pitcherId}/team`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, team: rawTeam })
+    });
+    const data = await res.json();
+    if (data.success) {
+      await loadData();
+    } else {
+      alert("Failed to assign: " + data.error);
+    }
   } catch (err) {
-    alert("Error assigning team: " + err.message);
+    alert("Error: " + err.message);
   }
 }
 
