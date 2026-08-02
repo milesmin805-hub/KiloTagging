@@ -279,24 +279,24 @@ function renderTeams() {
     const displayName = isUnknown ? "Unknown Team" : getDisplayName(rawTeam);
     const sectionId = `team-${rawTeam.replace(/[^a-zA-Z0-9]/g, "_")}`;
 
-    const hitterCards = hitters.map(h => `
-      <div class="hitter-card">
-        <div class="hitter-card-name">${h.name}</div>
-        <div class="hitter-card-meta">${h.bats || '—'}</div>
-      </div>
-    `).join("");
-
-    const unknownAssignHtml = isUnknown ? `
-      <div class="unknown-assign">
-        <span class="assign-label">Assign all to team:</span>
-        <select class="assign-select" onchange="assignUnknownHitters(this.value)" onclick="event.stopPropagation()">
-          <option value="">Select team...</option>
-          ${teamsList.filter(t => t.raw_name !== '__unknown__').map(t =>
-            `<option value="${t.raw_name}">${t.display_name}</option>`
-          ).join("")}
+const hitterCards = hitters.map(h => {
+      const isUnknownCard = !h.team;
+      const assignDropdown = isUnknownCard ? `
+        <select class="assign-select" onchange="assignHitter('${h.id}', this.value)" onclick="event.stopPropagation()" style="margin-top:8px; width:100%;">
+          <option value="">Assign to team...</option>
+          ${teamsList.map(t => `<option value="${t.raw_name}">${t.display_name}</option>`).join("")}
         </select>
-      </div>
-    ` : "";
+      ` : "";
+      return `
+        <div class="hitter-card">
+          <div class="hitter-card-name">${h.name}</div>
+          <div class="hitter-card-meta">${h.bats || '—'}</div>
+          ${assignDropdown}
+        </div>
+      `;
+    }).join("");
+
+const unknownAssignHtml = "";
 
     const renameHtml = !isUnknown ? `
       <div class="rename-form" id="rename-${sectionId}">
@@ -364,27 +364,23 @@ async function saveRename(rawTeam, sectionId) {
   }
 }
 
-async function assignUnknownHitters(rawTeam) {
+async function assignHitter(hitterId, rawTeam) {
   if (!rawTeam) return;
   const token = localStorage.getItem("token");
-  const unknownHitters = allHitters.filter(h => !h.team);
-  if (unknownHitters.length === 0) return;
-
-  const displayName = getDisplayName(rawTeam);
-  const confirmed = confirm(`Assign all ${unknownHitters.length} unknown hitter(s) to ${displayName}?`);
-  if (!confirmed) return;
-
   try {
-    await Promise.all(unknownHitters.map(h =>
-      fetch(`/hitter/${h.id}/team`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, team: rawTeam })
-      })
-    ));
-    await loadData();
+    const res = await fetch(`/hitter/${hitterId}/team`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, team: rawTeam })
+    });
+    const data = await res.json();
+    if (data.success) {
+      await loadData();
+    } else {
+      alert("Failed to assign: " + data.error);
+    }
   } catch (err) {
-    alert("Error assigning team: " + err.message);
+    alert("Error: " + err.message);
   }
 }
 
