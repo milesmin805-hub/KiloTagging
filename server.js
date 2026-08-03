@@ -136,8 +136,24 @@ async function initializeDatabase() {
       ALTER TABLE pitches ADD COLUMN IF NOT EXISTS clip_end_time BIGINT DEFAULT NULL;
     `);
 
-    await pool.query(`
+await pool.query(`
       ALTER TABLE pitches ADD COLUMN IF NOT EXISTS vert_appr_angle DECIMAL(6,3) DEFAULT NULL;
+    `);
+
+    await pool.query(`
+      ALTER TABLE pitches ADD COLUMN IF NOT EXISTS direction DECIMAL(7,3) DEFAULT NULL;
+    `);
+
+    await pool.query(`
+      ALTER TABLE pitches ADD COLUMN IF NOT EXISTS launch_angle DECIMAL(6,3) DEFAULT NULL;
+    `);
+
+    await pool.query(`
+      ALTER TABLE pitches ADD COLUMN IF NOT EXISTS distance DECIMAL(7,2) DEFAULT NULL;
+    `);
+
+    await pool.query(`
+      ALTER TABLE pitches ADD COLUMN IF NOT EXISTS hit_type TEXT DEFAULT NULL;
     `);
 
     // Strikeout/walk flag, batted-ball outcome, and runs scored — needed for
@@ -1184,10 +1200,16 @@ app.post("/upload-csv", csvUpload.single("csv"), async (req, res) => {
         const hb = record.HorzBreak ? parseFloat(record.HorzBreak) : null;
         const batterHandedness = record.BatterSide ? (record.BatterSide === "Left" ? "LHH" : "RHH") : null;
         const exitVelocity = record.ExitSpeed ? parseInt(record.ExitSpeed) : null;
-        const korBB = record.KorBB || null;
-        const playResult = record.PlayResult || null;
+const korBB = record.KorBB || null;
+        const playResult = record.PlayResult && record.PlayResult !== "Undefined" ? record.PlayResult : null;
         const runsScored = record.RunsScored ? parseInt(record.RunsScored) : null;
         const vertApprAngle = record.VertApprAngle ? parseFloat(record.VertApprAngle) : null;
+        const direction = record.Direction && record.Direction !== "" ? parseFloat(record.Direction) : null;
+        const launchAngle = record.Angle && record.Angle !== "" ? parseFloat(record.Angle) : null;
+        const distance = record.Distance && record.Distance !== "" ? parseFloat(record.Distance) : null;
+        const hitType = (record.TaggedHitType && record.TaggedHitType !== "Undefined")
+          ? record.TaggedHitType
+          : (record.AutoHitType && record.AutoHitType !== "Undefined" ? record.AutoHitType : null);
 
         pitchesToInsert.push({
           pitcherName,
@@ -1202,15 +1224,19 @@ app.post("/upload-csv", csvUpload.single("csv"), async (req, res) => {
           spinRate,
           ivb,
           hb,
-          extension: extension,
-          relHeight: relHeight,
-          relSide: relSide,
+          extension,
+          relHeight,
+          relSide,
           batterHandedness,
           exitVelocity,
           korBB,
           playResult,
           runsScored,
-          vertApprAngle
+          vertApprAngle,
+          direction,
+          launchAngle,
+          distance,
+          hitType
         });
       }
 
@@ -1294,8 +1320,8 @@ app.post("/upload-csv", csvUpload.single("csv"), async (req, res) => {
       const batterId = pitch.batterName ? hitterMap[pitch.batterName] : null;
 
       await pool.query(
-        `INSERT INTO pitches (id, session_id, pitcher_id, batter_id, pitch_type, balls, strikes, result, x, y, mph, spin_rate, ivb, hb, extension, rel_height, rel_side, batter_handedness, exit_velocity, csv_import_id, kor_bb, play_result, runs_scored, vert_appr_angle)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)`,
+`INSERT INTO pitches (id, session_id, pitcher_id, batter_id, pitch_type, balls, strikes, result, x, y, mph, spin_rate, ivb, hb, extension, rel_height, rel_side, batter_handedness, exit_velocity, csv_import_id, kor_bb, play_result, runs_scored, vert_appr_angle, direction, launch_angle, distance, hit_type)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)`,
         [
           crypto.randomUUID(),
           sessionId,
@@ -1320,7 +1346,11 @@ app.post("/upload-csv", csvUpload.single("csv"), async (req, res) => {
           pitch.korBB,
           pitch.playResult,
           pitch.runsScored,
-          pitch.vertApprAngle
+          pitch.vertApprAngle,
+          pitch.direction,
+          pitch.launchAngle,
+          pitch.distance,
+          pitch.hitType
         ]
       );
     }
@@ -1453,6 +1483,219 @@ const swingPct = total > 0
 
   } catch (err) {
     console.error("Hitter metrics error:", err);
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// Full hitter profile — stat line, batted ball profile, spray chart, splits
+app.get("/hitter/:hitterId/profile", async (req, res) => {
+  const { hitterId } = req.params;
+  const token = req.headers.authorization?.split(" ")[1] || req.query.token;
+  const user = await verifyToken(token);
+  if (!user) return res.json({ success: false, error: "Invalid token" });
+
+  try {
+    const hitterCheck = await pool.query(
+      "SELECT id, name, bats, team FROM hitters WHERE id = $1",
+      [hitterId]
+    );
+    if (hitterCheck.rows.length === 0) {
+      return res.json({ success: false, error: "Hitter not found" });
+    }
+    const hitter = hitterCheck.rows[0];
+
+    const pitches = await pool.query(
+      `SELECT pitch_type, result, x, y, exit_velocity, kor_bb, play_result,
+              runs_scored, batter_handedness, direction, launch_angle, distance,
+              hit_type, balls, strikes, pitcher_id
+       FROM pitches
+       WHERE batter_id = $1`,
+      [hitterId]
+    );
+
+    const rows = pitches.rows;
+    if (rows.length === 0) {
+      return res.json({ success: true, hitter, isEmpty: true });
+    }
+
+    // ===== STAT LINE =====
+    const singles = rows.filter(p => p.play_result === "Single").length;
+    const doubles = rows.filter(p => p.play_result === "Double").length;
+    const triples = rows.filter(p => p.play_result === "Triple").length;
+    const homers = rows.filter(p => p.play_result === "HomeRun").length;
+    const hits = singles + doubles + triples + homers;
+    const xbh = doubles + triples + homers;
+    const walks = rows.filter(p => p.kor_bb === "Walk").length;
+    const strikeouts = rows.filter(p => p.kor_bb === "Strikeout").length;
+    const hbp = rows.filter(p => p.result === "HBP").length;
+    const sac = rows.filter(p => p.play_result === "Sacrifice").length;
+    const ab = rows.filter(p =>
+      ["Single","Double","Triple","HomeRun","Out","Error"].includes(p.play_result) || p.kor_bb === "Strikeout"
+    ).length;
+    const pa = ab + walks + hbp + sac;
+
+    // OBP = (H + BB + HBP) / (AB + BB + HBP + SF)
+    const obp = pa > 0 ? ((hits + walks + hbp) / (ab + walks + hbp + sac)).toFixed(3) : ".000";
+    // SLG = (1B + 2*2B + 3*3B + 4*HR) / AB
+    const slg = ab > 0 ? ((singles + 2*doubles + 3*triples + 4*homers) / ab).toFixed(3) : ".000";
+    // OPS
+    const ops = (parseFloat(obp) + parseFloat(slg)).toFixed(3);
+    // wOBA (simplified: BB*0.69 + HBP*0.72 + 1B*0.888 + 2B*1.271 + 3B*1.616 + HR*2.101) / (AB + BB - IBB + SF + HBP)
+    const woba = pa > 0
+      ? ((walks*0.69 + hbp*0.72 + singles*0.888 + doubles*1.271 + triples*1.616 + homers*2.101) / (ab + walks + hbp + sac)).toFixed(3)
+      : ".000";
+
+    // ===== BATTED BALL PROFILE =====
+    const bip = rows.filter(p => p.hit_type && p.hit_type !== "Undefined");
+    const gbCount = bip.filter(p => p.hit_type === "GroundBall").length;
+    const ldCount = bip.filter(p => p.hit_type === "LineDrive").length;
+    const fbCount = bip.filter(p => p.hit_type === "FlyBall").length;
+    const puCount = bip.filter(p => p.hit_type === "Popup").length;
+    const bipTotal = bip.length;
+
+    const gbPct = bipTotal > 0 ? ((gbCount / bipTotal) * 100).toFixed(1) : "0.0";
+    const ldPct = bipTotal > 0 ? ((ldCount / bipTotal) * 100).toFixed(1) : "0.0";
+    const fbPct = bipTotal > 0 ? ((fbCount / bipTotal) * 100).toFixed(1) : "0.0";
+    const puPct = bipTotal > 0 ? ((puCount / bipTotal) * 100).toFixed(1) : "0.0";
+
+    // ===== CONTACT QUALITY =====
+    const evRows = rows.filter(p => p.exit_velocity && parseFloat(p.exit_velocity) > 0);
+    const avgEV = evRows.length > 0
+      ? (evRows.reduce((a, b) => a + parseFloat(b.exit_velocity), 0) / evRows.length).toFixed(1)
+      : null;
+    const hardHit = evRows.filter(p => parseFloat(p.exit_velocity) >= 95).length;
+    const hardHitPct = evRows.length > 0 ? ((hardHit / evRows.length) * 100).toFixed(1) : null;
+
+    // Sweet spot % = launch angle 8-32 degrees
+    const laRows = rows.filter(p => p.launch_angle !== null && p.launch_angle !== undefined);
+    const sweetSpot = laRows.filter(p => parseFloat(p.launch_angle) >= 8 && parseFloat(p.launch_angle) <= 32).length;
+    const sweetSpotPct = laRows.length > 0 ? ((sweetSpot / laRows.length) * 100).toFixed(1) : null;
+
+    // ===== SPRAY CHART DATA =====
+    const sprayData = rows
+      .filter(p => p.direction !== null && p.exit_velocity && parseFloat(p.exit_velocity) > 0)
+      .map(p => ({
+        direction: parseFloat(p.direction),
+        distance: p.distance ? parseFloat(p.distance) : 150,
+        exitVelocity: parseFloat(p.exit_velocity),
+        playResult: p.play_result,
+        hitType: p.hit_type,
+        launchAngle: p.launch_angle ? parseFloat(p.launch_angle) : null
+      }));
+
+    // ===== PITCH TYPE BREAKDOWN =====
+    const pitchGroups = {};
+    rows.forEach(p => {
+      const type = p.pitch_type || "?";
+      if (!pitchGroups[type]) pitchGroups[type] = [];
+      pitchGroups[type].push(p);
+    });
+
+    const ZONE_X_MIN = 0.25, ZONE_X_MAX = 0.75;
+    const ZONE_Y_MIN = 0.25, ZONE_Y_MAX = 0.75;
+    const inZone = (p) => parseFloat(p.x) >= ZONE_X_MIN && parseFloat(p.x) <= ZONE_X_MAX && parseFloat(p.y) >= ZONE_Y_MIN && parseFloat(p.y) <= ZONE_Y_MAX;
+    const isSwing = (r) => ["StrikeSwinging","Foul","InPlay"].includes(r);
+    const isWhiff = (r) => r === "StrikeSwinging";
+
+    const pitchTypeStats = {};
+    Object.entries(pitchGroups).forEach(([type, typePitches]) => {
+      const total = typePitches.length;
+      const swings = typePitches.filter(p => isSwing(p.result));
+      const whiffs = typePitches.filter(p => isWhiff(p.result));
+      const outsideZone = typePitches.filter(p => !inZone(p));
+      const chases = outsideZone.filter(p => isSwing(p.result));
+      const bipType = typePitches.filter(p => p.exit_velocity && parseFloat(p.exit_velocity) > 0);
+      const hardHitType = bipType.filter(p => parseFloat(p.exit_velocity) >= 95);
+
+      pitchTypeStats[type] = {
+        total,
+        swingPct: total > 0 ? Math.round((swings.length / total) * 100) : null,
+        whiffRate: swings.length > 0 ? Math.round((whiffs.length / swings.length) * 100) : null,
+        chaseRate: outsideZone.length > 0 ? Math.round((chases.length / outsideZone.length) * 100) : null,
+        avgEV: bipType.length > 0 ? (bipType.reduce((a,b) => a + parseFloat(b.exit_velocity), 0) / bipType.length).toFixed(1) : null,
+        hardHitPct: bipType.length > 0 ? ((hardHitType.length / bipType.length) * 100).toFixed(1) : null
+      };
+    });
+
+    // ===== HANDEDNESS SPLITS =====
+    const vsRHP = rows.filter(p => p.batter_handedness !== null);
+    // Get pitcher handedness from pitchers table
+    const pitcherIds = [...new Set(rows.map(p => p.pitcher_id).filter(Boolean))];
+    const pitcherHandedness = {};
+    if (pitcherIds.length > 0) {
+      const phResult = await pool.query(
+        `SELECT id, pitcher_throws FROM pitchers WHERE id = ANY($1)`,
+        [pitcherIds]
+      );
+      phResult.rows.forEach(p => { pitcherHandedness[p.id] = p.pitcher_throws; });
+    }
+
+    const vsRHPRows = rows.filter(p => pitcherHandedness[p.pitcher_id] === "Right");
+    const vsLHPRows = rows.filter(p => pitcherHandedness[p.pitcher_id] === "Left");
+
+    function splitStats(splitRows) {
+      const sng = splitRows.filter(p => p.play_result === "Single").length;
+      const dbl = splitRows.filter(p => p.play_result === "Double").length;
+      const tri = splitRows.filter(p => p.play_result === "Triple").length;
+      const hr = splitRows.filter(p => p.play_result === "HomeRun").length;
+      const h = sng + dbl + tri + hr;
+      const bb = splitRows.filter(p => p.kor_bb === "Walk").length;
+      const hbpS = splitRows.filter(p => p.result === "HBP").length;
+      const sacS = splitRows.filter(p => p.play_result === "Sacrifice").length;
+      const abS = splitRows.filter(p =>
+        ["Single","Double","Triple","HomeRun","Out","Error"].includes(p.play_result) || p.kor_bb === "Strikeout"
+      ).length;
+      const obpS = (abS + bb + hbpS + sacS) > 0 ? ((h + bb + hbpS) / (abS + bb + hbpS + sacS)).toFixed(3) : ".000";
+      const slgS = abS > 0 ? ((sng + 2*dbl + 3*tri + 4*hr) / abS).toFixed(3) : ".000";
+      const opsS = (parseFloat(obpS) + parseFloat(slgS)).toFixed(3);
+      const evS = splitRows.filter(p => p.exit_velocity && parseFloat(p.exit_velocity) > 0);
+      const avgEVS = evS.length > 0 ? (evS.reduce((a,b) => a + parseFloat(b.exit_velocity), 0) / evS.length).toFixed(1) : null;
+      return { pitches: splitRows.length, ab: abS, h, bb, k: splitRows.filter(p => p.kor_bb === "Strikeout").length, obp: obpS, slg: slgS, ops: opsS, avgEV: avgEVS };
+    }
+
+    // ===== ZONE HEAT MAP =====
+    // 9-box grid: 3x3 divided by x (0.25-0.75) and y (0.25-0.75)
+    const zoneData = Array(3).fill(null).map(() => Array(3).fill(null).map(() => ({ pitches: 0, evSum: 0, evCount: 0, swings: 0 })));
+    rows.forEach(p => {
+      const x = parseFloat(p.x), y = parseFloat(p.y);
+      if (isNaN(x) || isNaN(y)) return;
+      const col = x < 0.417 ? 0 : x < 0.583 ? 1 : 2;
+      const row = y > 0.583 ? 0 : y > 0.417 ? 1 : 2;
+      if (col < 0 || col > 2 || row < 0 || row > 2) return;
+      zoneData[row][col].pitches++;
+      if (p.exit_velocity && parseFloat(p.exit_velocity) > 0) {
+        zoneData[row][col].evSum += parseFloat(p.exit_velocity);
+        zoneData[row][col].evCount++;
+      }
+      if (isSwing(p.result)) zoneData[row][col].swings++;
+    });
+
+    const zoneGrid = zoneData.map(row =>
+      row.map(cell => ({
+        pitches: cell.pitches,
+        avgEV: cell.evCount > 0 ? (cell.evSum / cell.evCount).toFixed(1) : null,
+        swingPct: cell.pitches > 0 ? Math.round((cell.swings / cell.pitches) * 100) : null
+      }))
+    );
+
+    res.json({
+      success: true,
+      hitter,
+      totalPitches: rows.length,
+      statLine: { ab, hits, xbh, homers, walks, strikeouts, hbp, obp, slg, ops, woba, pa },
+      contactQuality: { avgEV, hardHitPct, sweetSpotPct, bipTotal: evRows.length },
+      battedBallProfile: { gbPct, ldPct, fbPct, puPct, gbCount, ldCount, fbCount, puCount, bipTotal },
+      sprayData,
+      pitchTypeStats,
+      handednessSplits: {
+        vsRHP: splitStats(vsRHPRows),
+        vsLHP: splitStats(vsLHPRows)
+      },
+      zoneGrid
+    });
+
+  } catch (err) {
+    console.error("Hitter profile error:", err);
     res.json({ success: false, error: err.message });
   }
 });
