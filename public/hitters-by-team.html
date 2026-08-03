@@ -288,8 +288,8 @@ const hitterCards = hitters.map(h => {
           ${teamsList.map(t => `<option value="${t.raw_name}">${t.display_name}</option>`).join("")}
         </select>
       ` : "";
-      return `
-        <div class="hitter-card">
+return `
+        <div class="hitter-card" onclick="window.location.href='/hitter-report.html?hitterId=${h.id}'" style="cursor:pointer;">
           <div class="hitter-card-name">${h.name}</div>
           <div class="hitter-card-meta">${h.bats || '—'}</div>
           ${assignDropdown}
