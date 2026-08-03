@@ -441,12 +441,27 @@ canvas#chaseCanvas { width: 100%; }
     <div class="two-col">
       <div class="card">
         <div class="card-title">Zone Heat Map</div>
-        <div class="zone-controls">
+        <div class="zone-controls" style="flex-wrap:wrap;">
           <button class="zone-btn active" onclick="setZoneMode('ev', this)">Avg EV</button>
           <button class="zone-btn" onclick="setZoneMode('swing', this)">Swing %</button>
-          <button class="zone-btn" onclick="setZoneMode('pitches', this)">Pitches</button>
+          <button class="zone-btn" onclick="setZoneMode('ba', this)">Batting Avg</button>
+          <button class="zone-btn" onclick="setZoneMode('pitchtypes', this)">Pitch Types Hit</button>
         </div>
         <div class="zone-grid-display" id="zoneGrid"></div>
+
+        <div style="margin-top:20px;">
+          <div class="card-title" style="margin-bottom:10px;">BA by Zone — Handedness Splits</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div>
+              <div style="font-size:11px; color:#22d3ee; font-weight:700; margin-bottom:6px;">vs RHP</div>
+              <div class="zone-grid-display" id="zoneGridRHP"></div>
+            </div>
+            <div>
+              <div style="font-size:11px; color:#f472b6; font-weight:700; margin-bottom:6px;">vs LHP</div>
+              <div class="zone-grid-display" id="zoneGridLHP"></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- HANDEDNESS SPLITS -->
@@ -557,8 +572,10 @@ function renderProfile(d) {
     </tr>
   `).join("");
 
-  // Zone grid
-  renderZoneGrid(d.zoneGrid, zoneMode);
+// Zone grid
+  renderZoneGrid(d.zoneGrid, zoneMode, "zoneGrid");
+  renderZoneGrid(d.zoneGridVsRHP, "ba", "zoneGridRHP");
+  renderZoneGrid(d.zoneGridVsLHP, "ba", "zoneGridLHP");
 
   // Handedness splits
   renderSplits(d.handednessSplits);
@@ -843,46 +860,64 @@ function setZoneMode(mode, btn) {
   zoneMode = mode;
   document.querySelectorAll(".zone-btn").forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
-  if (profileData) renderZoneGrid(profileData.zoneGrid, mode);
+  if (profileData) renderZoneGrid(profileData.zoneGrid, mode, "zoneGrid");
 }
 
-function renderZoneGrid(grid, mode) {
-  const container = document.getElementById("zoneGrid");
-
-  function getCellColor(cell, mode) {
-    if (!cell || cell.pitches === 0) return "rgba(5,8,22,0.8)";
-    if (mode === "ev") {
-      const ev = parseFloat(cell.avgEV);
-      if (isNaN(ev)) return "rgba(5,8,22,0.8)";
-      if (ev >= 95) return "rgba(239,68,68,0.7)";
-      if (ev >= 85) return "rgba(251,146,60,0.7)";
-      if (ev >= 75) return "rgba(251,191,36,0.5)";
-      return "rgba(134,239,172,0.3)";
-    } else if (mode === "swing") {
-      const pct = cell.swingPct;
-      if (pct === null) return "rgba(5,8,22,0.8)";
-      if (pct >= 60) return "rgba(239,68,68,0.7)";
-      if (pct >= 40) return "rgba(251,191,36,0.5)";
-      if (pct >= 20) return "rgba(134,239,172,0.3)";
-      return "rgba(5,8,22,0.5)";
-    } else {
-      const p = cell.pitches;
-      const max = Math.max(...grid.flat().map(c => c.pitches));
-      const intensity = max > 0 ? p / max : 0;
-      return `rgba(34,211,238,${(intensity * 0.7).toFixed(2)})`;
-    }
+function getCellColor(cell, mode, grid) {
+  if (!cell || cell.pitches === 0) return "rgba(5,8,22,0.8)";
+  if (mode === "ev") {
+    const ev = parseFloat(cell.avgEV);
+    if (isNaN(ev)) return "rgba(5,8,22,0.8)";
+    if (ev >= 95) return "rgba(239,68,68,0.7)";
+    if (ev >= 85) return "rgba(251,146,60,0.7)";
+    if (ev >= 75) return "rgba(251,191,36,0.5)";
+    return "rgba(134,239,172,0.3)";
+  } else if (mode === "swing") {
+    const pct = cell.swingPct;
+    if (pct === null) return "rgba(5,8,22,0.8)";
+    if (pct >= 60) return "rgba(239,68,68,0.7)";
+    if (pct >= 40) return "rgba(251,191,36,0.5)";
+    if (pct >= 20) return "rgba(134,239,172,0.3)";
+    return "rgba(5,8,22,0.5)";
+  } else if (mode === "ba") {
+    const ba = parseFloat(cell.ba);
+    if (isNaN(ba)) return "rgba(5,8,22,0.8)";
+    if (ba >= 0.400) return "rgba(239,68,68,0.8)";
+    if (ba >= 0.300) return "rgba(251,146,60,0.7)";
+    if (ba >= 0.200) return "rgba(251,191,36,0.5)";
+    return "rgba(134,239,172,0.3)";
+  } else if (mode === "pitchtypes") {
+    const total = cell.pitchTypes ? cell.pitchTypes.reduce((a, b) => a + b.count, 0) : 0;
+    if (total === 0) return "rgba(5,8,22,0.8)";
+    return "rgba(34,211,238,0.2)";
+  } else {
+    const p = cell.pitches;
+    const max = Math.max(...(grid || [[]]).flat().map(c => c.pitches));
+    const intensity = max > 0 ? p / max : 0;
+    return `rgba(34,211,238,${(intensity * 0.7).toFixed(2)})`;
   }
+}
+
+function renderZoneGrid(grid, mode, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container || !grid) return;
 
   container.innerHTML = grid.map(row =>
     row.map(cell => {
-      const bg = getCellColor(cell, mode);
+      const bg = getCellColor(cell, mode, grid);
       let val = "—", sub = "";
       if (cell.pitches > 0) {
-        if (mode === "ev") { val = cell.avgEV ? cell.avgEV : "—"; sub = "mph"; }
+        if (mode === "ev") { val = cell.avgEV || "—"; sub = "mph"; }
         else if (mode === "swing") { val = cell.swingPct !== null ? cell.swingPct + "%" : "—"; sub = "swing"; }
-        else { val = cell.pitches; sub = "pitches"; }
+        else if (mode === "ba") { val = cell.ba || "—"; sub = cell.ab > 0 ? cell.hits + "/" + cell.ab : ""; }
+        else if (mode === "pitchtypes") {
+          if (cell.pitchTypes && cell.pitchTypes.length > 0) {
+            val = cell.pitchTypes.slice(0, 2).map(t => `${t.type}:${t.count}`).join(" ");
+            sub = "in play";
+          } else { val = "—"; }
+        }
       }
-      return `<div class="zone-cell" style="background:${bg};">
+      return `<div class="zone-cell" style="background:${bg}; font-size:${mode === 'pitchtypes' ? '9px' : '13px'};">
         <span>${val}</span>
         ${sub ? `<span class="zone-cell-sub">${sub}</span>` : ""}
       </div>`;
