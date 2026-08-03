@@ -1387,15 +1387,15 @@ app.get("/hitter/:hitterId/metrics", async (req, res) => {
       const x = parseFloat(p.x), y = parseFloat(p.y);
       return x >= ZONE_X_MIN && x <= ZONE_X_MAX && y >= ZONE_Y_MIN && y <= ZONE_Y_MAX;
     }
-
-    function isSwing(result) {
-      return ["swinging_strike", "foul", "in_play", "hit"].includes(result);
+    
+function isSwing(result) {
+      return ["StrikeSwinging", "Foul", "InPlay"].includes(result);
     }
-
+    
     function isWhiff(result) {
-      return result === "swinging_strike";
+      return result === "StrikeSwinging";
     }
-
+    
     const pitchTypeStats = {};
     for (const [type, typePitches] of Object.entries(groups)) {
       const total = typePitches.length;
