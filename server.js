@@ -140,29 +140,6 @@ async function initializeDatabase() {
       ALTER TABLE pitches ADD COLUMN IF NOT EXISTS vert_appr_angle DECIMAL(6,3) DEFAULT NULL;
     `);
 
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS teams (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        raw_name TEXT UNIQUE NOT NULL,
-        display_name TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT NOW()
-      );
-    `);
-
-    // Seed teams table from any team names already in pitchers/hitters tables
-    await pool.query(`
-      INSERT INTO teams (raw_name, display_name)
-      SELECT DISTINCT team, team FROM pitchers
-      WHERE team IS NOT NULL AND team != ''
-      ON CONFLICT (raw_name) DO NOTHING;
-    `);
-    await pool.query(`
-      INSERT INTO teams (raw_name, display_name)
-      SELECT DISTINCT team, team FROM hitters
-      WHERE team IS NOT NULL AND team != ''
-      ON CONFLICT (raw_name) DO NOTHING;
-    `);
-    
     // Strikeout/walk flag, batted-ball outcome, and runs scored — needed for
     // the Advanced Stats (K/BB/HBP/HR/ERA/FIP) calculations to actually work.
     await pool.query(`
@@ -193,7 +170,7 @@ async function initializeDatabase() {
       ALTER TABLE pitches ADD COLUMN IF NOT EXISTS batter_id UUID REFERENCES hitters(id) DEFAULT NULL;
     `);
 
-    await pool.query(`
+await pool.query(`
       CREATE TABLE IF NOT EXISTS clips (
         id UUID PRIMARY KEY,
         session_id UUID NOT NULL REFERENCES sessions(id),
@@ -201,6 +178,29 @@ async function initializeDatabase() {
         url TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS teams (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        raw_name TEXT UNIQUE NOT NULL,
+        display_name TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+
+    await pool.query(`
+      INSERT INTO teams (raw_name, display_name)
+      SELECT DISTINCT team, team FROM pitchers
+      WHERE team IS NOT NULL AND team != ''
+      ON CONFLICT (raw_name) DO NOTHING;
+    `);
+
+    await pool.query(`
+      INSERT INTO teams (raw_name, display_name)
+      SELECT DISTINCT team, team FROM hitters
+      WHERE team IS NOT NULL AND team != ''
+      ON CONFLICT (raw_name) DO NOTHING;
     `);
 
     console.log("✅ Database initialized");
