@@ -1338,6 +1338,120 @@ app.post("/upload-csv", csvUpload.single("csv"), async (req, res) => {
   }
 });
 
+// Get aggregated metrics for a hitter broken down by pitch type they've faced
+app.get("/hitter/:hitterId/metrics", async (req, res) => {
+  const { hitterId } = req.params;
+  const token = req.headers.authorization?.split(" ")[1] || req.query.token;
+  const user = await verifyToken(token);
+  if (!user) return res.json({ success: false, error: "Invalid token" });
+
+  try {
+    const hitterCheck = await pool.query(
+      "SELECT id, name, bats FROM hitters WHERE id = $1",
+      [hitterId]
+    );
+    if (hitterCheck.rows.length === 0) {
+      return res.json({ success: false, error: "Hitter not found" });
+    }
+    const hitter = hitterCheck.rows[0];
+
+    const pitches = await pool.query(
+      `SELECT pitch_type, result, x, y, exit_velocity, kor_bb, play_result
+       FROM pitches
+       WHERE batter_id = $1 AND pitch_type IS NOT NULL AND pitch_type != ''`,
+      [hitterId]
+    );
+
+    if (pitches.rows.length === 0) {
+      return res.json({
+        success: true,
+        hitter,
+        pitchTypeStats: {},
+        totalPitches: 0
+      });
+    }
+
+    // Group by pitch type
+    const groups = {};
+    for (const p of pitches.rows) {
+      const type = p.pitch_type || "?";
+      if (!groups[type]) groups[type] = [];
+      groups[type].push(p);
+    }
+
+    // Zone bounds (same 0-1 scale as stored)
+    const ZONE_X_MIN = 0.25, ZONE_X_MAX = 0.75;
+    const ZONE_Y_MIN = 0.25, ZONE_Y_MAX = 0.75;
+
+    function inZone(p) {
+      const x = parseFloat(p.x), y = parseFloat(p.y);
+      return x >= ZONE_X_MIN && x <= ZONE_X_MAX && y >= ZONE_Y_MIN && y <= ZONE_Y_MAX;
+    }
+
+    function isSwing(result) {
+      return ["swinging_strike", "foul", "in_play", "hit"].includes(result);
+    }
+
+    function isWhiff(result) {
+      return result === "swinging_strike";
+    }
+
+    const pitchTypeStats = {};
+    for (const [type, typePitches] of Object.entries(groups)) {
+      const total = typePitches.length;
+
+      const swings = typePitches.filter(p => isSwing(p.result));
+      const whiffs = typePitches.filter(p => isWhiff(p.result));
+
+      // Chase = swings on pitches outside zone
+      const outsideZone = typePitches.filter(p => !inZone(p));
+      const chases = outsideZone.filter(p => isSwing(p.result));
+      const chaseRate = outsideZone.length > 0
+        ? Math.round((chases.length / outsideZone.length) * 100)
+        : null;
+
+      const whiffRate = swings.length > 0
+        ? Math.round((whiffs.length / swings.length) * 100)
+        : null;
+
+      const bip = typePitches.filter(p => p.exit_velocity && parseFloat(p.exit_velocity) > 0);
+      const hardHit = bip.filter(p => parseFloat(p.exit_velocity) >= 95);
+      const hardHitPct = bip.length > 0
+        ? Math.round((hardHit.length / bip.length) * 100)
+        : null;
+
+      const avgEV = bip.length > 0
+        ? Math.round(bip.reduce((a, b) => a + parseFloat(b.exit_velocity), 0) / bip.length)
+        : null;
+
+      pitchTypeStats[type] = {
+        total,
+        swings: swings.length,
+        whiffs: whiffs.length,
+        whiffRate,
+        outsideZone: outsideZone.length,
+        chases: chases.length,
+        chaseRate,
+        bip: bip.length,
+        hardHit: hardHit.length,
+        hardHitPct,
+        avgEV
+      };
+    }
+
+    res.json({
+      success: true,
+      hitter,
+      pitchTypeStats,
+      totalPitches: pitches.rows.length
+    });
+
+  } catch (err) {
+    console.error("Hitter metrics error:", err);
+    res.json({ success: false, error: err.message });
+  }
+});
+
 // Get all teams with display names
 app.get("/teams", async (req, res) => {
   const token = req.headers.authorization?.split(" ")[1] || req.query.token;
