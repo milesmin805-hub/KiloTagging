@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Kilo - Hitter Report</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #050816;
+  color: #e5e7eb;
+  min-height: 100vh;
+}
+
+header {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(148,163,184,0.3);
+  background: radial-gradient(circle at top left, rgba(134,239,172,0.15), transparent 55%);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.brand { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.brand-mark {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #86efac, #0f172a);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700;
+}
+.brand-text .title { font-size: 16px; font-weight: 600; }
+.brand-text .subtitle { font-size: 11px; color: #9ca3af; }
+
+.header-right { display: flex; align-items: center; gap: 10px; }
+
+.btn {
+  padding: 8px 14px;
+  border: 1px solid rgba(148,163,184,0.5);
+  background: rgba(15,23,42,0.9);
+  color: #e5e7eb;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.15s ease;
+}
+.btn:hover { border-color: rgba(134,239,172,0.9); box-shadow: 0 0 12px rgba(134,239,172,0.3); }
+
+main { padding: 24px 20px; max-width: 1200px; margin: 0 auto; }
+
+/* HITTER HEADER */
+.hitter-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 28px;
+  padding: 20px 24px;
+  background: rgba(15,23,42,0.9);
+  border: 1px solid rgba(134,239,172,0.3);
+  border-radius: 14px;
+}
+
+.hitter-avatar {
+  width: 60px; height: 60px; border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #86efac, #0f172a);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; flex-shrink: 0;
+}
+
+.hitter-name { font-size: 26px; font-weight: 700; color: #86efac; }
+.hitter-meta { font-size: 13px; color: #9ca3af; margin-top: 3px; }
+
+/* BUBBLE ROW */
+.bubble-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.bubble {
+  background: rgba(15,23,42,0.9);
+  border: 1px solid rgba(148,163,184,0.25);
+  border-radius: 14px;
+  padding: 18px;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+.bubble:hover { border-color: rgba(134,239,172,0.5); }
+.bubble-value { font-size: 28px; font-weight: 700; color: #86efac; line-height: 1; }
+.bubble-label { font-size: 11px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 6px; }
+
+/* STAT LINE */
+.stat-line-card {
+  background: rgba(15,23,42,0.9);
+  border: 1px solid rgba(148,163,184,0.25);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+  overflow-x: auto;
+}
+
+.card-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #9ca3af;
+  margin-bottom: 14px;
+}
+
+.stat-line-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.stat-line-table th {
+  color: #9ca3af;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 8px 14px;
+  text-align: center;
+  border-bottom: 1px solid rgba(148,163,184,0.2);
+  white-space: nowrap;
+}
+.stat-line-table td {
+  padding: 12px 14px;
+  text-align: center;
+  color: #e5e7eb;
+  font-size: 15px;
+  font-weight: 600;
+}
+.stat-line-table td.highlight { color: #86efac; }
+
+/* TWO COLUMN LAYOUT */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+.three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+
+.card {
+  background: rgba(15,23,42,0.9);
+  border: 1px solid rgba(148,163,184,0.25);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+/* BATTED BALL CIRCLE CHART */
+.donut-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-top: 10px;
+}
+
+canvas.donut { flex-shrink: 0; }
+
+.donut-legend { display: flex; flex-direction: column; gap: 8px; }
+.legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+/* BATTED BALL BAR */
+.bb-bars { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.bb-bar-row { display: flex; align-items: center; gap: 10px; }
+.bb-bar-label { font-size: 12px; color: #9ca3af; width: 28px; }
+.bb-bar-track { flex: 1; background: rgba(148,163,184,0.1); border-radius: 4px; height: 10px; }
+.bb-bar-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+.bb-bar-pct { font-size: 12px; color: #e5e7eb; width: 42px; text-align: right; }
+
+/* SPRAY CHART */
+.spray-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.spray-btn {
+  padding: 5px 12px;
+  border: 1px solid rgba(148,163,184,0.3);
+  background: transparent;
+  color: #9ca3af;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  transition: all 0.15s ease;
+}
+.spray-btn.active {
+  border-color: #86efac;
+  color: #86efac;
+  background: rgba(134,239,172,0.1);
+}
+
+canvas#sprayCanvas {
+  width: 100%;
+  border-radius: 8px;
+}
+
+/* ZONE HEAT MAP */
+.zone-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.zone-btn {
+  padding: 5px 12px;
+  border: 1px solid rgba(148,163,184,0.3);
+  background: transparent;
+  color: #9ca3af;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  transition: all 0.15s ease;
+}
+.zone-btn.active { border-color: #86efac; color: #86efac; background: rgba(134,239,172,0.1); }
+
+.zone-grid-display {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  margin-top: 10px;
+  border: 2px solid rgba(148,163,184,0.4);
+  border-radius: 6px;
+  overflow: hidden;
+  padding: 3px;
+  background: rgba(5,8,22,0.8);
+}
+
+.zone-cell {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #e5e7eb;
+  transition: background 0.3s ease;
+  gap: 2px;
+}
+.zone-cell-sub { font-size: 9px; font-weight: 400; color: rgba(255,255,255,0.6); }
+
+/* CHASE RATE CHART */
+canvas#chaseCanvas { width: 100%; }
+
+/* PITCH TYPE TABLE */
+.pitch-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+.pitch-table th {
+  color: #9ca3af; font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.05em; padding: 6px 10px; text-align: left;
+  border-bottom: 1px solid rgba(148,163,184,0.2); white-space: nowrap;
+}
+.pitch-table td { padding: 8px 10px; border-bottom: 1px solid rgba(148,163,184,0.08); color: #e5e7eb; }
+.pitch-table tr:last-child td { border-bottom: none; }
+.pitch-table tr:hover td { background: rgba(134,239,172,0.04); }
+
+/* HANDEDNESS SPLITS */
+.splits-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 10px; }
+.split-card {
+  background: rgba(5,8,22,0.6);
+  border: 1px solid rgba(148,163,184,0.2);
+  border-radius: 10px;
+  padding: 14px;
+}
+.split-title { font-size: 12px; font-weight: 700; color: #22d3ee; margin-bottom: 10px; }
+.split-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.split-stat { text-align: center; }
+.split-stat-val { font-size: 16px; font-weight: 700; color: #e5e7eb; }
+.split-stat-lbl { font-size: 9px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* LOADING */
+.loading { text-align: center; padding: 80px; color: #9ca3af; }
+
+/* HAMBURGER */
+.hamburger-btn {
+  background: none; border: none; color: #e5e7eb;
+  font-size: 20px; cursor: pointer; padding: 4px 8px; line-height: 1;
+}
+.side-menu-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5); z-index: 998;
+}
+.side-menu-overlay.open { display: block; }
+.side-menu {
+  position: fixed; top: 0; left: -280px; width: 280px; height: 100vh;
+  background: #0f172a; border-right: 1px solid rgba(148,163,184,0.3);
+  z-index: 999; transition: left 0.25s ease; display: flex; flex-direction: column;
+}
+.side-menu.open { left: 0; }
+.side-menu-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 20px 16px; border-bottom: 1px solid rgba(148,163,184,0.2);
+  font-weight: 600; color: #22d3ee;
+}
+.side-menu-close { background: none; border: none; color: #9ca3af; font-size: 18px; cursor: pointer; padding: 4px; width: auto; }
+.side-menu-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px; cursor: pointer; color: #e5e7eb; font-size: 14px;
+  border-bottom: 1px solid rgba(148,163,184,0.1); transition: background 0.15s ease;
+}
+.side-menu-item:hover { background: rgba(56,189,248,0.1); }
+
+@media (max-width: 768px) {
+  .bubble-row { grid-template-columns: repeat(2, 1fr); }
+  .two-col { grid-template-columns: 1fr; }
+  .three-col { grid-template-columns: 1fr; }
+  .splits-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div id="sideMenuOverlay" class="side-menu-overlay" onclick="toggleMenu()"></div>
+<div id="sideMenu" class="side-menu">
+  <div class="side-menu-header">
+    <span>Menu</span>
+    <button class="side-menu-close" onclick="toggleMenu()">✕</button>
+  </div>
+  <div class="side-menu-item" onclick="window.location.href='/all-pitchers.html'">Pitchers</div>
+  <div class="side-menu-item" onclick="window.location.href='/all-hitters.html'">Hitters</div>
+  <div class="side-menu-item" onclick="window.location.href='/pitchers-by-team.html'">Pitchers by Team</div>
+  <div class="side-menu-item" onclick="window.location.href='/hitters-by-team.html'">Hitters by Team</div>
+  <div class="side-menu-item" onclick="window.location.href='/matchups.html'">Matchups</div>
+</div>
+
+<header>
+  <div style="display:flex; align-items:center; gap:12px;">
+    <button class="hamburger-btn" onclick="toggleMenu()">☰</button>
+    <div class="brand" onclick="window.location.href='/dashboard.html'">
+      <div class="brand-mark">🏏</div>
+      <div class="brand-text">
+        <div class="title">Kilo</div>
+        <div class="subtitle">Baseball</div>
+      </div>
+    </div>
+  </div>
+  <div class="header-right">
+    <button class="btn" onclick="window.location.href='/all-hitters.html'">← All Hitters</button>
+  </div>
+</header>
+
+<main>
+  <div id="loading" class="loading">Loading hitter profile...</div>
+  <div id="reportContent" style="display:none;">
+
+    <!-- HITTER HEADER -->
+    <div class="hitter-header">
+      <div class="hitter-avatar">🏏</div>
+      <div>
+        <div class="hitter-name" id="hitterName">—</div>
+        <div class="hitter-meta" id="hitterMeta">—</div>
+      </div>
+    </div>
+
+    <!-- BUBBLE ROW -->
+    <div class="bubble-row">
+      <div class="bubble">
+        <div class="bubble-value" id="bubbleAvgEV">—</div>
+        <div class="bubble-label">Avg Exit Velo</div>
+      </div>
+      <div class="bubble">
+        <div class="bubble-value" id="bubbleHardHit">—</div>
+        <div class="bubble-label">Hard Hit %</div>
+      </div>
+      <div class="bubble">
+        <div class="bubble-value" id="bubbleSweetSpot">—</div>
+        <div class="bubble-label">Sweet Spot %</div>
+      </div>
+      <div class="bubble">
+        <div class="bubble-value" id="bubbleBIP">—</div>
+        <div class="bubble-label">Batted Balls</div>
+      </div>
+    </div>
+
+    <!-- STAT LINE -->
+    <div class="stat-line-card">
+      <div class="card-title">Stat Line</div>
+      <table class="stat-line-table">
+        <thead>
+          <tr>
+            <th>PA</th><th>AB</th><th>H</th><th>XBH</th><th>HR</th>
+            <th>BB</th><th>K</th><th>OBP</th><th>SLG</th><th>OPS</th><th>wOBA</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr id="statLineRow"></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- BATTED BALL PROFILE + DONUT CHART -->
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Batted Ball Profile</div>
+        <div class="bb-bars" id="bbBars"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Batted Ball Distribution</div>
+        <div class="donut-wrapper">
+          <canvas class="donut" id="donutCanvas" width="140" height="140"></canvas>
+          <div class="donut-legend" id="donutLegend"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SPRAY CHART -->
+    <div class="card" style="margin-bottom:24px;">
+      <div class="card-title">Spray Chart</div>
+      <div class="spray-controls">
+        <button class="spray-btn active" onclick="setSprayMode('result', this)">By Result</button>
+        <button class="spray-btn" onclick="setSprayMode('hittype', this)">By Hit Type</button>
+        <button class="spray-btn" onclick="setSprayMode('ev', this)">By Exit Velo</button>
+      </div>
+      <div style="display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap;">
+        <canvas id="sprayCanvas" width="400" height="380" style="max-width:400px;"></canvas>
+        <div id="sprayLegend" style="display:flex; flex-direction:column; gap:8px; padding-top:20px;"></div>
+      </div>
+    </div>
+
+    <!-- CHASE RATE + PITCH TYPE TABLE -->
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Chase Rate by Pitch Type</div>
+        <canvas id="chaseCanvas" width="400" height="260"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-title">Plate Discipline by Pitch Type</div>
+        <table class="pitch-table">
+          <thead>
+            <tr>
+              <th>Pitch</th><th>Seen</th><th>Swing%</th><th>Whiff%</th><th>Chase%</th><th>Avg EV</th>
+            </tr>
+          </thead>
+          <tbody id="pitchDisciplineBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ZONE HEAT MAP -->
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Zone Heat Map</div>
+        <div class="zone-controls">
+          <button class="zone-btn active" onclick="setZoneMode('ev', this)">Avg EV</button>
+          <button class="zone-btn" onclick="setZoneMode('swing', this)">Swing %</button>
+          <button class="zone-btn" onclick="setZoneMode('pitches', this)">Pitches</button>
+        </div>
+        <div class="zone-grid-display" id="zoneGrid"></div>
+      </div>
+
+      <!-- HANDEDNESS SPLITS -->
+      <div class="card">
+        <div class="card-title">Handedness Splits</div>
+        <div class="splits-grid" id="splitsGrid"></div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+let token = localStorage.getItem("token");
+let profileData = null;
+let sprayMode = "result";
+let zoneMode = "ev";
+
+window.addEventListener("load", async () => {
+  if (!token) { window.location.href = "/login.html"; return; }
+  const params = new URLSearchParams(window.location.search);
+  const hitterId = params.get("hitterId");
+  if (!hitterId) { document.getElementById("loading").textContent = "No hitter specified."; return; }
+  await loadProfile(hitterId);
+});
+
+async function loadProfile(hitterId) {
+  try {
+    const res = await fetch(`/hitter/${hitterId}/profile?token=${token}`);
+    const data = await res.json();
+    if (!data.success) {
+      document.getElementById("loading").textContent = "Error: " + data.error;
+      return;
+    }
+    profileData = data;
+    renderProfile(data);
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("reportContent").style.display = "block";
+  } catch (err) {
+    document.getElementById("loading").textContent = "Failed to load profile.";
+  }
+}
+
+function renderProfile(d) {
+  // Header
+  document.getElementById("hitterName").textContent = d.hitter.name;
+  const bats = d.hitter.bats || "—";
+  const team = d.hitter.team || "Unknown Team";
+  document.title = `${d.hitter.name} — Kilo Hitter Report`;
+  document.getElementById("hitterMeta").textContent = `${bats} · ${team} · ${d.totalPitches} pitches tracked`;
+
+  // Bubbles
+  const cq = d.contactQuality;
+  document.getElementById("bubbleAvgEV").textContent = cq.avgEV ? cq.avgEV + " mph" : "—";
+  document.getElementById("bubbleHardHit").textContent = cq.hardHitPct ? cq.hardHitPct + "%" : "—";
+  document.getElementById("bubbleSweetSpot").textContent = cq.sweetSpotPct ? cq.sweetSpotPct + "%" : "—";
+  document.getElementById("bubbleBIP").textContent = cq.bipTotal;
+
+  // Stat line
+  const sl = d.statLine;
+  document.getElementById("statLineRow").innerHTML = `
+    <td>${sl.pa}</td><td>${sl.ab}</td><td>${sl.hits}</td><td>${sl.xbh}</td><td>${sl.homers}</td>
+    <td>${sl.walks}</td><td>${sl.strikeouts}</td>
+    <td class="highlight">${sl.obp}</td>
+    <td class="highlight">${sl.slg}</td>
+    <td class="highlight">${sl.ops}</td>
+    <td class="highlight">${sl.woba}</td>
+  `;
+
+  // Batted ball bars
+  const bb = d.battedBallProfile;
+  const bbColors = { GB: "#fbbf24", LD: "#86efac", FB: "#22d3ee", PU: "#f472b6" };
+  const bbItems = [
+    { label: "GB", pct: bb.gbPct, color: bbColors.GB },
+    { label: "LD", pct: bb.ldPct, color: bbColors.LD },
+    { label: "FB", pct: bb.fbPct, color: bbColors.FB },
+    { label: "PU", pct: bb.puPct, color: bbColors.PU },
+  ];
+  document.getElementById("bbBars").innerHTML = bbItems.map(item => `
+    <div class="bb-bar-row">
+      <span class="bb-bar-label">${item.label}</span>
+      <div class="bb-bar-track">
+        <div class="bb-bar-fill" style="width:${item.pct}%; background:${item.color};"></div>
+      </div>
+      <span class="bb-bar-pct">${item.pct}%</span>
+    </div>
+  `).join("");
+
+  // Donut chart
+  drawDonut(bb);
+
+  // Spray chart
+  drawSpray(d.sprayData, sprayMode);
+
+  // Chase rate bar chart
+  drawChaseChart(d.pitchTypeStats);
+
+  // Pitch discipline table
+  const pitchRows = Object.entries(d.pitchTypeStats).sort((a, b) => b[1].total - a[1].total);
+  document.getElementById("pitchDisciplineBody").innerHTML = pitchRows.map(([type, s]) => `
+    <tr>
+      <td><strong>${type}</strong></td>
+      <td>${s.total}</td>
+      <td>${s.swingPct !== null ? s.swingPct + "%" : "—"}</td>
+      <td>${s.whiffRate !== null ? s.whiffRate + "%" : "—"}</td>
+      <td>${s.chaseRate !== null ? s.chaseRate + "%" : "—"}</td>
+      <td>${s.avgEV !== null ? s.avgEV + " mph" : "—"}</td>
+    </tr>
+  `).join("");
+
+  // Zone grid
+  renderZoneGrid(d.zoneGrid, zoneMode);
+
+  // Handedness splits
+  renderSplits(d.handednessSplits);
+}
+
+function drawDonut(bb) {
+  const canvas = document.getElementById("donutCanvas");
+  const ctx = canvas.getContext("2d");
+  const cx = canvas.width / 2, cy = canvas.height / 2, r = 55, ir = 32;
+
+  const segments = [
+    { label: "Ground Ball", pct: parseFloat(bb.gbPct), color: "#fbbf24" },
+    { label: "Line Drive", pct: parseFloat(bb.ldPct), color: "#86efac" },
+    { label: "Fly Ball", pct: parseFloat(bb.fbPct), color: "#22d3ee" },
+    { label: "Pop Up", pct: parseFloat(bb.puPct), color: "#f472b6" },
+  ].filter(s => s.pct > 0);
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (segments.length === 0) {
+    ctx.fillStyle = "rgba(148,163,184,0.2)";
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#050816";
+    ctx.beginPath();
+    ctx.arc(cx, cy, ir, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#9ca3af";
+    ctx.font = "10px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText("No Data", cx, cy + 4);
+
+    document.getElementById("donutLegend").innerHTML = "";
+    return;
+  }
+
+  let startAngle = -Math.PI / 2;
+  segments.forEach(seg => {
+    const angle = (seg.pct / 100) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, startAngle, startAngle + angle);
+    ctx.closePath();
+    ctx.fillStyle = seg.color;
+    ctx.fill();
+    startAngle += angle;
+  });
+
+  // Inner circle cutout
+  ctx.beginPath();
+  ctx.arc(cx, cy, ir, 0, Math.PI * 2);
+  ctx.fillStyle = "#0f172a";
+  ctx.fill();
+
+  document.getElementById("donutLegend").innerHTML = segments.map(s => `
+    <div class="legend-item">
+      <div class="legend-dot" style="background:${s.color};"></div>
+      <span style="color:#e5e7eb;">${s.label}</span>
+      <span style="color:#9ca3af; margin-left:auto;">${s.pct}%</span>
+    </div>
+  `).join("");
+}
+
+function setSprayMode(mode, btn) {
+  sprayMode = mode;
+  document.querySelectorAll(".spray-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  if (profileData) drawSpray(profileData.sprayData, mode);
+}
+
+function drawSpray(sprayData, mode) {
+  const canvas = document.getElementById("sprayCanvas");
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  // Background
+  ctx.fillStyle = "#0a1628";
+  ctx.fillRect(0, 0, W, H);
+
+  // Draw baseball field
+  const homeX = W / 2, homeY = H - 30;
+  const scale = 1.1;
+
+  // Outfield arc
+  ctx.beginPath();
+  ctx.arc(homeX, homeY, 300 * scale * 0.75, Math.PI, 2 * Math.PI);
+  ctx.strokeStyle = "rgba(134,239,172,0.25)";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Foul lines
+  ctx.beginPath();
+  ctx.moveTo(homeX, homeY);
+  ctx.lineTo(homeX - 220 * scale * 0.75, homeY - 300 * scale * 0.75);
+  ctx.moveTo(homeX, homeY);
+  ctx.lineTo(homeX + 220 * scale * 0.75, homeY - 300 * scale * 0.75);
+  ctx.strokeStyle = "rgba(134,239,172,0.25)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Infield diamond
+  const base = 90 * scale * 0.75;
+  ctx.beginPath();
+  ctx.moveTo(homeX, homeY - 10);
+  ctx.lineTo(homeX + base * 0.7, homeY - base * 0.7);
+  ctx.lineTo(homeX, homeY - base * 1.4);
+  ctx.lineTo(homeX - base * 0.7, homeY - base * 0.7);
+  ctx.closePath();
+  ctx.strokeStyle = "rgba(148,163,184,0.3)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Home plate
+  ctx.beginPath();
+  ctx.arc(homeX, homeY - 5, 5, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(148,163,184,0.6)";
+  ctx.fill();
+
+  // Color schemes
+  const resultColors = {
+    "Single": "#86efac",
+    "Double": "#22d3ee",
+    "Triple": "#a855f7",
+    "HomeRun": "#ef4444",
+    "Out": "rgba(148,163,184,0.5)",
+    "Error": "#fbbf24",
+    null: "rgba(148,163,184,0.3)"
+  };
+
+  const hitTypeColors = {
+    "GroundBall": "#fbbf24",
+    "LineDrive": "#86efac",
+    "FlyBall": "#22d3ee",
+    "Popup": "#f472b6",
+    null: "rgba(148,163,184,0.3)"
+  };
+
+  function evColor(ev) {
+    if (ev === null) return "rgba(148,163,184,0.3)";
+    if (ev >= 100) return "#ef4444";
+    if (ev >= 90) return "#f97316";
+    if (ev >= 80) return "#fbbf24";
+    return "#86efac";
+  }
+
+  if (sprayData.length === 0) {
+    ctx.fillStyle = "#9ca3af";
+    ctx.font = "13px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText("No spray chart data yet", W/2, H/2);
+    ctx.fillText("Re-import CSVs to populate", W/2, H/2 + 20);
+    document.getElementById("sprayLegend").innerHTML = "";
+    return;
+  }
+
+  // Plot each ball
+  sprayData.forEach(p => {
+    const dirRad = (p.direction - 90) * (Math.PI / 180);
+    const dist = Math.min(p.distance || 150, 400) * scale * 0.55;
+    const px = homeX + Math.cos(dirRad) * dist;
+    const py = homeY - Math.sin(dirRad) * dist * 0.85;
+
+    let color;
+    if (mode === "result") color = resultColors[p.playResult] || resultColors[null];
+    else if (mode === "hittype") color = hitTypeColors[p.hitType] || hitTypeColors[null];
+    else color = evColor(p.exitVelocity);
+
+    ctx.beginPath();
+    ctx.arc(px, py, 5, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.strokeStyle = "rgba(0,0,0,0.4)";
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  });
+
+  // Legend
+  let legendItems = [];
+  if (mode === "result") {
+    legendItems = [
+      { color: "#86efac", label: "Single" },
+      { color: "#22d3ee", label: "Double" },
+      { color: "#a855f7", label: "Triple" },
+      { color: "#ef4444", label: "Home Run" },
+      { color: "rgba(148,163,184,0.5)", label: "Out" },
+    ];
+  } else if (mode === "hittype") {
+    legendItems = [
+      { color: "#fbbf24", label: "Ground Ball" },
+      { color: "#86efac", label: "Line Drive" },
+      { color: "#22d3ee", label: "Fly Ball" },
+      { color: "#f472b6", label: "Pop Up" },
+    ];
+  } else {
+    legendItems = [
+      { color: "#86efac", label: "< 80 mph" },
+      { color: "#fbbf24", label: "80–89 mph" },
+      { color: "#f97316", label: "90–99 mph" },
+      { color: "#ef4444", label: "100+ mph" },
+    ];
+  }
+
+  document.getElementById("sprayLegend").innerHTML = legendItems.map(l => `
+    <div class="legend-item">
+      <div class="legend-dot" style="background:${l.color};"></div>
+      <span style="font-size:12px; color:#e5e7eb;">${l.label}</span>
+    </div>
+  `).join("");
+}
+
+function drawChaseChart(pitchTypeStats) {
+  const canvas = document.getElementById("chaseCanvas");
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  ctx.fillStyle = "#0a1628";
+  ctx.fillRect(0, 0, W, H);
+
+  const entries = Object.entries(pitchTypeStats).filter(([, s]) => s.chaseRate !== null);
+
+  if (entries.length === 0) {
+    ctx.fillStyle = "#9ca3af";
+    ctx.font = "12px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText("No chase rate data available", W/2, H/2);
+    return;
+  }
+
+  const padL = 40, padR = 20, padT = 20, padB = 50;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+  const barW = Math.min(50, (chartW / entries.length) * 0.6);
+  const gap = chartW / entries.length;
+
+  // Y axis lines
+  [0, 25, 50, 75, 100].forEach(pct => {
+    const y = padT + chartH - (pct / 100) * chartH;
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(padL + chartW, y);
+    ctx.strokeStyle = "rgba(148,163,184,0.1)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = "#9ca3af";
+    ctx.font = "10px system-ui";
+    ctx.textAlign = "right";
+    ctx.fillText(pct + "%", padL - 6, y + 4);
+  });
+
+  entries.forEach(([type, s], i) => {
+    const x = padL + gap * i + gap / 2 - barW / 2;
+    const barH = (s.chaseRate / 100) * chartH;
+    const y = padT + chartH - barH;
+
+    // Bar
+    const grad = ctx.createLinearGradient(0, y, 0, y + barH);
+    grad.addColorStop(0, "rgba(134,239,172,0.9)");
+    grad.addColorStop(1, "rgba(134,239,172,0.3)");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(x, y, barW, barH, [4, 4, 0, 0]);
+    ctx.fill();
+
+    // Value label
+    ctx.fillStyle = "#e5e7eb";
+    ctx.font = "bold 11px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText(s.chaseRate + "%", x + barW/2, y - 6);
+
+    // Pitch type label
+    ctx.fillStyle = "#9ca3af";
+    ctx.font = "11px system-ui";
+    ctx.fillText(type, x + barW/2, padT + chartH + 18);
+  });
+}
+
+function setZoneMode(mode, btn) {
+  zoneMode = mode;
+  document.querySelectorAll(".zone-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  if (profileData) renderZoneGrid(profileData.zoneGrid, mode);
+}
+
+function renderZoneGrid(grid, mode) {
+  const container = document.getElementById("zoneGrid");
+
+  function getCellColor(cell, mode) {
+    if (!cell || cell.pitches === 0) return "rgba(5,8,22,0.8)";
+    if (mode === "ev") {
+      const ev = parseFloat(cell.avgEV);
+      if (isNaN(ev)) return "rgba(5,8,22,0.8)";
+      if (ev >= 95) return "rgba(239,68,68,0.7)";
+      if (ev >= 85) return "rgba(251,146,60,0.7)";
+      if (ev >= 75) return "rgba(251,191,36,0.5)";
+      return "rgba(134,239,172,0.3)";
+    } else if (mode === "swing") {
+      const pct = cell.swingPct;
+      if (pct === null) return "rgba(5,8,22,0.8)";
+      if (pct >= 60) return "rgba(239,68,68,0.7)";
+      if (pct >= 40) return "rgba(251,191,36,0.5)";
+      if (pct >= 20) return "rgba(134,239,172,0.3)";
+      return "rgba(5,8,22,0.5)";
+    } else {
+      const p = cell.pitches;
+      const max = Math.max(...grid.flat().map(c => c.pitches));
+      const intensity = max > 0 ? p / max : 0;
+      return `rgba(34,211,238,${(intensity * 0.7).toFixed(2)})`;
+    }
+  }
+
+  container.innerHTML = grid.map(row =>
+    row.map(cell => {
+      const bg = getCellColor(cell, mode);
+      let val = "—", sub = "";
+      if (cell.pitches > 0) {
+        if (mode === "ev") { val = cell.avgEV ? cell.avgEV : "—"; sub = "mph"; }
+        else if (mode === "swing") { val = cell.swingPct !== null ? cell.swingPct + "%" : "—"; sub = "swing"; }
+        else { val = cell.pitches; sub = "pitches"; }
+      }
+      return `<div class="zone-cell" style="background:${bg};">
+        <span>${val}</span>
+        ${sub ? `<span class="zone-cell-sub">${sub}</span>` : ""}
+      </div>`;
+    }).join("")
+  ).join("");
+}
+
+function renderSplits(splits) {
+  function splitCard(title, s) {
+    if (s.pitches === 0) {
+      return `<div class="split-card">
+        <div class="split-title">${title}</div>
+        <div style="color:#9ca3af; font-size:12px;">No data</div>
+      </div>`;
+    }
+    return `<div class="split-card">
+      <div class="split-title">${title} <span style="color:#9ca3af; font-size:10px;">(${s.pitches} pitches)</span></div>
+      <div class="split-stats">
+        <div class="split-stat"><div class="split-stat-val">${s.ops}</div><div class="split-stat-lbl">OPS</div></div>
+        <div class="split-stat"><div class="split-stat-val">${s.obp}</div><div class="split-stat-lbl">OBP</div></div>
+        <div class="split-stat"><div class="split-stat-val">${s.slg}</div><div class="split-stat-lbl">SLG</div></div>
+        <div class="split-stat"><div class="split-stat-val">${s.h}</div><div class="split-stat-lbl">Hits</div></div>
+        <div class="split-stat"><div class="split-stat-val">${s.k}</div><div class="split-stat-lbl">K</div></div>
+        <div class="split-stat"><div class="split-stat-val">${s.avgEV ? s.avgEV : "—"}</div><div class="split-stat-lbl">Avg EV</div></div>
+      </div>
+    </div>`;
+  }
+
+  document.getElementById("splitsGrid").innerHTML =
+    splitCard("vs RHP", splits.vsRHP) + splitCard("vs LHP", splits.vsLHP);
+}
+
+function toggleMenu() {
+  document.getElementById("sideMenu").classList.toggle("open");
+  document.getElementById("sideMenuOverlay").classList.toggle("open");
+}
+</script>
+</body>
+</html>
