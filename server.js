@@ -1657,15 +1657,21 @@ function mapPitchType(trackmanType) {
 }
 
 function mapPitchResult(pitchCall) {
-  const resultMap = {
-    "BallCalled": "Ball",
-    "StrikeCalled": "Strike",
-    "StrikeSwinging": "Strike",
-    "InPlay": "InPlay",
-    "HitByPitch": "HBP",
-    "BallIntentional": "Ball"
+  if (!pitchCall) return null;
+  const map = {
+    'StrikeSwinging': 'StrikeSwinging',
+    'StrikeCalled': 'StrikeCalled',
+    'FoulBall': 'Foul',
+    'FoulBallNotFieldable': 'Foul',
+    'FoulBallFieldable': 'Foul',
+    'BallCalled': 'Ball',
+    'HitByPitch': 'HBP',
+    'InPlay': 'InPlay',
+    'BallIntentional': 'Ball',
+    'AutomaticStrike': 'StrikeCalled',
+    'AutomaticBall': 'Ball',
   };
-  return resultMap[pitchCall] || "Ball";
+  return map[pitchCall.trim()] || null;
 }
 
 // ======================================
