@@ -315,10 +315,9 @@
       el.style.display = "block";
     }
 
-    function viewHitterReport(hitterId) {
-      // Hitter report page isn't built yet — this is milestone 1 (data + list only).
-      alert("Hitter reports are coming in the next milestone — this hitter's data is being tracked already.");
-    }
+function viewHitterReport(hitterId) {
+  window.location.href = `/hitter-report.html?hitterId=${hitterId}`;
+}
 
     function goHome() {
       window.location.href = "/dashboard.html";
