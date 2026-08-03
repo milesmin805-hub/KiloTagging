@@ -1424,11 +1424,16 @@ function isSwing(result) {
         ? Math.round(bip.reduce((a, b) => a + parseFloat(b.exit_velocity), 0) / bip.length)
         : null;
 
+const swingPct = total > 0
+        ? Math.round((swings.length / total) * 100)
+        : null;
+
       pitchTypeStats[type] = {
         total,
         swings: swings.length,
         whiffs: whiffs.length,
         whiffRate,
+        swingPct,
         outsideZone: outsideZone.length,
         chases: chases.length,
         chaseRate,
