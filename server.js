@@ -1653,32 +1653,62 @@ app.get("/hitter/:hitterId/profile", async (req, res) => {
       return { pitches: splitRows.length, ab: abS, h, bb, k: splitRows.filter(p => p.kor_bb === "Strikeout").length, obp: obpS, slg: slgS, ops: opsS, avgEV: avgEVS };
     }
 
-    // ===== ZONE HEAT MAP =====
-    // 9-box grid: 3x3 divided by x (0.25-0.75) and y (0.25-0.75)
-    const zoneData = Array(3).fill(null).map(() => Array(3).fill(null).map(() => ({ pitches: 0, evSum: 0, evCount: 0, swings: 0 })));
-    rows.forEach(p => {
-      const x = parseFloat(p.x), y = parseFloat(p.y);
-      if (isNaN(x) || isNaN(y)) return;
-      const col = x < 0.417 ? 0 : x < 0.583 ? 1 : 2;
-      const row = y > 0.583 ? 0 : y > 0.417 ? 1 : 2;
-      if (col < 0 || col > 2 || row < 0 || row > 2) return;
-      zoneData[row][col].pitches++;
-      if (p.exit_velocity && parseFloat(p.exit_velocity) > 0) {
-        zoneData[row][col].evSum += parseFloat(p.exit_velocity);
-        zoneData[row][col].evCount++;
-      }
-      if (isSwing(p.result)) zoneData[row][col].swings++;
-    });
+// ===== ZONE HEAT MAP =====
+    function buildZoneGrid(pitchRows) {
+      const zoneData = Array(3).fill(null).map(() => Array(3).fill(null).map(() => ({
+        pitches: 0, evSum: 0, evCount: 0, swings: 0,
+        hits: 0, ab: 0, pitchTypes: {}
+      })));
 
-    const zoneGrid = zoneData.map(row =>
-      row.map(cell => ({
-        pitches: cell.pitches,
-        avgEV: cell.evCount > 0 ? (cell.evSum / cell.evCount).toFixed(1) : null,
-        swingPct: cell.pitches > 0 ? Math.round((cell.swings / cell.pitches) * 100) : null
-      }))
-    );
+      pitchRows.forEach(p => {
+        const x = parseFloat(p.x), y = parseFloat(p.y);
+        if (isNaN(x) || isNaN(y)) return;
+        const col = x < 0.417 ? 0 : x < 0.583 ? 1 : 2;
+        const row = y > 0.583 ? 0 : y > 0.417 ? 1 : 2;
+        if (col < 0 || col > 2 || row < 0 || row > 2) return;
 
-    res.json({
+        const cell = zoneData[row][col];
+        cell.pitches++;
+
+        if (p.exit_velocity && parseFloat(p.exit_velocity) > 0) {
+          cell.evSum += parseFloat(p.exit_velocity);
+          cell.evCount++;
+        }
+
+        if (isSwing(p.result)) cell.swings++;
+
+        // BA tracking — count ABs and hits per zone
+        const isAB = ["Single","Double","Triple","HomeRun","Out","Error"].includes(p.play_result) || p.kor_bb === "Strikeout";
+        const isHit = ["Single","Double","Triple","HomeRun"].includes(p.play_result);
+        if (isAB) cell.ab++;
+        if (isHit) cell.hits++;
+
+        // Pitch types put in play from this zone
+        if (p.result === "InPlay" && p.pitch_type) {
+          cell.pitchTypes[p.pitch_type] = (cell.pitchTypes[p.pitch_type] || 0) + 1;
+        }
+      });
+
+      return zoneData.map(row =>
+        row.map(cell => ({
+          pitches: cell.pitches,
+          avgEV: cell.evCount > 0 ? (cell.evSum / cell.evCount).toFixed(1) : null,
+          swingPct: cell.pitches > 0 ? Math.round((cell.swings / cell.pitches) * 100) : null,
+          ba: cell.ab > 0 ? (cell.hits / cell.ab).toFixed(3) : null,
+          pitchTypes: Object.entries(cell.pitchTypes)
+            .sort((a, b) => b[1] - a[1])
+            .map(([type, count]) => ({ type, count })),
+          ab: cell.ab,
+          hits: cell.hits
+        }))
+      );
+    }
+
+    const zoneGrid = buildZoneGrid(rows);
+    const zoneGridVsRHP = buildZoneGrid(vsRHPRows);
+    const zoneGridVsLHP = buildZoneGrid(vsLHPRows);
+
+res.json({
       success: true,
       hitter,
       totalPitches: rows.length,
@@ -1691,7 +1721,9 @@ app.get("/hitter/:hitterId/profile", async (req, res) => {
         vsRHP: splitStats(vsRHPRows),
         vsLHP: splitStats(vsLHPRows)
       },
-      zoneGrid
+      zoneGrid,
+      zoneGridVsRHP,
+      zoneGridVsLHP
     });
 
   } catch (err) {
