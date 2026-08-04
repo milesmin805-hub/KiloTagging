@@ -1972,6 +1972,10 @@ const pdfBuffer = fs.readFileSync(file.path);
     const game = await parseGCScorebook(pdfBuffer);
     console.log('Parsed teams:', game.teams);
     console.log('Parsed date:', game.date);
+    console.log('Page 0 batting keys:', Object.keys(game.batting[game.teams[0]] || {}));
+    console.log('Page 1 batting keys:', Object.keys(game.batting[game.teams[1]] || {}));
+    const fullLines = debugData.text.split('\n').slice(0, 40);
+    console.log('Full lines 0-40:', JSON.stringify(fullLines));
     if (!game.teams || game.teams.length === 0) {
       return res.json({ success: false, error: "Could not parse teams from PDF" });
     }
