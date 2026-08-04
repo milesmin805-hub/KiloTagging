@@ -66,75 +66,44 @@ async function parseGCScorebook(pdfBuffer) {
     max: 0,
   });
 
-  const rawText = data.text;
-  let pages = rawText.split('\f');
-  
-  // Filter out empty pages
-  pages = pages.filter(p => p && p.trim().length > 10);
-  
-  console.log('Pages after split:', pages.length);
-  if (pages[0]) console.log('Page 0 first 100:', pages[0].substring(0, 100));
-  if (pages[1]) console.log('Page 1 first 100:', pages[1].substring(0, 100));
+const rawText = data.text;
+  let pages = rawText.split('\f').filter(p => p && p.trim().length > 10);
 
-  const game = {
-    teams: [],
-    date: null,
-    homeAway: [],
-    batting: {},
-    pitching: {},
-  };
-
-// pdf-parse may use \f or may put all text together — handle both
-  let pageTexts = pages.filter(p => p && p.trim());
-  
-  // If only one "page" came back, try splitting on team name patterns
-  // GameChanger puts a form feed between pages — if missing, split on
-  // the pattern of a line that looks like a team header followed by Away/Home
-  if (pageTexts.length < 2) {
-    const fullText = pageTexts[0] || '';
-    // Find second team header by looking for second occurrence of Away/Home + Date
-    const splitMatch = fullText.match(/([\s\S]*?)((?:\n[^\n]+){0,3}\n(?:Away|Home)\s+Date:[\s\S]*)/);
-    if (splitMatch) {
-      pageTexts = [splitMatch[1], splitMatch[2]];
+  if (pages.length < 2) {
+    const headerRe = /([A-Z][A-Za-z ]{3,50}?)(Away|Home)\s*Date:/g;
+    const headers = [];
+    let hm;
+    while ((hm = headerRe.exec(rawText)) !== null) {
+      headers.push({ idx: hm.index, team: hm[1].trim(), homeAway: hm[2] });
+    }
+    if (headers.length >= 2) {
+      pages = [
+        rawText.slice(0, headers[1].idx),
+        rawText.slice(headers[1].idx),
+      ];
     }
   }
 
-  const pageResults = [];
-  for (let pageIdx = 0; pageIdx < Math.min(pageTexts.length, 2); pageIdx++) {
-    const pageText = pageTexts[pageIdx];
+  const game = {
+    teams: [], date: null, homeAway: [],
+    batting: {}, pitching: {},
+  };
+
+  for (let pageIdx = 0; pageIdx < Math.min(pages.length, 2); pageIdx++) {
+    const pageText = pages[pageIdx];
     if (!pageText || !pageText.trim()) continue;
 
     const lines = pageText.split('\n').map(l => l.trimEnd());
     const result = parsePage(lines, pageIdx);
-    pageResults.push(result);
-    
+
     if (result.teamName && !game.teams.includes(result.teamName)) {
       game.teams.push(result.teamName);
     }
     if (result.date && !game.date) game.date = result.date;
     if (result.homeAway) game.homeAway.push(result.homeAway);
     if (result.teamName) {
-      game.batting[result.teamName] = result.batting;
+      game.batting[result.teamName]  = result.batting;
       game.pitching[result.teamName] = result.pitching;
-    }
-  }
-
-  // If we only got one team, try to extract opponent from the other page's header
-  if (game.teams.length === 1 && pageResults.length >= 2) {
-    const missingResult = pageResults.find(r => !r.teamName || !game.teams.includes(r.teamName));
-    if (missingResult) {
-      // Try harder to extract team name — look at first non-empty line
-      const lines = pageTexts[1]?.split('\n').map(l => l.trim()).filter(Boolean) || [];
-      for (const line of lines.slice(0, 5)) {
-        if (line.length > 3 && !line.includes('Date:') && !line.includes('Away') && !line.includes('Home') && !/^\d/.test(line)) {
-          if (!game.teams.includes(line)) {
-            game.teams.push(line);
-            game.batting[line] = missingResult.batting || {};
-            game.pitching[line] = missingResult.pitching || {};
-          }
-          break;
-        }
-      }
     }
   }
 
@@ -157,7 +126,8 @@ function parsePage(lines, pageIdx) {
 // Team name — may be jammed together with Away/Home/Date in pdf-parse output
     if (!teamName) {
       // Try to extract team name from lines like "Royal Varsity HighlandersAwayDate: 2026/02/21"
-      const jammedMatch = line.match(/^(.+?)(Away|Home)Date:/);
+// Team name — may be jammed together with Away/Home/Date in pdf-parse output
+      const jammedMatch = line.match(/^(.+?)(Away|Home)\s*Date:/);
       if (jammedMatch) {
         teamName = jammedMatch[1].trim();
         const dm = line.match(/Date:\s*(\d{4}\/\d{2}\/\d{2})/);
@@ -165,6 +135,14 @@ function parsePage(lines, pageIdx) {
         homeAway = line.includes('Away') ? 'away' : 'home';
         continue;
       }
+      // Also handle case where team name ends with Away/Home jammed at end
+      const endJamMatch = line.match(/^(.+?)(Away|Home)$/);
+      if (endJamMatch && endJamMatch[1].length > 3) {
+        teamName = endJamMatch[1].trim();
+        homeAway = endJamMatch[2] === 'Away' ? 'away' : 'home';
+        continue;
+      }
+      
       // Normal case — standalone team name line
       if (line.length > 3 && !line.includes('Date:') && !line.includes('Away') && !line.includes('Home') && line !== '#Name') {
         teamName = line;
