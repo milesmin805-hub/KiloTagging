@@ -196,12 +196,104 @@ await pool.query(`
       );
     `);
 
-    await pool.query(`
+await pool.query(`
       CREATE TABLE IF NOT EXISTS teams (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         raw_name TEXT UNIQUE NOT NULL,
         display_name TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS gc_games (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id),
+        team_name TEXT NOT NULL,
+        opponent TEXT NOT NULL,
+        game_date TEXT,
+        home_away TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS gc_batting (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        gc_game_id UUID NOT NULL REFERENCES gc_games(id) ON DELETE CASCADE,
+        team_name TEXT NOT NULL,
+        jersey TEXT,
+        player_name TEXT NOT NULL,
+        position TEXT,
+        pa INT DEFAULT 0,
+        ab INT DEFAULT 0,
+        h INT DEFAULT 0,
+        singles INT DEFAULT 0,
+        doubles INT DEFAULT 0,
+        triples INT DEFAULT 0,
+        hr INT DEFAULT 0,
+        xbh INT DEFAULT 0,
+        bb INT DEFAULT 0,
+        ks INT DEFAULT 0,
+        ks_swing INT DEFAULT 0,
+        ks_look INT DEFAULT 0,
+        hbp INT DEFAULT 0,
+        sac INT DEFAULT 0,
+        fc INT DEFAULT 0,
+        roe INT DEFAULT 0,
+        sb INT DEFAULT 0,
+        cs INT DEFAULT 0,
+        avg DECIMAL(5,3) DEFAULT 0,
+        obp DECIMAL(5,3) DEFAULT 0,
+        slg DECIMAL(5,3) DEFAULT 0,
+        ops DECIMAL(5,3) DEFAULT 0,
+        iso DECIMAL(5,3) DEFAULT 0,
+        woba DECIMAL(5,3) DEFAULT 0,
+        gb_pct DECIMAL(5,1) DEFAULT 0,
+        ld_pct DECIMAL(5,1) DEFAULT 0,
+        fb_pct DECIMAL(5,1) DEFAULT 0,
+        gb_fb DECIMAL(5,2),
+        spray_l DECIMAL(5,1) DEFAULT 0,
+        spray_c DECIMAL(5,1) DEFAULT 0,
+        spray_r DECIMAL(5,1) DEFAULT 0,
+        total_pitches_seen INT DEFAULT 0,
+        fps_pct DECIMAL(5,1) DEFAULT 0,
+        raw_at_bats JSONB
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS gc_pitching (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        gc_game_id UUID NOT NULL REFERENCES gc_games(id) ON DELETE CASCADE,
+        team_name TEXT NOT NULL,
+        player_name TEXT NOT NULL,
+        ip INT DEFAULT 0,
+        bf INT DEFAULT 0,
+        h INT DEFAULT 0,
+        bb INT DEFAULT 0,
+        ks INT DEFAULT 0,
+        ks_swing INT DEFAULT 0,
+        ks_look INT DEFAULT 0,
+        hbp INT DEFAULT 0,
+        hr INT DEFAULT 0,
+        wp INT DEFAULT 0,
+        k9 DECIMAL(5,2),
+        bb9 DECIMAL(5,2),
+        h9 DECIMAL(5,2),
+        whip DECIMAL(5,3),
+        kbb DECIMAL(5,2),
+        k_pct DECIMAL(5,1) DEFAULT 0,
+        bb_pct DECIMAL(5,1) DEFAULT 0,
+        gb_pct DECIMAL(5,1) DEFAULT 0,
+        ld_pct DECIMAL(5,1) DEFAULT 0,
+        fb_pct DECIMAL(5,1) DEFAULT 0,
+        fps_pct DECIMAL(5,1) DEFAULT 0,
+        strike_pct DECIMAL(5,1) DEFAULT 0,
+        total_pitches INT DEFAULT 0,
+        avg_p_per_bf DECIMAL(5,1),
+        avg_p_per_inn DECIMAL(5,1),
+        innings JSONB
       );
     `);
 
@@ -922,6 +1014,18 @@ const csvStorage = multer.diskStorage({
 
 const upload = multer({ storage });
 const csvUpload = multer({ storage: csvStorage });
+
+const gcStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(__dirname, "uploads");
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + ".pdf");
+  }
+});
+const gcUpload = multer({ storage: gcStorage });
 
 app.post("/uploadClip", upload.single("clip"), (req, res) => {
   const webmPath = req.file.path;
@@ -1816,6 +1920,237 @@ app.patch("/hitter/:hitterId/team", async (req, res) => {
         [team]
       );
     }
+    res.json({ success: true });
+  } catch (err) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// ======================================
+// GAMECHANGER ENDPOINTS
+// ======================================
+
+// Upload a GameChanger scorebook PDF
+app.post("/upload-gc", gcUpload.single("pdf"), async (req, res) => {
+  const file = req.file;
+  const { token } = req.body;
+
+  if (!file) return res.json({ success: false, error: "No file received" });
+
+  const user = await verifyToken(token);
+  if (!user) return res.json({ success: false, error: "Invalid token" });
+
+  try {
+    const fs = require("fs");
+    const pdfBuffer = fs.readFileSync(file.path);
+    const game = await parseGCScorebook(pdfBuffer);
+
+    if (!game.teams || game.teams.length === 0) {
+      return res.json({ success: false, error: "Could not parse teams from PDF" });
+    }
+
+    const results = [];
+
+    for (let i = 0; i < game.teams.length; i++) {
+      const teamName = game.teams[i];
+      const oppTeam = game.teams.find((t, idx) => idx !== i) || "Unknown";
+      const homeAway = game.homeAway[i] || null;
+
+      // Insert game record
+      const gameResult = await pool.query(
+        `INSERT INTO gc_games (id, user_id, team_name, opponent, game_date, home_away)
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+        [crypto.randomUUID(), user.id, teamName, oppTeam, game.date, homeAway]
+      );
+      const gcGameId = gameResult.rows[0].id;
+
+      // Insert batting stats
+      const batting = game.batting[teamName] || {};
+      for (const [playerKey, pdata] of Object.entries(batting)) {
+        const line = computeBattingLine(pdata.atBats);
+        if (!line || line.pa === 0) continue;
+
+        await pool.query(
+          `INSERT INTO gc_batting (id, gc_game_id, team_name, jersey, player_name, position,
+            pa, ab, h, singles, doubles, triples, hr, xbh, bb, ks, ks_swing, ks_look,
+            hbp, sac, fc, roe, sb, cs, avg, obp, slg, ops, iso, woba,
+            gb_pct, ld_pct, fb_pct, gb_fb, spray_l, spray_c, spray_r,
+            total_pitches_seen, fps_pct, raw_at_bats)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,
+                   $19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,
+                   $35,$36,$37,$38,$39,$40)`,
+          [
+            crypto.randomUUID(), gcGameId, teamName, pdata.jersey, pdata.name, pdata.position,
+            line.pa, line.ab, line.h, line.singles, line.doubles, line.triples, line.hr, line.xbh,
+            line.bb, line.ks, line.ksSwing, line.ksLook, line.hbp, line.sac, line.fc, line.roe,
+            line.sb, line.cs, line.avg, line.obp, line.slg, line.ops, line.iso, line.woba,
+            line.gbPct, line.ldPct, line.fbPct, line.gbFb, line.sprayL, line.sprayC, line.sprayR,
+            line.totalPitchesSeen, line.fpsPct, JSON.stringify(pdata.atBats)
+          ]
+        );
+      }
+
+      // Insert pitching stats
+      const pitching = game.pitching[teamName] || {};
+      const oppBatting = game.batting[oppTeam] || {};
+      for (const [pitcherName, inningSet] of Object.entries(pitching)) {
+        const line = computePitchingLine(oppBatting, inningSet);
+        if (!line) continue;
+
+        await pool.query(
+          `INSERT INTO gc_pitching (id, gc_game_id, team_name, player_name,
+            ip, bf, h, bb, ks, ks_swing, ks_look, hbp, hr, wp,
+            k9, bb9, h9, whip, kbb, k_pct, bb_pct,
+            gb_pct, ld_pct, fb_pct, fps_pct, strike_pct,
+            total_pitches, avg_p_per_bf, avg_p_per_inn, innings)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,
+                   $15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30)`,
+          [
+            crypto.randomUUID(), gcGameId, teamName, pitcherName,
+            line.ip, line.bf, line.h, line.bb, line.ks, line.ksSwing, line.ksLook,
+            line.hbp, line.hr, line.wp, line.k9, line.bb9, line.h9, line.whip, line.kbb,
+            line.kPct, line.bbPct, line.gbPct, line.ldPct, line.fbPct,
+            line.fpsPct, line.strikePct, line.totalPitches,
+            line.avgPPerBF, line.avgPPerInn, JSON.stringify(line.innings)
+          ]
+        );
+      }
+
+      results.push({ teamName, gcGameId });
+    }
+
+    res.json({ success: true, games: results });
+
+  } catch (err) {
+    console.error("GC upload error:", err);
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// List all GC games for this user
+app.get("/gc-games", async (req, res) => {
+  const token = req.headers.authorization?.split(" ")[1] || req.query.token;
+  const user = await verifyToken(token);
+  if (!user) return res.json({ success: false, error: "Invalid token" });
+
+  try {
+    const result = await pool.query(
+      `SELECT id, team_name, opponent, game_date, home_away, created_at
+       FROM gc_games WHERE user_id = $1 ORDER BY game_date DESC, created_at DESC`,
+      [user.id]
+    );
+    res.json({ success: true, games: result.rows });
+  } catch (err) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// Get full game box score
+app.get("/gc-game/:gameId", async (req, res) => {
+  const { gameId } = req.params;
+  const token = req.headers.authorization?.split(" ")[1] || req.query.token;
+  const user = await verifyToken(token);
+  if (!user) return res.json({ success: false, error: "Invalid token" });
+
+  try {
+    const gameCheck = await pool.query(
+      "SELECT * FROM gc_games WHERE id = $1 AND user_id = $2",
+      [gameId, user.id]
+    );
+    if (gameCheck.rows.length === 0) return res.json({ success: false, error: "Game not found" });
+
+    const batting = await pool.query(
+      "SELECT * FROM gc_batting WHERE gc_game_id = $1 ORDER BY team_name, pa DESC",
+      [gameId]
+    );
+    const pitching = await pool.query(
+      "SELECT * FROM gc_pitching WHERE gc_game_id = $1 ORDER BY team_name, ip DESC",
+      [gameId]
+    );
+
+    res.json({
+      success: true,
+      game: gameCheck.rows[0],
+      batting: batting.rows,
+      pitching: pitching.rows
+    });
+  } catch (err) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// Get aggregated GC stats for a player across all games
+app.get("/gc-player/:playerName", async (req, res) => {
+  const { playerName } = req.params;
+  const token = req.headers.authorization?.split(" ")[1] || req.query.token;
+  const user = await verifyToken(token);
+  if (!user) return res.json({ success: false, error: "Invalid token" });
+
+  try {
+    const batting = await pool.query(
+      `SELECT b.*, g.game_date, g.opponent, g.home_away
+       FROM gc_batting b
+       JOIN gc_games g ON b.gc_game_id = g.id
+       WHERE g.user_id = $1 AND LOWER(b.player_name) = LOWER($2)
+       ORDER BY g.game_date DESC`,
+      [user.id, playerName]
+    );
+
+    const pitching = await pool.query(
+      `SELECT p.*, g.game_date, g.opponent, g.home_away
+       FROM gc_pitching p
+       JOIN gc_games g ON p.gc_game_id = g.id
+       WHERE g.user_id = $1 AND LOWER(p.player_name) = LOWER($2)
+       ORDER BY g.game_date DESC`,
+      [user.id, playerName]
+    );
+
+    res.json({
+      success: true,
+      playerName,
+      batting: batting.rows,
+      pitching: pitching.rows
+    });
+  } catch (err) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// Get all GC players for this user
+app.get("/gc-players", async (req, res) => {
+  const token = req.headers.authorization?.split(" ")[1] || req.query.token;
+  const user = await verifyToken(token);
+  if (!user) return res.json({ success: false, error: "Invalid token" });
+
+  try {
+    const result = await pool.query(
+      `SELECT DISTINCT b.player_name, b.team_name, b.jersey,
+              COUNT(DISTINCT b.gc_game_id) as games
+       FROM gc_batting b
+       JOIN gc_games g ON b.gc_game_id = g.id
+       WHERE g.user_id = $1
+       GROUP BY b.player_name, b.team_name, b.jersey
+       ORDER BY b.team_name, b.player_name`,
+      [user.id]
+    );
+    res.json({ success: true, players: result.rows });
+  } catch (err) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// Delete a GC game
+app.delete("/gc-game/:gameId", async (req, res) => {
+  const { gameId } = req.params;
+  const token = req.headers.authorization?.split(" ")[1] || req.query.token;
+  const user = await verifyToken(token);
+  if (!user) return res.json({ success: false, error: "Invalid token" });
+
+  try {
+    await pool.query(
+      "DELETE FROM gc_games WHERE id = $1 AND user_id = $2",
+      [gameId, user.id]
+    );
     res.json({ success: true });
   } catch (err) {
     res.json({ success: false, error: err.message });
