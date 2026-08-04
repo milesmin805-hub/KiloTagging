@@ -67,7 +67,14 @@ async function parseGCScorebook(pdfBuffer) {
   });
 
   const rawText = data.text;
-  const pages = rawText.split('\f'); // form feed separates pages in pdf-parse
+  let pages = rawText.split('\f');
+  
+  // Filter out empty pages
+  pages = pages.filter(p => p && p.trim().length > 10);
+  
+  console.log('Pages after split:', pages.length);
+  if (pages[0]) console.log('Page 0 first 100:', pages[0].substring(0, 100));
+  if (pages[1]) console.log('Page 1 first 100:', pages[1].substring(0, 100));
 
   const game = {
     teams: [],
@@ -147,10 +154,22 @@ function parsePage(lines, pageIdx) {
     const line = lines[i].trim();
     if (!line) continue;
 
-    // Team name — first substantial non-header line
-    if (!teamName && line.length > 3 && !line.includes('Date:') && !line.includes('Away') && !line.includes('Home')) {
-      teamName = line;
-      continue;
+// Team name — may be jammed together with Away/Home/Date in pdf-parse output
+    if (!teamName) {
+      // Try to extract team name from lines like "Royal Varsity HighlandersAwayDate: 2026/02/21"
+      const jammedMatch = line.match(/^(.+?)(Away|Home)Date:/);
+      if (jammedMatch) {
+        teamName = jammedMatch[1].trim();
+        const dm = line.match(/Date:\s*(\d{4}\/\d{2}\/\d{2})/);
+        if (dm) date = dm[1];
+        homeAway = line.includes('Away') ? 'away' : 'home';
+        continue;
+      }
+      // Normal case — standalone team name line
+      if (line.length > 3 && !line.includes('Date:') && !line.includes('Away') && !line.includes('Home') && line !== '#Name') {
+        teamName = line;
+        continue;
+      }
     }
 
     // Date and home/away
