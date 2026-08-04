@@ -12,7 +12,7 @@
 const pdfParse = require('pdf-parse');
 
 // ============================================================
-// RESULT PATTERN MATCHING
+// RESULT PATTERN MATCHING 
 // ============================================================
 
 const AT_BAT_RE = /^(K|BB|HBP|IBB|FC|1B(\+E)?|2B(\+E)?|3B|HR|SB|CS|WP|PB|PO|OA|BK|CI|INT|G\d*(-\d+)?|F\d+|L\d+|DP\d*(-\d+)?|E\d*|SAC|SF)$/;
