@@ -253,7 +253,12 @@ function parsePage(lines) {
     i++;
   }
 
-  // ---- Build player records ----
+// ---- Build player records ----
+  console.log('ROSTER:', JSON.stringify(Object.keys(roster)));
+  console.log('JERSEY RESULTS:', JSON.stringify(Object.keys(jerseyResults)));
+  for (const [j, res] of Object.entries(jerseyResults)) {
+    console.log(`  Jersey #${j} results:`, res.map(r => r.result));
+  }
   for (const [jersey, info] of Object.entries(roster)) {
     const playerKey = `#${jersey} ${info.name}`;
     const abs = (jerseyResults[jersey] || []).map((ab, idx) => ({
