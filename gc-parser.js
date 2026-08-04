@@ -114,6 +114,194 @@ function parsePage(lines, pageIdx) {
   let teamName = null;
   let date = null;
   let homeAway = null;
+  let inningLabels = [];
+  const players = {};
+  const pitchers = {};
+
+  // ---- Parse header ----
+  for (let i = 0; i < Math.min(lines.length, 8); i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+
+    if (!teamName) {
+      const jammedMatch = line.match(/^(.+?)(Away|Home)\s*Date:/);
+      if (jammedMatch) {
+        teamName = jammedMatch[1].trim();
+        const dm = line.match(/Date:\s*(\d{4}\/\d{2}\/\d{2})/);
+        if (dm) date = dm[1];
+        homeAway = line.includes('Away') ? 'away' : 'home';
+        continue;
+      }
+      if (line.length > 3 && !line.includes('Date:') &&
+          !line.includes('Away') && !line.includes('Home') &&
+          line !== '#Name' && !/^\d+$/.test(line)) {
+        teamName = line;
+        continue;
+      }
+    }
+
+    if (line.includes('Date:') && !date) {
+      const dm = line.match(/Date:\s*(\d{4}\/\d{2}\/\d{2})/);
+      if (dm) date = dm[1];
+      homeAway = line.includes('Away') ? 'away' : 'home';
+    }
+
+    // Inning label row — e.g. "123456789" or "1 2 3 3 4 5 6 7 8"
+    if (/^[\d\s]+$/.test(line) && line.trim().length >= 7) {
+      // Could be "123456789" (no spaces) or "1 2 3 4 5 6 7 8 9"
+      if (/^\d{7,}$/.test(line.trim())) {
+        // No spaces — split each digit
+        inningLabels = line.trim().split('').filter(c => /\d/.test(c));
+      } else {
+        inningLabels = line.trim().split(/\s+/).filter(t => /^\d$/.test(t));
+      }
+      if (inningLabels.length >= 7) break;
+    }
+  }
+
+  if (inningLabels.length === 0) {
+    inningLabels = ['1','2','3','4','5','6','7','8','9'];
+  }
+
+  // ---- Parse player roster ----
+  // Lines look like: "2E. HallRF" or "14A. KobyP" or "27N. Vasqez2B"
+  // Pattern: optional digits (jersey) + Capital.LastName + Position
+  const rosterRe = /^(\d{1,2})?([A-Z][a-z.]+(?:\s+[A-Z][a-z.]+)*)\s*([A-Z]{1,3}(?:\d?[A-Z]*)?)?\s*$/;
+
+  // Build jersey->name->position map from roster lines
+  const roster = {}; // jersey -> {name, position}
+  let currentLineupPos = null;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed === '#Name' || trimmed === 'inn' || trimmed === 'pos') continue;
+
+    // Lineup position number (1-11, standalone)
+    if (/^\d{1,2}$/.test(trimmed)) {
+      currentLineupPos = parseInt(trimmed);
+      continue;
+    }
+
+    // Player line: jersey number jammed with name and position
+    // e.g. "2E. HallRF" "14A. KobySS" "27N. Vasqez2B"
+    const playerJam = trimmed.match(/^(\d{1,2})([A-Z][a-z]+\.?\s*[A-Za-z]+)\s*([A-Z]{1,2}(?:\d[A-Z]?)?)?\s*$/);
+    if (playerJam) {
+      const jersey = playerJam[1];
+      const name   = playerJam[2].trim();
+      const pos    = playerJam[3] || '';
+      roster[jersey] = { name, position: pos, isPitcher: pos === 'P' || pos.includes('P') };
+      continue;
+    }
+
+    // Sub line: no jersey, just name + position
+    // e.g. "7Tabora  " with jersey, or "Tabora  5" with sub jersey
+    const subJam = trimmed.match(/^(\d{1,2})([A-Z][a-z]+\.?\s*[A-Za-z]*)$/);
+    if (subJam && !roster[subJam[1]]) {
+      roster[subJam[1]] = { name: subJam[2].trim(), position: '', isPitcher: false };
+    }
+  }
+
+  // ---- Parse at-bat results ----
+  // Results appear as "#JERSEY RESULT" or "#JERSEYRESULT" on separate lines
+  // e.g. "#2K", "#14", "#2F" followed by result on next line
+  // Build map: jersey -> [result per inning col]
+
+  const jerseyResults = {}; // jersey -> array of {colIdx, result, balls, strikes}
+
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i].trim();
+
+    // At-bat header: #JERSEY or #JERSEYRESULT
+    const abHeader = line.match(/^#(\d{1,2})([A-Z]\S*)?$/);
+    if (abHeader) {
+      const jersey = abHeader[1];
+      let result   = abHeader[2] || null;
+
+      // If no result on this line, check next line
+      if (!result && i+1 < lines.length) {
+        const nextLine = lines[i+1].trim();
+        if (isResult(nextLine)) {
+          result = nextLine;
+          i++;
+        }
+      }
+
+      // Look for the actual result code if it's a text result
+      // e.g. "#2K" → result = 'K', "#2F" → look for "F4", "F8" etc
+      if (result && !isResult(result)) result = null;
+
+      // Scan ahead for the actual result (next few lines)
+      let scanIdx = i + 1;
+      while (!result && scanIdx < Math.min(i+5, lines.length)) {
+        const scanLine = lines[scanIdx].trim();
+        if (isResult(scanLine)) {
+          result = scanLine;
+          break;
+        }
+        // Result like "F4", "G6-3", "DP6-3", "L8", "SF8"
+        const resultLine = scanLine.match(/^([A-Z]{1,2}\d[-\d]*|[A-Z]{2,4}\d*)$/);
+        if (resultLine && isResult(resultLine[1])) {
+          result = resultLine[1];
+          break;
+        }
+        scanIdx++;
+      }
+
+      // Count pitch sequence: look for B### and S### lines nearby
+      let balls = 0, strikes = 0, fps = false;
+      for (let s = i+1; s < Math.min(i+8, lines.length); s++) {
+        const sl = lines[s].trim();
+        if (/^B\d+$/.test(sl)) balls = sl.length - 1;
+        if (/^S\d+$/.test(sl)) {
+          strikes = sl.length - 1;
+          fps = sl.includes('1');
+        }
+        if (/^#\d/.test(sl)) break; // next at-bat
+      }
+
+      const totalPitches = balls + strikes;
+
+      if (!jerseyResults[jersey]) jerseyResults[jersey] = [];
+      if (result) {
+        jerseyResults[jersey].push({
+          result: result === 'K' ? 'KS' : result,
+          balls, strikes, totalPitches, fps,
+          sb: false, wp: false,
+          spray: sprayDirection(result),
+          hitType: hitType(result),
+        });
+      }
+    }
+
+    i++;
+  }
+
+  // ---- Build player records ----
+  for (const [jersey, info] of Object.entries(roster)) {
+    const playerKey = `#${jersey} ${info.name}`;
+    const abs = jerseyResults[jersey] || [];
+
+    // Assign inning labels sequentially
+    const atBats = abs.map((ab, idx) => ({
+      ...ab,
+      inning: inningLabels[idx] || String(idx + 1),
+      colIdx: idx,
+    }));
+
+    players[playerKey] = {
+      jersey,
+      name: info.name,
+      position: info.position,
+      isPitcher: info.isPitcher,
+      atBats,
+    };
+
+    if (info.isPitcher) {
+      if (!pitchers
+  let teamName = null;
+  let date = null;
+  let homeAway = null;
   let inningLabels = []; // e.g. ['1','2','3','3','4','5','6','7','8']
   const players = {}; // jersey -> player data
   const pitchers = {}; // name -> Set of inning labels
