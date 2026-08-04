@@ -1930,6 +1930,23 @@ app.patch("/hitter/:hitterId/team", async (req, res) => {
 // GAMECHANGER ENDPOINTS
 // ======================================
 
+// Temporary debug endpoint — remove after fixing parser
+app.post("/debug-gc-pdf", gcUpload.single("pdf"), async (req, res) => {
+  const file = req.file;
+  if (!file) return res.json({ error: "no file" });
+  const fs = require("fs");
+  const pdfBuffer = fs.readFileSync(file.path);
+  const pdfParse = require("pdf-parse");
+  const data = await pdfParse(pdfBuffer, { pagerender: null, max: 0 });
+  const pages = data.text.split('\f');
+  res.json({
+    numPages: pages.length,
+    page0Lines: pages[0]?.split('\n').filter(l => l.trim()).slice(0, 15),
+    page1Lines: pages[1]?.split('\n').filter(l => l.trim()).slice(0, 15),
+    rawFirst500: data.text.substring(0, 500),
+  });
+});
+
 // Upload a GameChanger scorebook PDF
 app.post("/upload-gc", gcUpload.single("pdf"), async (req, res) => {
   const file = req.file;
