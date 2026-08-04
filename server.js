@@ -1959,9 +1959,19 @@ app.post("/upload-gc", gcUpload.single("pdf"), async (req, res) => {
 
   try {
     const fs = require("fs");
-    const pdfBuffer = fs.readFileSync(file.path);
+const pdfBuffer = fs.readFileSync(file.path);
+    
+    // Temporary debug — log first 500 chars of extracted text
+    const pdfParse = require('pdf-parse');
+    const debugData = await pdfParse(pdfBuffer, { pagerender: null, max: 0 });
+    console.log('=== GC PDF DEBUG ===');
+    console.log('Text length:', debugData.text.length);
+    console.log('Num pages:', debugData.numpages);
+    console.log('First 500 chars:', JSON.stringify(debugData.text.substring(0, 500)));
+    
     const game = await parseGCScorebook(pdfBuffer);
-
+    console.log('Parsed teams:', game.teams);
+    console.log('Parsed date:', game.date);
     if (!game.teams || game.teams.length === 0) {
       return res.json({ success: false, error: "Could not parse teams from PDF" });
     }
