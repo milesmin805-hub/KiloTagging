@@ -984,6 +984,7 @@ app.get("/", (req, res) => {
 // CSV UPLOAD & PARSING
 // ======================================
 const csv = require("csv-parse/sync");
+const { parseGCScorebook, computeBattingLine, computePitchingLine } = require('./gc-parser');
 const xlsx = require("xlsx");
 
 // ======================================
