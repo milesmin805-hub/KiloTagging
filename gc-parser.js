@@ -77,12 +77,29 @@ async function parseGCScorebook(pdfBuffer) {
     pitching: {},
   };
 
-  for (let pageIdx = 0; pageIdx < Math.min(pages.length, 2); pageIdx++) {
-    const pageText = pages[pageIdx];
+// pdf-parse may use \f or may put all text together — handle both
+  let pageTexts = pages.filter(p => p && p.trim());
+  
+  // If only one "page" came back, try splitting on team name patterns
+  // GameChanger puts a form feed between pages — if missing, split on
+  // the pattern of a line that looks like a team header followed by Away/Home
+  if (pageTexts.length < 2) {
+    const fullText = pageTexts[0] || '';
+    // Find second team header by looking for second occurrence of Away/Home + Date
+    const splitMatch = fullText.match(/([\s\S]*?)((?:\n[^\n]+){0,3}\n(?:Away|Home)\s+Date:[\s\S]*)/);
+    if (splitMatch) {
+      pageTexts = [splitMatch[1], splitMatch[2]];
+    }
+  }
+
+  const pageResults = [];
+  for (let pageIdx = 0; pageIdx < Math.min(pageTexts.length, 2); pageIdx++) {
+    const pageText = pageTexts[pageIdx];
     if (!pageText || !pageText.trim()) continue;
 
     const lines = pageText.split('\n').map(l => l.trimEnd());
     const result = parsePage(lines, pageIdx);
+    pageResults.push(result);
     
     if (result.teamName && !game.teams.includes(result.teamName)) {
       game.teams.push(result.teamName);
@@ -92,6 +109,25 @@ async function parseGCScorebook(pdfBuffer) {
     if (result.teamName) {
       game.batting[result.teamName] = result.batting;
       game.pitching[result.teamName] = result.pitching;
+    }
+  }
+
+  // If we only got one team, try to extract opponent from the other page's header
+  if (game.teams.length === 1 && pageResults.length >= 2) {
+    const missingResult = pageResults.find(r => !r.teamName || !game.teams.includes(r.teamName));
+    if (missingResult) {
+      // Try harder to extract team name — look at first non-empty line
+      const lines = pageTexts[1]?.split('\n').map(l => l.trim()).filter(Boolean) || [];
+      for (const line of lines.slice(0, 5)) {
+        if (line.length > 3 && !line.includes('Date:') && !line.includes('Away') && !line.includes('Home') && !/^\d/.test(line)) {
+          if (!game.teams.includes(line)) {
+            game.teams.push(line);
+            game.batting[line] = missingResult.batting || {};
+            game.pitching[line] = missingResult.pitching || {};
+          }
+          break;
+        }
+      }
     }
   }
 
@@ -496,4 +532,16 @@ function computePitchingLine(oppBatting, pitcherInnings) {
   };
 }
 
-module.exports = { parseGCScorebook, computeBattingLine, computePitchingLine };
+async function debugParsePDF(pdfBuffer) {
+  const data = await pdfParse(pdfBuffer, { pagerender: null, max: 0 });
+  const pages = data.text.split('\f');
+  console.log('=== GC PARSER DEBUG ===');
+  console.log('Total pages detected:', pages.length);
+  pages.forEach((p, i) => {
+    const lines = p.split('\n').filter(l => l.trim());
+    console.log(`Page ${i}: ${lines.length} lines, first 5:`, lines.slice(0, 5));
+  });
+  return data.text;
+}
+
+module.exports = { parseGCScorebook, computeBattingLine, computePitchingLine, debugParsePDF };
