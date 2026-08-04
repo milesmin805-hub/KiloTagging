@@ -298,7 +298,15 @@ function parsePage(lines, pageIdx) {
     };
 
     if (info.isPitcher) {
-      if (!pitchers
+      if (!pitchers[info.name]) pitchers[info.name] = new Set();
+      atBats.forEach(ab => pitchers[info.name].add(ab.inning));
+    }
+  }
+
+  return { teamName, date, homeAway, batting: players, pitching: pitchers };
+}
+
+function parsePage(lines, pageIdx) {
   let teamName = null;
   let date = null;
   let homeAway = null;
