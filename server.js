@@ -1964,15 +1964,15 @@ app.post("/upload-gc", gcUpload.fields([{ name: "pdf", maxCount: 1 }, { name: "s
     const fs = require("fs");
 const pdfBuffer = fs.readFileSync(file.path);
     
-    // Temporary debug — log first 500 chars of extracted text
     const pdfParse = require('pdf-parse');
     const debugData = await pdfParse(pdfBuffer, { pagerender: null, max: 0 });
-    console.log('=== GC PDF DEBUG ===');
+    console.log('=== GC BOX SCORE DEBUG ===');
     console.log('Text length:', debugData.text.length);
-    console.log('Num pages:', debugData.numpages);
-    console.log('First 500 chars:', JSON.stringify(debugData.text.substring(0, 500)));
+    console.log('First 800 chars:', JSON.stringify(debugData.text.substring(0, 800)));
     
     const game = await parseGCScorebook(pdfBuffer);
+    console.log('Parsed teams:', game.teams);
+    console.log('Batting keys team0:', Object.keys(game.batting[game.teams[0]] || {}));
     console.log('Parsed teams:', game.teams);
     console.log('Parsed date:', game.date);
     console.log('Page 0 batting keys:', Object.keys(game.batting[game.teams[0]] || {}));
