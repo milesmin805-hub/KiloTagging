@@ -1933,7 +1933,7 @@ app.patch("/hitter/:hitterId/team", async (req, res) => {
 // ======================================
 
 // Temporary debug endpoint — remove after fixing parser
-app.post("/debug-gc-pdf", gcUpload.single("pdf"), async (req, res) => {
+app.post("/debug-gc-pdf", gcUpload.fields([{ name: "pdf", maxCount: 1 }]), async (req, res) => {
   const file = req.files?.pdf?.[0];
   const scorebookFile = req.files?.scorebook?.[0] || null;
   if (!file) return res.json({ success: false, error: "No box score PDF received" });
@@ -1952,9 +1952,10 @@ app.post("/debug-gc-pdf", gcUpload.single("pdf"), async (req, res) => {
 
 // Upload a GameChanger scorebook PDF
 app.post("/upload-gc", gcUpload.fields([{ name: "pdf", maxCount: 1 }, { name: "scorebook", maxCount: 1 }]), async (req, res) => {
+  const file = req.files?.pdf?.[0];
+  const scorebookFile = req.files?.scorebook?.[0] || null;
   const { token } = req.body;
-
-  if (!file) return res.json({ success: false, error: "No file received" });
+  if (!file) return res.json({ success: false, error: "No box score PDF received" });
 
   const user = await verifyToken(token);
   if (!user) return res.json({ success: false, error: "Invalid token" });
