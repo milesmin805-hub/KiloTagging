@@ -157,9 +157,8 @@ function parsePage(lines) {
     // Stop at inning header
     if (/^\d{7,}$/.test(trimmed)) break;
 
-    // Player line: {jersey}{initial}. {lastname}{position}
-    // e.g. "2E. HallRF" — jersey=2, initial=E., lastname=Hall, pos=RF
-    const playerMatch = trimmed.match(/^(\d{1,2})([A-Z]\. [A-Za-z]+)([A-Z]{1,2}\d?)?\s*$/);
+// Format 1: jersey jammed with name: "2E. HallRF" "14A. Koby3B" "23C. Rainer1B"
+    const playerMatch = trimmed.match(/^(\d{1,2})([A-Z]\. [A-Za-z]+)([A-Z0-9]{1,2})?\s*$/);
     if (playerMatch) {
       const jersey   = playerMatch[1];
       const name     = playerMatch[2].trim();
@@ -168,8 +167,20 @@ function parsePage(lines) {
       continue;
     }
 
-    // Sub player — last name only with jersey, e.g. "7Tabora" or "2R. Donaldson"
-    const subMatch = trimmed.match(/^(\d{1,2})([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)([A-Z]{1,2}\d?)?$/);
+    // Format 2: name only, no jersey prefix: "R. TalleyCF"
+    // Jersey comes from the jerseyResults keys that don't have roster entries yet
+    const nameOnlyMatch = trimmed.match(/^([A-Z]\. [A-Za-z]+)([A-Z0-9]{1,2})?\s*$/);
+    if (nameOnlyMatch) {
+      const name = nameOnlyMatch[1].trim();
+      const pos  = nameOnlyMatch[2] || '';
+      // Store temporarily — match to jersey after parsing results
+      if (!roster['_pending']) roster['_pending'] = [];
+      roster['_pending'].push({ name, position: pos, isPitcher: pos === 'P' });
+      continue;
+    }
+
+    // Format 3: last name only with jersey "7Tabora" "52Smith"
+    const subMatch = trimmed.match(/^(\d{1,2})([A-Z][a-z]+)([A-Z0-9]{1,2})?$/);
     if (subMatch && !roster[subMatch[1]]) {
       const jersey = subMatch[1];
       const name   = subMatch[2].trim();
@@ -178,6 +189,24 @@ function parsePage(lines) {
     }
   }
 
+  // Match pending (name-only) players to unmatched jersey result keys
+  if (roster['_pending']) {
+    const pendingList = roster['_pending'];
+    delete roster['_pending'];
+    const unmatchedJerseys = Object.keys(jerseyResults).filter(j => !roster[j]);
+    pendingList.forEach((p, idx) => {
+      if (unmatchedJerseys[idx]) {
+        roster[unmatchedJerseys[idx]] = p;
+      }
+    });
+  }
+
+  // Also add any jersey results that have no roster entry with placeholder name
+  for (const jersey of Object.keys(jerseyResults)) {
+    if (!roster[jersey]) {
+      roster[jersey] = { name: `Player #${jersey}`, position: '', isPitcher: false };
+    }
+  }
   // ---- Parse at-bat results ----
   // Format per at-bat (each on its own line):
   // #JERSEY (or #JERSEYRESULT jammed)
