@@ -1,10 +1,6 @@
 /**
  * GameChanger Box Score PDF Parser — Node.js
- * 
- * Parses the GameChanger box score PDF (not the scorebook).
- * Extracts batting and pitching stats for both teams.
- * 
- * Dependencies: "pdf-parse": "^1.1.1"
+ * Handles pdf-parse output from GameChanger box score PDFs.
  */
 
 const pdfParse = require('pdf-parse');
@@ -16,545 +12,388 @@ const pdfParse = require('pdf-parse');
 async function parseGCScorebook(pdfBuffer) {
   const data = await pdfParse(pdfBuffer, { pagerender: null, max: 0 });
   const rawText = data.text;
-  const lines = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  const lines = rawText.split('\n').map(l => l.trimEnd());
+  const trimmed = lines.map(l => l.trim()).filter(l => l.length > 0);
 
   const game = {
     teams: [],
     date: null,
     homeAway: [],
-    score: {},
     batting: {},
     pitching: {},
   };
 
-  // ---- Parse header ----
-  // Line 0: "Royal Varsity Oxnard Varsity Yellow"  (team names split across)
-  // Line 1: "9 - 6"  (score)
-  // Line 2: "Highlanders Jackets"  (continuation of team names)
-  // Line 3: "Home Saturday February 21, 2026"
-
-  // Find score line (format: "N - N")
-  let scoreLineIdx = -1;
-  for (let i = 0; i < Math.min(lines.length, 8); i++) {
-    if (/^\d+\s*-\s*\d+$/.test(lines[i])) {
-      scoreLineIdx = i;
-      break;
-    }
+  // ---- Extract date ----
+  for (const line of trimmed) {
+    const dm = line.match(/(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)(\w+\s+\w+\s+\d+,\s+\d{4})/);
+    if (dm) { game.date = dm[1].trim(); break; }
+    const dm2 = line.match(/(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+(\w+\s+\d+,\s+\d{4})/);
+    if (dm2) { game.date = dm2[1].trim(); break; }
   }
 
+  // ---- Extract home/away ----
+  for (const line of trimmed) {
+    if (/^Home/.test(line)) { game.homeAway = ['away','home']; break; }
+    if (/^Away/.test(line)) { game.homeAway = ['away','home']; break; }
+  }
+
+  // ---- Find team names ----
+  // They appear before the score line "9 - 6" as fragments:
+  // "Royal Varsity ", "Highlanders", "Oxnard Varsity Yellow ", "Jackets"
+  const scoreLineIdx = trimmed.findIndex(l => /^\d+\s*-\s*\d+$/.test(l));
   if (scoreLineIdx > 0) {
-    // Team names are on lines before and around the score
-    // They appear split because of the score in the middle
-    // e.g. "Royal Varsity Oxnard Varsity Yellow" then score then "Highlanders Jackets"
-    const beforeScore = lines[scoreLineIdx - 1] || '';
-    const afterScore  = lines[scoreLineIdx + 1] || '';
-
-    // Split before score roughly in half — left is team1, right is team2 start
-    // Actually GameChanger puts team1 words then team2 words on same line
-    // We'll extract from the batting table headers which are more reliable
-  }
-
-  // Extract team names — they appear on consecutive lines before the score
-  // e.g. "Royal Varsity ", "Highlanders", "Oxnard Varsity Yellow ", "Jackets"
-  const scoreIdx = lines.findIndex(l => /^\d+\s*-\s*\d+$/.test(l));
-  if (scoreIdx > 0) {
-    // Lines before score are team name fragments — join pairs
-    const nameLines = lines.slice(0, scoreIdx).filter(l => l.trim() && !l.includes('BATTING'));
-    if (nameLines.length >= 2) {
-      // First half = team1, second half = team2
-      const mid = Math.floor(nameLines.length / 2);
-      game.teams.push(nameLines.slice(0, mid).join('').trim());
-      game.teams.push(nameLines.slice(mid).join('').trim());
+    const nameFragments = trimmed.slice(0, scoreLineIdx).filter(l =>
+      l.length > 0 &&
+      !/^\d/.test(l) &&
+      !l.includes('Date:') &&
+      !['BATTING','PITCHING','Home','Away'].includes(l)
+    );
+    // Should be 4 fragments: team1part1, team1part2, team2part1, team2part2
+    // Or 2 fragments if single-word team names
+    if (nameFragments.length >= 4) {
+      const mid = Math.floor(nameFragments.length / 2);
+      game.teams.push(nameFragments.slice(0, mid).join('').trim());
+      game.teams.push(nameFragments.slice(mid).join('').trim());
+    } else if (nameFragments.length === 2) {
+      game.teams.push(nameFragments[0].trim());
+      game.teams.push(nameFragments[1].trim());
+    } else if (nameFragments.length === 3) {
+      game.teams.push(nameFragments[0].trim());
+      game.teams.push(nameFragments.slice(1).join('').trim());
     }
   }
 
-  // Find date line
-  for (const line of lines) {
-    const dm = line.match(/(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+(\w+\s+\d+,\s+\d{4})/);
-    if (dm) {
-      game.date = dm[1]; // e.g. "February 21, 2026"
-      break;
+  // ---- Find BATTING section ----
+  const battingIdx = trimmed.findIndex(l => l === 'BATTING');
+  const pitchingIdx = trimmed.findIndex(l => l === 'PITCHING');
+
+  if (battingIdx === -1) return game;
+
+  const battingLines = pitchingIdx > -1
+    ? trimmed.slice(battingIdx + 1, pitchingIdx)
+    : trimmed.slice(battingIdx + 1);
+
+  const pitchingLines = pitchingIdx > -1 ? trimmed.slice(pitchingIdx + 1) : [];
+
+  // ---- Parse batting ----
+  // Header line: "Royal Varsity Hi...ABRHRBIBBSO"
+  // Player line: "E Hall #2 (RF)400101"  (6 digits jammed at end = AB R H RBI BB SO)
+  // Totals: "To t a l s2797738"
+  // Second team header: "Oxnard Varsity Y...ABRHRBIBBSO"
+  // Notes: "2B: I Tillman, R Talley..."
+
+  game.teams.forEach(t => { game.batting[t] = {}; game.pitching[t] = {}; });
+
+  let currentTeamIdx = -1; // -1 = not in batting yet
+  let inNotes = false;
+
+  // Player line: name (with optional jersey and position) followed by exactly 6 digits
+  // Examples:
+  //   "E Hall #2 (RF)400101"
+  //   "  Tabora #7 (3B)000000"
+  //   "R Talley (CF)301311"
+  //   "  N Guzman #35000000"
+  const playerRe = /^\s*(.+?)\s*(\d)(\d)(\d)(\d)(\d)(\d)$/;
+
+  for (const line of battingLines) {
+    // Notes section
+    if (/^(2B:|TB:|SAC:|SF:|HBP:|SB:|LOB:|WP:|E:)/.test(line)) {
+      inNotes = true;
     }
-    // Also try YYYY/MM/DD format
-    const dm2 = line.match(/(\d{4}\/\d{2}\/\d{2})/);
-    if (dm2) { game.date = dm2[1]; break; }
+
+    if (inNotes) {
+      // Parse notes for current and next team
+      parseNoteLine(line, game.batting, game.teams);
+      continue;
+    }
+
+    // Team header line e.g. "Royal Varsity Hi...ABRHRBIBBSO"
+    if (/ABRHRBIBBSO$/.test(line)) {
+      currentTeamIdx++;
+      continue;
+    }
+
+    // Totals line
+    if (/^To\s*t\s*a\s*l\s*s/.test(line)) continue;
+
+    if (currentTeamIdx < 0 || currentTeamIdx >= game.teams.length) continue;
+
+    // Player line
+    const m = line.match(playerRe);
+    if (!m) continue;
+
+    const nameStr = m[1].trim();
+    const ab  = parseInt(m[2]);
+    const r   = parseInt(m[3]);
+    const h   = parseInt(m[4]);
+    const rbi = parseInt(m[5]);
+    const bb  = parseInt(m[6]);
+    const so  = parseInt(m[7]);
+
+    // Skip if name looks like a header or totals
+    if (!nameStr || /^(Royal|Oxnard|BATTING|PITCHING)/.test(nameStr)) continue;
+
+    const player = buildPlayer(nameStr, ab, r, h, rbi, bb, so);
+    const team = game.teams[currentTeamIdx];
+    game.batting[team][player.name] = player;
   }
 
-  // Home/away
-  for (const line of lines) {
-    if (/\bHome\b/.test(line) && !game.homeAway.includes('home')) {
-      game.homeAway = ['away', 'home'];
-      break;
+  // ---- Parse pitching ----
+  // Header: "Royal Varsi… IP H R ER BB SO HR"  (spaces preserved here)
+  // Player: "D Bark… #10 4.1 6 5 5 3 9 0"
+  // Notes: "P-S: D Barkman 92-58..."
+
+  let pitchTeamIdx = -1;
+  let inPitchNotes = false;
+  const pitcherRe = /^\s*(.+?#\d+)\s+([\d.]+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/;
+  const pitchNotes = [];
+
+  for (const line of pitchingLines) {
+    if (/^(P-S:|BF:|WP:|HBP:|E:|Scorekeeping)/.test(line)) {
+      inPitchNotes = true;
     }
-    if (/\bAway\b/.test(line) && !game.homeAway.includes('away')) {
-      game.homeAway = ['away', 'home'];
-      break;
+    if (inPitchNotes) {
+      pitchNotes.push(line);
+      continue;
     }
+
+    // Team header
+    if (/IP\s+H\s+R\s+ER\s+BB\s+SO\s+HR/.test(line)) {
+      pitchTeamIdx++;
+      continue;
+    }
+
+    if (/^Totals/.test(line)) continue;
+    if (pitchTeamIdx < 0 || pitchTeamIdx >= game.teams.length) continue;
+
+    const m = line.match(pitcherRe);
+    if (!m) continue;
+
+    const pitcher = buildPitcher(m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8]);
+    const team = game.teams[pitchTeamIdx];
+    game.pitching[team][pitcher.name] = pitcher;
   }
 
-  // ---- Parse batting section ----
-  // Find "BATTING" line
-  const battingIdx = lines.findIndex(l => l === 'BATTING');
-  const pitchingIdx = lines.findIndex(l => l === 'PITCHING');
+  // Apply pitch notes
+  parsePitchNotes(pitchNotes.join(' '), game.pitching, game.teams);
 
-  if (battingIdx === -1) {
-    return game;
-  }
-
-  const battingLines = lines.slice(battingIdx + 1, pitchingIdx > -1 ? pitchingIdx : lines.length);
-  const pitchingLines = pitchingIdx > -1 ? lines.slice(pitchingIdx + 1) : [];
-
-  // Parse batting
-  const battingResult = parseBattingSection(battingLines);
-  game.teams = battingResult.teams;
-  game.batting = battingResult.batting;
-
-  // Parse pitching
-  if (pitchingLines.length > 0) {
-    const pitchingResult = parsePitchingSection(pitchingLines, game.teams);
-    game.pitching = pitchingResult;
+  // Recalculate batting rate stats after notes enrichment
+  for (const team of game.teams) {
+    for (const player of Object.values(game.batting[team] || {})) {
+      recalcPlayer(player);
+    }
   }
 
   return game;
 }
 
 // ============================================================
-// BATTING PARSER
+// HELPERS
 // ============================================================
 
-function parseBattingSection(lines) {
-  // Header line looks like:
-  // "Royal Varsity Hi… AB R H RBI BB SO Oxnard Varsity Y… AB R H RBI BB SO"
-  // Player lines look like:
-  // "E Hall #2 (RF) 4 0 0 1 0 1 G Ramos #31 (CF) 3 2 1 2 1 0"
-  // or single team if only one side:
-  // "E Hall #2 (RF) 4 0 0 1 0 1"
-
-  const teams = [];
-  const batting = {};
-
-  // Find BATTING section
-  const battingLineIdx = lines.findIndex(l => l === 'BATTING');
-  if (battingLineIdx === -1) return { teams, batting };
-
-  // Header line format (jammed): "Royal Varsity Hi...ABRHRBIBBSO"
-  // Find it after BATTING
-  let headerIdx = -1;
-  for (let i = battingLineIdx + 1; i < lines.length; i++) {
-    if (/ABRHRBIBBSO/.test(lines[i])) {
-      headerIdx = i;
-      break;
-    }
-  }
-  if (headerIdx === -1) return { teams, batting };
-
-  // Extract team names from header if not already found
-  if (teams.length < 2) {
-    const headerLine = lines[headerIdx];
-    // Format: "Royal Varsity Hi...ABRHRBIBBSO" and then second team header later
-    const t1match = headerLine.match(/^(.+?)\.{3}ABRHRBIBBSO/);
-    if (t1match) {
-      if (teams.length === 0) teams.push(t1match[1].trim());
-    }
-    // Second team header appears later
-    for (let i = headerIdx + 1; i < lines.length; i++) {
-      const t2match = lines[i].match(/^(.+?)\.{3}ABRHRBIBBSO/);
-      if (t2match && teams.length < 2) {
-        teams.push(t2match[1].trim());
-        break;
-      }
-    }
-  }
-
-  // Initialize batting
-  teams.forEach(t => { batting[t] = {}; });
-
-  // Player line format (jammed): "E Hall #2 (RF)400101"
-  // Name+jersey+pos then 6 digits jammed: AB R H RBI BB SO
-  const playerRe = /^(\s*\S.+?#\d+(?:\s*\([^)]+\))?)\s*(\d)(\d)(\d)(\d)(\d)(\d)$/;
-
-  let currentTeamIdx = 0;
-  let inNotes = false;
-
-  for (let i = headerIdx + 1; i < lines.length; i++) {
-    const line = lines[i];
-
-    // Switch to second team when we hit second team header
-    if (/\.{3}ABRHRBIBBSO/.test(line) && i > headerIdx) {
-      currentTeamIdx = 1;
-      continue;
-    }
-
-    // Notes section
-    if (/^(2B:|TB:|SAC:|SF:|HBP:|SB:|LOB:|WP:|E:)/.test(line)) {
-      inNotes = true;
-    }
-    if (inNotes) continue;
-
-    // Totals line
-    if (/^To\s*t\s*a\s*l\s*s/.test(line)) continue;
-
-    // Match player line
-    const m = line.match(playerRe);
-    if (!m) continue;
-
-    const team = teams[currentTeamIdx];
-    if (!team) continue;
-
-    const p = parsePlayerEntry(m[1], m[2], m[3], m[4], m[5], m[6], m[7]);
-    batting[team][p.name] = p;
-  }
-  // Parse notes for 2B, SB, HBP, SAC, SF
-  parseNotesIntoBatting(lines.slice(headerIdx + 1), batting, teams);
-
-  return { teams, batting };
-}
-
-function parsePlayerEntry(nameStr, ab, r, h, rbi, bb, so) {
-  // nameStr: "E Hall #2 (RF)" or "A Koby #14 (3B)"
+function buildPlayer(nameStr, ab, r, h, rbi, bb, so) {
   const jerseyMatch = nameStr.match(/#(\d+)/);
   const posMatch    = nameStr.match(/\(([^)]+)\)/);
-  const name        = nameStr.replace(/#\d+/, '').replace(/\([^)]*\)/, '').trim();
+  const name        = nameStr.replace(/#\d+/,'').replace(/\([^)]*\)/,'').replace(/…$/,'').trim();
   const jersey      = jerseyMatch ? jerseyMatch[1] : null;
   const position    = posMatch ? posMatch[1] : '';
 
-  const abN  = parseInt(ab)  || 0;
-  const rN   = parseInt(r)   || 0;
-  const hN   = parseInt(h)   || 0;
-  const rbiN = parseInt(rbi) || 0;
-  const bbN  = parseInt(bb)  || 0;
-  const soN  = parseInt(so)  || 0;
-
-  // Calculate basic rate stats
-  const avg  = abN > 0 ? +(hN / abN).toFixed(3) : 0;
-  const slg  = abN > 0 ? +(hN / abN).toFixed(3) : 0; // placeholder until we know XBH
-  const obp  = (abN + bbN) > 0 ? +((hN + bbN) / (abN + bbN)).toFixed(3) : 0;
-  const ops  = +(obp + slg).toFixed(3);
-
   return {
     name, jersey, position,
-    ab: abN, r: rN, h: hN, rbi: rbiN, bb: bbN, so: soN,
-    doubles: 0, triples: 0, hr: 0, hbp: 0, sac: 0, sf: 0, sb: 0,
-    avg, obp, slg, ops, woba: 0,
-    // Will be enriched by notes parsing
+    ab, r, h, rbi, bb, so,
+    doubles: 0, triples: 0, hr: 0,
+    hbp: 0, sac: 0, sf: 0, sb: 0,
+    singles: 0, xbh: 0, tb: h, pa: ab + bb,
+    avg: ab > 0 ? +(h/ab).toFixed(3) : 0,
+    obp: (ab+bb) > 0 ? +((h+bb)/(ab+bb)).toFixed(3) : 0,
+    slg: ab > 0 ? +(h/ab).toFixed(3) : 0,
+    ops: 0, iso: 0, woba: 0,
   };
 }
 
-function parseNotesIntoBatting(lines, batting, teams) {
-  // Notes lines like:
-  // "2B: I Tillman, R Talley, C Rainer, P Visage 2, TB: I..."
-  // These are for the left (team1) side
+function recalcPlayer(p) {
+  const singles = Math.max(0, p.h - p.doubles - p.triples - p.hr);
+  const tb = singles + 2*p.doubles + 3*p.triples + 4*p.hr;
+  p.singles = singles;
+  p.xbh     = p.doubles + p.triples + p.hr;
+  p.tb      = tb;
+  p.pa      = p.ab + p.bb + p.hbp + p.sac + p.sf;
+  p.avg     = p.ab > 0 ? +(p.h/p.ab).toFixed(3) : 0;
+  p.slg     = p.ab > 0 ? +(tb/p.ab).toFixed(3) : 0;
+  p.obp     = (p.ab+p.bb+p.hbp+p.sf) > 0
+    ? +((p.h+p.bb+p.hbp)/(p.ab+p.bb+p.hbp+p.sf)).toFixed(3) : 0;
+  p.ops     = +(p.obp + p.slg).toFixed(3);
+  p.iso     = +(p.slg - p.avg).toFixed(3);
+  p.woba    = p.pa > 0
+    ? +((0.69*p.bb+0.72*p.hbp+0.888*singles+1.271*p.doubles+1.616*p.triples+2.101*p.hr)/p.pa).toFixed(3)
+    : 0;
+}
 
-  const fullNotes = lines.filter(l =>
-    /^(2B:|TB:|SAC:|SF:|HBP:|SB:|LOB:|WP:|E:)/.test(l) ||
-    /^Scorekeeping/.test(l)
-  );
+function buildPitcher(nameStr, ip, h, r, er, bb, so, hr) {
+  const jerseyMatch = nameStr.match(/#(\d+)/);
+  const name   = nameStr.replace(/#\d+/,'').replace(/…$/,'').trim();
+  const jersey = jerseyMatch ? jerseyMatch[1] : null;
+  const ipN    = parseFloat(ip) || 0;
+  const ipDec  = Math.floor(ipN) + (ipN % 1) * 10 / 3;
+  const hN=parseInt(h)||0, rN=parseInt(r)||0, erN=parseInt(er)||0;
+  const bbN=parseInt(bb)||0, soN=parseInt(so)||0, hrN=parseInt(hr)||0;
 
-  // Split notes into two halves — one per team
-  // They appear on the same line separated by the second team's stats
-  // Actually pdf-parse puts them on separate lines per team context
+  return {
+    name, jersey,
+    ip: ipN, ipDecimal: ipDec,
+    h: hN, r: rN, er: erN, bb: bbN, ks: soN, hr: hrN,
+    era:  ipDec > 0 ? +((erN/ipDec)*9).toFixed(2) : null,
+    whip: ipDec > 0 ? +((hN+bbN)/ipDec).toFixed(3) : null,
+    k9:   ipDec > 0 ? +((soN/ipDec)*9).toFixed(2) : null,
+    bb9:  ipDec > 0 ? +((bbN/ipDec)*9).toFixed(2) : null,
+    h9:   ipDec > 0 ? +((hN/ipDec)*9).toFixed(2) : null,
+    totalPitches: 0, strikes: 0, balls: 0, bf: 0,
+    wp: 0, hbp: 0, kPct: 0, bbPct: 0,
+    fpsPct: null, strikePct: null,
+  };
+}
 
-  // Parse each notes block
-  const noteBlocks = [];
-  let currentBlock = '';
-  for (const line of fullNotes) {
-    if (/^Scorekeeping/.test(line)) break;
-    currentBlock += ' ' + line;
-  }
-
-  // Try to split into two team note blocks
-  // They typically appear as two separate lines in pdf-parse output
-  const noteLines = lines.filter(l => /^(2B:|TB:|SAC:|SF:|HBP:|SB:|LOB:)/.test(l));
-
-  noteLines.forEach((noteLine, idx) => {
-    const team = teams[idx] || teams[0];
-    if (!team || !batting[team]) return;
-
-    // Parse 2B
-    const doubles = parseNoteList(noteLine, '2B');
-    doubles.forEach(({ name, count }) => {
-      const player = findPlayer(batting[team], name);
-      if (player) player.doubles += count;
-    });
-
-    // Parse HR (rare in these notes but possible)
-    const homers = parseNoteList(noteLine, 'HR');
-    homers.forEach(({ name, count }) => {
-      const player = findPlayer(batting[team], name);
-      if (player) player.hr += count;
-    });
-
-    // Parse SAC
-    const sacs = parseNoteList(noteLine, 'SAC');
-    sacs.forEach(({ name, count }) => {
-      const player = findPlayer(batting[team], name);
-      if (player) player.sac += count;
-    });
-
-    // Parse SF
-    const sfs = parseNoteList(noteLine, 'SF');
-    sfs.forEach(({ name, count }) => {
-      const player = findPlayer(batting[team], name);
-      if (player) player.sf += count;
-    });
-
-    // Parse HBP
-    const hbps = parseNoteList(noteLine, 'HBP');
-    hbps.forEach(({ name, count }) => {
-      const player = findPlayer(batting[team], name);
-      if (player) player.hbp += count;
-    });
-
-    // Parse SB
-    const sbs = parseNoteList(noteLine, 'SB');
-    sbs.forEach(({ name, count }) => {
-      const player = findPlayer(batting[team], name);
-      if (player) player.sb += count;
-    });
-  });
-
-  // Recalculate stats with enriched data
+function parseNoteLine(line, batting, teams) {
+  // Notes lines appear after all player rows
+  // They alternate: team1 notes line, team2 notes line
+  // But pdf-parse may split them differently — apply to all teams
   for (const team of teams) {
     if (!batting[team]) continue;
-    for (const player of Object.values(batting[team])) {
-      const { ab, h, bb, hbp, sac, sf, doubles, triples, hr } = player;
-      const singles = h - doubles - triples - hr;
-      const tb = singles + 2*doubles + 3*triples + 4*hr;
-
-      player.singles  = Math.max(0, singles);
-      player.xbh      = doubles + triples + hr;
-      player.tb       = tb;
-
-      const pa = ab + bb + hbp + sac + sf;
-      player.pa = pa;
-
-      player.avg  = ab > 0 ? +(h/ab).toFixed(3) : 0;
-      player.slg  = ab > 0 ? +(tb/ab).toFixed(3) : 0;
-      player.obp  = (ab+bb+hbp+sf) > 0 ? +((h+bb+hbp)/(ab+bb+hbp+sf)).toFixed(3) : 0;
-      player.ops  = +(player.obp + player.slg).toFixed(3);
-      player.iso  = +(player.slg - player.avg).toFixed(3);
-      player.woba = pa > 0
-        ? +((0.69*bb + 0.72*hbp + 0.888*player.singles + 1.271*doubles + 1.616*triples + 2.101*hr) / pa).toFixed(3)
-        : 0;
-    }
+    applyNotes(line, batting[team]);
   }
 }
 
-function parseNoteList(noteLine, key) {
-  // e.g. "2B: I Tillman, R Talley, C Rainer, P Visage 2, TB: ..."
-  // Returns [{name, count}]
-  const results = [];
-  const keyRe = new RegExp(`${key}:\\s*([^,]+(?:,\\s*[^,]+)*?)(?:\\s*(?:TB:|SAC:|SF:|HBP:|SB:|LOB:|WP:|E:|$))`);
-  const m = noteLine.match(keyRe);
-  if (!m) return results;
-
-  const entries = m[1].split(',').map(s => s.trim()).filter(Boolean);
-  for (const entry of entries) {
-    // Entry: "P Visage 2" or "I Tillman" or "C Rainer"
-    const countMatch = entry.match(/^(.+?)\s+(\d+)$/);
-    if (countMatch) {
-      results.push({ name: countMatch[1].trim(), count: parseInt(countMatch[2]) });
-    } else if (entry.trim()) {
-      results.push({ name: entry.trim(), count: 1 });
+function applyNotes(line, teamBatting) {
+  const keys = {
+    '2B': 'doubles', 'HR': 'hr', 'SAC': 'sac',
+    'SF': 'sf', 'HBP': 'hbp', 'SB': 'sb',
+  };
+  for (const [key, field] of Object.entries(keys)) {
+    const re = new RegExp(`${key}:\\s*([^,A-Z][^:]*?)(?=\\s*(?:TB:|SAC:|SF:|HBP:|SB:|LOB:|WP:|2B:|HR:|$))`);
+    const m = line.match(re);
+    if (!m) continue;
+    const entries = m[1].split(',').map(s => s.trim()).filter(Boolean);
+    for (const entry of entries) {
+      const countM = entry.match(/^(.+?)\s+(\d+)$/);
+      const playerName = countM ? countM[1].trim() : entry.trim();
+      const count = countM ? parseInt(countM[2]) : 1;
+      const player = findPlayer(teamBatting, playerName);
+      if (player) player[field] = (player[field] || 0) + count;
     }
   }
-  return results;
 }
 
 function findPlayer(teamBatting, noteName) {
-  // noteName might be "I Tillman" — match against "I Tillman #11 (DH)" style name
-  // Player keys in batting are full names like "I Tillman"
-  const lowerNote = noteName.toLowerCase().trim();
+  const lower = noteName.toLowerCase().trim();
   for (const player of Object.values(teamBatting)) {
-    const lowerPlayer = player.name.toLowerCase();
-    if (lowerPlayer === lowerNote || lowerPlayer.startsWith(lowerNote) || lowerNote.startsWith(lowerPlayer.split(' ')[0])) {
+    const pLower = player.name.toLowerCase();
+    const pLast  = pLower.split(' ').pop();
+    const nLast  = lower.split(' ').pop();
+    if (pLower === lower || pLower.includes(lower) || lower.includes(pLower) || pLast === nLast) {
       return player;
     }
   }
   return null;
 }
 
-// ============================================================
-// PITCHING PARSER
-// ============================================================
-
-function parsePitchingSection(lines, teams) {
-  const pitching = {};
-  teams.forEach(t => { pitching[t] = {}; });
-
-  // Header: "Royal Varsi… IP H R ER BB SO HR Oxnard Var… IP H R ER BB SO HR"
-  let headerIdx = -1;
-  for (let i = 0; i < lines.length; i++) {
-    if (/IP\s+H\s+R\s+ER\s+BB\s+SO\s+HR/.test(lines[i])) {
-      headerIdx = i;
-      break;
-    }
-  }
-  if (headerIdx === -1) return pitching;
-
-  const pitcherRe = /^(.+?#\d+)\s+([\d.]+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/;
-
-  for (let i = headerIdx + 1; i < lines.length; i++) {
-    const line = lines[i];
-    if (/^Totals/.test(line)) continue;
-    if (/^P-S:|^BF:|^WP:|^HBP:|^E:|^Scorekeeping/.test(line)) break;
-
-    const m = line.match(pitcherRe);
-    if (!m) continue;
-
-    const p1 = parsePitcherEntry(m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8]);
-
-    const rest = line.slice(m[0].length).trim();
-    const m2 = rest.match(pitcherRe);
-    let p2 = null;
-    if (m2) {
-      p2 = parsePitcherEntry(m2[1], m2[2], m2[3], m2[4], m2[5], m2[6], m2[7], m2[8]);
-    }
-
-    if (teams[0] && p1) pitching[teams[0]][p1.name] = p1;
-    if (teams[1] && p2) pitching[teams[1]][p2.name] = p2;
-  }
-
-  // Parse P-S notes for pitch counts
-  parsePitchingNotes(lines, pitching, teams);
-
-  return pitching;
-}
-
-function parsePitcherEntry(nameStr, ip, h, r, er, bb, so, hr) {
-  const jerseyMatch = nameStr.match(/#(\d+)/);
-  const name        = nameStr.replace(/#\d+/, '').trim().replace(/…$/, '').trim();
-  const jersey      = jerseyMatch ? jerseyMatch[1] : null;
-
-  const ipN  = parseFloat(ip) || 0;
-  const hN   = parseInt(h)   || 0;
-  const rN   = parseInt(r)   || 0;
-  const erN  = parseInt(er)  || 0;
-  const bbN  = parseInt(bb)  || 0;
-  const soN  = parseInt(so)  || 0;
-  const hrN  = parseInt(hr)  || 0;
-
-  // IP in baseball is recorded as 4.1 = 4 innings + 1 out = 4.333 actual innings
-  const ipDecimal = Math.floor(ipN) + (ipN % 1) * 10 / 3;
-
-  const era  = ipDecimal > 0 ? +((erN / ipDecimal) * 9).toFixed(2) : null;
-  const whip = ipDecimal > 0 ? +((hN + bbN) / ipDecimal).toFixed(3) : null;
-  const k9   = ipDecimal > 0 ? +((soN / ipDecimal) * 9).toFixed(2) : null;
-  const bb9  = ipDecimal > 0 ? +((bbN / ipDecimal) * 9).toFixed(2) : null;
-  const h9   = ipDecimal > 0 ? +((hN / ipDecimal) * 9).toFixed(2) : null;
-
-  return {
-    name, jersey,
-    ip: ipN, ipDecimal,
-    h: hN, r: rN, er: erN, bb: bbN, ks: soN, hr: hrN,
-    era, whip, k9, bb9, h9,
-    // Enriched from notes:
-    totalPitches: 0, strikes: 0, balls: 0, bf: 0,
-    wp: 0, hbp: 0,
-    fpsPct: null, strikePct: null, kPct: null, bbPct: null,
-  };
-}
-
-function parsePitchingNotes(lines, pitching, teams) {
-  // P-S: D Barkman 92-58, D Dunwoody 17-14, Obrien 21-13
-  // BF: D Barkman 22, D Dunwoody 5, Obrien 5
-  const notesText = lines.join(' ');
-
-  // Parse P-S (pitches-strikes)
-  const psMatch = notesText.match(/P-S:\s*([^,B][^B]+?)(?:\s+BF:|$)/);
-  if (psMatch) {
-    const entries = psMatch[1].split(',').map(s => s.trim()).filter(Boolean);
-    entries.forEach(entry => {
-      const m = entry.match(/^(.+?)\s+(\d+)-(\d+)$/);
+function parsePitchNotes(notesText, pitching, teams) {
+  // P-S: D Barkman 92-58, D Dunwoody 17-14
+  const psRe = /P-S:\s*(.+?)(?=\s*BF:|$)/;
+  const psM = notesText.match(psRe);
+  if (psM) {
+    psM[1].split(',').forEach(entry => {
+      const m = entry.trim().match(/^(.+?)\s+(\d+)-(\d+)$/);
       if (!m) return;
-      const name    = m[1].trim();
-      const pitches = parseInt(m[2]);
-      const strikes = parseInt(m[3]);
-      const pitcher = findPitcherAcrossTeams(pitching, teams, name);
-      if (pitcher) {
-        pitcher.totalPitches = pitches;
-        pitcher.strikes      = strikes;
-        pitcher.balls        = pitches - strikes;
-        pitcher.strikePct    = pitches > 0 ? +((strikes/pitches)*100).toFixed(1) : null;
+      const p = findPitcher(pitching, teams, m[1].trim());
+      if (p) {
+        p.totalPitches = parseInt(m[2]);
+        p.strikes      = parseInt(m[3]);
+        p.balls        = p.totalPitches - p.strikes;
+        p.strikePct    = p.totalPitches > 0 ? +((p.strikes/p.totalPitches)*100).toFixed(1) : null;
       }
     });
   }
 
-  // Parse BF (batters faced)
-  const bfMatch = notesText.match(/BF:\s*([^,W][^W]+?)(?:\s+WP:|$|\s+HBP:|$)/);
-  if (bfMatch) {
-    const entries = bfMatch[1].split(',').map(s => s.trim()).filter(Boolean);
-    entries.forEach(entry => {
-      const m = entry.match(/^(.+?)\s+(\d+)$/);
+  // BF: D Barkman 22, D Dunwoody 5
+  const bfRe = /BF:\s*(.+?)(?=\s*WP:|HBP:|E:|$)/;
+  const bfM = notesText.match(bfRe);
+  if (bfM) {
+    bfM[1].split(',').forEach(entry => {
+      const m = entry.trim().match(/^(.+?)\s+(\d+)$/);
       if (!m) return;
-      const pitcher = findPitcherAcrossTeams(pitching, teams, m[1].trim());
-      if (pitcher) {
-        pitcher.bf = parseInt(m[2]);
-        if (pitcher.bf > 0) {
-          pitcher.kPct  = +((pitcher.ks / pitcher.bf) * 100).toFixed(1);
-          pitcher.bbPct = +((pitcher.bb / pitcher.bf) * 100).toFixed(1);
-          pitcher.fpsPct = pitcher.strikePct; // approximation
+      const p = findPitcher(pitching, teams, m[1].trim());
+      if (p) {
+        p.bf = parseInt(m[2]);
+        if (p.bf > 0) {
+          p.kPct  = +((p.ks/p.bf)*100).toFixed(1);
+          p.bbPct = +((p.bb/p.bf)*100).toFixed(1);
         }
       }
     });
   }
 
-  // Parse WP
-  const wpMatch = notesText.match(/WP:\s*([^,H][^H]+?)(?:\s+HBP:|$)/);
-  if (wpMatch) {
-    const names = wpMatch[1].split(',').map(s => s.trim()).filter(Boolean);
-    names.forEach(name => {
-      const pitcher = findPitcherAcrossTeams(pitching, teams, name);
-      if (pitcher) pitcher.wp++;
+  // WP
+  const wpRe = /WP:\s*(.+?)(?=\s*HBP:|E:|$)/;
+  const wpM = notesText.match(wpRe);
+  if (wpM) {
+    wpM[1].split(',').forEach(entry => {
+      const p = findPitcher(pitching, teams, entry.trim());
+      if (p) p.wp++;
     });
   }
 
-  // Parse HBP
-  const hbpMatch = notesText.match(/HBP:\s*([^,B][^B]+?)(?:\s+BF:|$)/);
-  if (hbpMatch) {
-    const entries = hbpMatch[1].split(',').map(s => s.trim()).filter(Boolean);
-    entries.forEach(entry => {
-      const m = entry.match(/^(.+?)\s+(\d+)$/);
-      const pitcher = findPitcherAcrossTeams(pitching, teams, m ? m[1] : entry);
-      if (pitcher) pitcher.hbp += m ? parseInt(m[2]) : 1;
+  // HBP
+  const hbpRe = /HBP:\s*(.+?)(?=\s*BF:|E:|$)/;
+  const hbpM = notesText.match(hbpRe);
+  if (hbpM) {
+    hbpM[1].split(',').forEach(entry => {
+      const m = entry.trim().match(/^(.+?)\s+(\d+)$/);
+      const name = m ? m[1].trim() : entry.trim();
+      const count = m ? parseInt(m[2]) : 1;
+      const p = findPitcher(pitching, teams, name);
+      if (p) p.hbp += count;
     });
   }
 }
 
-function findPitcherAcrossTeams(pitching, teams, noteName) {
+function findPitcher(pitching, teams, noteName) {
   const lower = noteName.toLowerCase().trim();
   for (const team of teams) {
-    if (!pitching[team]) continue;
-    for (const pitcher of Object.values(pitching[team])) {
-      const pLower = pitcher.name.toLowerCase();
-      // Match last name or partial name
-      const lastName = pLower.split(' ').pop();
-      const noteLast = lower.split(' ').pop();
-      if (pLower.includes(lower) || lower.includes(pLower) ||
-          lastName === noteLast || pLower.startsWith(lower)) {
-        return pitcher;
-      }
+    for (const p of Object.values(pitching[team] || {})) {
+      const pLower = p.name.toLowerCase();
+      const pLast  = pLower.split(' ').pop();
+      const nLast  = lower.split(' ').pop();
+      if (pLower.includes(lower) || lower.includes(pLower) || pLast === nLast) return p;
     }
   }
   return null;
 }
 
 // ============================================================
-// STAT CALCULATORS (for DB insertion)
+// STAT CALCULATORS FOR DB INSERTION
 // ============================================================
 
 function computeBattingLine(player) {
   if (!player) return null;
   return {
     g: 1,
-    pa: player.pa || player.ab + player.bb + (player.hbp||0) + (player.sac||0) + (player.sf||0),
-    ab: player.ab, h: player.h, singles: player.singles || 0,
-    doubles: player.doubles || 0, triples: player.triples || 0,
-    hr: player.hr || 0, xbh: player.xbh || 0,
-    r: player.r || 0, rbi: player.rbi || 0,
-    bb: player.bb, ks: player.so, ksSwing: player.so, ksLook: 0,
-    hbp: player.hbp || 0, sac: player.sac || 0, sf: player.sf || 0,
-    roe: 0, sb: player.sb || 0, cs: 0,
+    pa: player.pa || 0,
+    ab: player.ab, h: player.h,
+    singles: player.singles || 0,
+    doubles: player.doubles || 0,
+    triples: player.triples || 0,
+    hr: player.hr || 0,
+    xbh: player.xbh || 0,
+    r: player.r || 0,
+    rbi: player.rbi || 0,
+    bb: player.bb,
+    ks: player.so, ksSwing: player.so, ksLook: 0,
+    hbp: player.hbp || 0,
+    sac: player.sac || 0,
+    sf: player.sf || 0,
+    roe: 0,
+    sb: player.sb || 0,
+    cs: 0,
     avg: player.avg, obp: player.obp, slg: player.slg,
     ops: player.ops, iso: player.iso || 0, woba: player.woba || 0,
     gbPct: 0, ldPct: 0, fbPct: 0, gbFb: null,
@@ -572,12 +411,14 @@ function computePitchingLine(pitcher) {
     bb: pitcher.bb, ks: pitcher.ks, ksSwing: pitcher.ks, ksLook: 0,
     hbp: pitcher.hbp || 0, hr: pitcher.hr, wp: pitcher.wp || 0,
     era: pitcher.era, k9: pitcher.k9, bb9: pitcher.bb9,
-    h9: pitcher.h9, whip: pitcher.whip, kbb: pitcher.bb > 0 ? +(pitcher.ks/pitcher.bb).toFixed(2) : null,
+    h9: pitcher.h9, whip: pitcher.whip,
+    kbb: pitcher.bb > 0 ? +(pitcher.ks/pitcher.bb).toFixed(2) : null,
     kPct: pitcher.kPct || 0, bbPct: pitcher.bbPct || 0,
     gbPct: 0, ldPct: 0, fbPct: 0,
-    fpsPct: pitcher.fpsPct || 0, strikePct: pitcher.strikePct || 0,
+    fpsPct: pitcher.fpsPct || 0,
+    strikePct: pitcher.strikePct || 0,
     totalPitches: pitcher.totalPitches || 0,
-    avgPPerBF: pitcher.bf > 0 ? +((pitcher.totalPitches||0)/pitcher.bf).toFixed(1) : null,
+    avgPPerBF:  pitcher.bf > 0 ? +((pitcher.totalPitches||0)/pitcher.bf).toFixed(1) : null,
     avgPPerInn: pitcher.ipDecimal > 0 ? +((pitcher.totalPitches||0)/pitcher.ipDecimal).toFixed(1) : null,
     innings: [],
   };
