@@ -189,24 +189,6 @@ function parsePage(lines) {
     }
   }
 
-  // Match pending (name-only) players to unmatched jersey result keys
-  if (roster['_pending']) {
-    const pendingList = roster['_pending'];
-    delete roster['_pending'];
-    const unmatchedJerseys = Object.keys(jerseyResults).filter(j => !roster[j]);
-    pendingList.forEach((p, idx) => {
-      if (unmatchedJerseys[idx]) {
-        roster[unmatchedJerseys[idx]] = p;
-      }
-    });
-  }
-
-  // Also add any jersey results that have no roster entry with placeholder name
-  for (const jersey of Object.keys(jerseyResults)) {
-    if (!roster[jersey]) {
-      roster[jersey] = { name: `Player #${jersey}`, position: '', isPitcher: false };
-    }
-  }
   // ---- Parse at-bat results ----
   // Format per at-bat (each on its own line):
   // #JERSEY (or #JERSEYRESULT jammed)
@@ -282,7 +264,26 @@ function parsePage(lines) {
     i++;
   }
 
-// ---- Build player records ----
+// Match pending (name-only) players to unmatched jersey result keys
+  if (roster['_pending']) {
+    const pendingList = roster['_pending'];
+    delete roster['_pending'];
+    const unmatchedJerseys = Object.keys(jerseyResults).filter(j => !roster[j]);
+    pendingList.forEach((p, idx) => {
+      if (unmatchedJerseys[idx]) {
+        roster[unmatchedJerseys[idx]] = p;
+      }
+    });
+  }
+
+  // Add placeholder for any jersey with results but no roster entry
+  for (const jersey of Object.keys(jerseyResults)) {
+    if (!roster[jersey]) {
+      roster[jersey] = { name: `Player #${jersey}`, position: '', isPitcher: false };
+    }
+  }
+
+  // ---- Build player records ----
   console.log('ROSTER:', JSON.stringify(Object.keys(roster)));
   console.log('JERSEY RESULTS:', JSON.stringify(Object.keys(jerseyResults)));
   for (const [j, res] of Object.entries(jerseyResults)) {
