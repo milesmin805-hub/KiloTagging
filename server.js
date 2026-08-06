@@ -1967,8 +1967,10 @@ const pdfBuffer = fs.readFileSync(file.path);
     const pdfParse = require('pdf-parse');
     const debugData = await pdfParse(pdfBuffer, { pagerender: null, max: 0 });
     console.log('=== GC BOX SCORE DEBUG ===');
+    console.log('pdf file:', file?.originalname, 'size:', file?.size);
+    console.log('scorebook file:', scorebookFile?.originalname, 'size:', scorebookFile?.size);
     console.log('Text length:', debugData.text.length);
-    console.log('First 800 chars:', JSON.stringify(debugData.text.substring(0, 800)));
+    console.log('First 300 chars:', JSON.stringify(debugData.text.substring(0, 300)));
     
     const game = await parseGCScorebook(pdfBuffer);
     console.log('Parsed teams:', game.teams);
