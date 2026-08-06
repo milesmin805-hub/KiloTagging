@@ -1934,8 +1934,9 @@ app.patch("/hitter/:hitterId/team", async (req, res) => {
 
 // Temporary debug endpoint — remove after fixing parser
 app.post("/debug-gc-pdf", gcUpload.single("pdf"), async (req, res) => {
-  const file = req.file;
-  if (!file) return res.json({ error: "no file" });
+  const file = req.files?.pdf?.[0];
+  const scorebookFile = req.files?.scorebook?.[0] || null;
+  if (!file) return res.json({ success: false, error: "No box score PDF received" });
   const fs = require("fs");
   const pdfBuffer = fs.readFileSync(file.path);
   const pdfParse = require("pdf-parse");
@@ -1950,8 +1951,7 @@ app.post("/debug-gc-pdf", gcUpload.single("pdf"), async (req, res) => {
 });
 
 // Upload a GameChanger scorebook PDF
-app.post("/upload-gc", gcUpload.single("pdf"), async (req, res) => {
-  const file = req.file;
+app.post("/upload-gc", gcUpload.fields([{ name: "pdf", maxCount: 1 }, { name: "scorebook", maxCount: 1 }]), async (req, res) => {
   const { token } = req.body;
 
   if (!file) return res.json({ success: false, error: "No file received" });
