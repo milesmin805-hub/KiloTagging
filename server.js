@@ -233,6 +233,8 @@ await pool.query(`
         triples INT DEFAULT 0,
         hr INT DEFAULT 0,
         xbh INT DEFAULT 0,
+        r INT DEFAULT 0,
+        rbi INT DEFAULT 0,
         bb INT DEFAULT 0,
         ks INT DEFAULT 0,
         ks_swing INT DEFAULT 0,
@@ -1995,15 +1997,15 @@ const pdfBuffer = fs.readFileSync(file.path);
       );
       const gcGameId = gameResult.rows[0].id;
 
-      // Insert batting stats
+// Insert batting stats
       const batting = game.batting[teamName] || {};
       for (const [playerKey, pdata] of Object.entries(batting)) {
-        const line = computeBattingLine(pdata.atBats);
-        if (!line || line.pa === 0) continue;
-
+        const line = computeBattingLine(pdata);
+        if (!line || line.ab === 0) continue;
+        
         await pool.query(
           `INSERT INTO gc_batting (id, gc_game_id, team_name, jersey, player_name, position,
-            pa, ab, h, singles, doubles, triples, hr, xbh, bb, ks, ks_swing, ks_look,
+            pa, ab, h, singles, doubles, triples, hr, xbh, r, rbi, bb, ks, ks_swing, ks_look,
             hbp, sac, fc, roe, sb, cs, avg, obp, slg, ops, iso, woba,
             gb_pct, ld_pct, fb_pct, gb_fb, spray_l, spray_c, spray_r,
             total_pitches_seen, fps_pct, raw_at_bats)
@@ -2013,7 +2015,7 @@ const pdfBuffer = fs.readFileSync(file.path);
           [
             crypto.randomUUID(), gcGameId, teamName, pdata.jersey, pdata.name, pdata.position,
             line.pa, line.ab, line.h, line.singles, line.doubles, line.triples, line.hr, line.xbh,
-            line.bb, line.ks, line.ksSwing, line.ksLook, line.hbp, line.sac, line.fc, line.roe,
+            line.r || 0, line.rbi || 0, line.bb, line.ks, line.ksSwing, line.ksLook, line.hbp, line.sac, line.fc, line.roe,
             line.sb, line.cs, line.avg, line.obp, line.slg, line.ops, line.iso, line.woba,
             line.gbPct, line.ldPct, line.fbPct, line.gbFb, line.sprayL, line.sprayC, line.sprayR,
             line.totalPitchesSeen, line.fpsPct, JSON.stringify(pdata.atBats)
@@ -2021,13 +2023,12 @@ const pdfBuffer = fs.readFileSync(file.path);
         );
       }
 
-      // Insert pitching stats
+// Insert pitching stats
       const pitching = game.pitching[teamName] || {};
-      const oppBatting = game.batting[oppTeam] || {};
-      for (const [pitcherName, inningSet] of Object.entries(pitching)) {
-        const line = computePitchingLine(oppBatting, inningSet);
+      for (const [pitcherName, pitcher] of Object.entries(pitching)) {
+        const line = computePitchingLine(pitcher);
         if (!line) continue;
-
+        
         await pool.query(
           `INSERT INTO gc_pitching (id, gc_game_id, team_name, player_name,
             ip, bf, h, bb, ks, ks_swing, ks_look, hbp, hr, wp,
