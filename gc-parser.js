@@ -54,6 +54,20 @@ async function parseGCScorebook(pdfBuffer) {
     // We'll extract from the batting table headers which are more reliable
   }
 
+  // Extract team names — they appear on consecutive lines before the score
+  // e.g. "Royal Varsity ", "Highlanders", "Oxnard Varsity Yellow ", "Jackets"
+  const scoreIdx = lines.findIndex(l => /^\d+\s*-\s*\d+$/.test(l));
+  if (scoreIdx > 0) {
+    // Lines before score are team name fragments — join pairs
+    const nameLines = lines.slice(0, scoreIdx).filter(l => l.trim() && !l.includes('BATTING'));
+    if (nameLines.length >= 2) {
+      // First half = team1, second half = team2
+      const mid = Math.floor(nameLines.length / 2);
+      game.teams.push(nameLines.slice(0, mid).join('').trim());
+      game.teams.push(nameLines.slice(mid).join('').trim());
+    }
+  }
+
   // Find date line
   for (const line of lines) {
     const dm = line.match(/(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+(\w+\s+\d+,\s+\d{4})/);
@@ -119,81 +133,77 @@ function parseBattingSection(lines) {
   const teams = [];
   const batting = {};
 
-  // Find the header line with AB R H RBI BB SO
+  // Find BATTING section
+  const battingLineIdx = lines.findIndex(l => l === 'BATTING');
+  if (battingLineIdx === -1) return { teams, batting };
+
+  // Header line format (jammed): "Royal Varsity Hi...ABRHRBIBBSO"
+  // Find it after BATTING
   let headerIdx = -1;
-  for (let i = 0; i < lines.length; i++) {
-    if (/AB\s+R\s+H\s+RBI\s+BB\s+SO/.test(lines[i])) {
+  for (let i = battingLineIdx + 1; i < lines.length; i++) {
+    if (/ABRHRBIBBSO/.test(lines[i])) {
       headerIdx = i;
       break;
     }
   }
-
   if (headerIdx === -1) return { teams, batting };
 
-  // Extract team names from header
-  const headerLine = lines[headerIdx];
-  // Format: "Team1Name… AB R H RBI BB SO Team2Name… AB R H RBI BB SO"
-  const headerMatch = headerLine.match(/^(.+?)\s+AB\s+R\s+H\s+RBI\s+BB\s+SO\s+(.+?)\s+AB\s+R\s+H\s+RBI\s+BB\s+SO$/);
-  if (headerMatch) {
-    teams.push(headerMatch[1].trim().replace(/…$/, '').trim());
-    teams.push(headerMatch[2].trim().replace(/…$/, '').trim());
-  } else {
-    // Single team
-    const singleMatch = headerLine.match(/^(.+?)\s+AB\s+R\s+H\s+RBI\s+BB\s+SO$/);
-    if (singleMatch) teams.push(singleMatch[1].trim().replace(/…$/, '').trim());
+  // Extract team names from header if not already found
+  if (teams.length < 2) {
+    const headerLine = lines[headerIdx];
+    // Format: "Royal Varsity Hi...ABRHRBIBBSO" and then second team header later
+    const t1match = headerLine.match(/^(.+?)\.{3}ABRHRBIBBSO/);
+    if (t1match) {
+      if (teams.length === 0) teams.push(t1match[1].trim());
+    }
+    // Second team header appears later
+    for (let i = headerIdx + 1; i < lines.length; i++) {
+      const t2match = lines[i].match(/^(.+?)\.{3}ABRHRBIBBSO/);
+      if (t2match && teams.length < 2) {
+        teams.push(t2match[1].trim());
+        break;
+      }
+    }
   }
 
-  // Initialize batting objects
+  // Initialize batting
   teams.forEach(t => { batting[t] = {}; });
 
-  // Parse player rows
-  // Player line: "Name #Jersey (Pos) AB R H RBI BB SO [Name2 #Jersey2 (Pos2) AB2 R2 H2 RBI2 BB2 SO2]"
-  const playerRe = /^(.+?#\d+(?:\s+\(\w+\))?)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/;
+  // Player line format (jammed): "E Hall #2 (RF)400101"
+  // Name+jersey+pos then 6 digits jammed: AB R H RBI BB SO
+  const playerRe = /^(\s*\S.+?#\d+(?:\s*\([^)]+\))?)\s*(\d)(\d)(\d)(\d)(\d)(\d)$/;
 
-  let team1Players = [];
-  let team2Players = [];
+  let currentTeamIdx = 0;
   let inNotes = false;
 
   for (let i = headerIdx + 1; i < lines.length; i++) {
     const line = lines[i];
 
-    // Stop at notes section (lines starting with "2B:", "TB:", "SAC:", etc.)
+    // Switch to second team when we hit second team header
+    if (/\.{3}ABRHRBIBBSO/.test(line) && i > headerIdx) {
+      currentTeamIdx = 1;
+      continue;
+    }
+
+    // Notes section
     if (/^(2B:|TB:|SAC:|SF:|HBP:|SB:|LOB:|WP:|E:)/.test(line)) {
       inNotes = true;
     }
     if (inNotes) continue;
 
     // Totals line
-    if (/^Totals\s+\d+/.test(line)) continue;
+    if (/^To\s*t\s*a\s*l\s*s/.test(line)) continue;
 
-    // Try to match player line(s)
-    // The line may contain two players (one per team) side by side
+    // Match player line
     const m = line.match(playerRe);
     if (!m) continue;
 
-    // Parse first player
-    const p1 = parsePlayerEntry(m[1], m[2], m[3], m[4], m[5], m[6], m[7]);
+    const team = teams[currentTeamIdx];
+    if (!team) continue;
 
-    // Check for second player on same line
-    const rest = line.slice(m[0].length).trim();
-    const m2 = rest.match(playerRe);
-    let p2 = null;
-    if (m2) {
-      p2 = parsePlayerEntry(m2[1], m2[2], m2[3], m2[4], m2[5], m2[6], m2[7]);
-    }
-
-    team1Players.push(p1);
-    if (p2) team2Players.push(p2);
+    const p = parsePlayerEntry(m[1], m[2], m[3], m[4], m[5], m[6], m[7]);
+    batting[team][p.name] = p;
   }
-
-  // Assign to teams
-  if (teams[0]) {
-    team1Players.forEach(p => { batting[teams[0]][p.name] = p; });
-  }
-  if (teams[1]) {
-    team2Players.forEach(p => { batting[teams[1]][p.name] = p; });
-  }
-
   // Parse notes for 2B, SB, HBP, SAC, SF
   parseNotesIntoBatting(lines.slice(headerIdx + 1), batting, teams);
 
