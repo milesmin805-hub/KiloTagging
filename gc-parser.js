@@ -52,14 +52,14 @@ async function parseGCScorebook(pdfBuffer) {
     // Or 2 fragments if single-word team names
     if (nameFragments.length >= 4) {
       const mid = Math.floor(nameFragments.length / 2);
-      game.teams.push(nameFragments.slice(0, mid).join('').trim());
-      game.teams.push(nameFragments.slice(mid).join('').trim());
+            game.teams.push(nameFragments.slice(0, mid).join(' ').trim());
+      game.teams.push(nameFragments.slice(mid).join(' ').trim());
     } else if (nameFragments.length === 2) {
       game.teams.push(nameFragments[0].trim());
       game.teams.push(nameFragments[1].trim());
     } else if (nameFragments.length === 3) {
       game.teams.push(nameFragments[0].trim());
-      game.teams.push(nameFragments.slice(1).join('').trim());
+      game.teams.push(nameFragments.slice(1).join(' ').trim());
     }
   }
 
