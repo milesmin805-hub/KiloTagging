@@ -170,7 +170,75 @@ await pool.query(`
       ALTER TABLE pitches ADD COLUMN IF NOT EXISTS runs_scored INTEGER DEFAULT NULL;
     `);
 
-   // Hitters table — mirrors pitchers, one row per batter identity
+      await pool.query(`
+      CREATE TABLE IF NOT EXISTS pitchers (
+        id UUID PRIMARY KEY,
+        name VARCHAR(255) NOT NULL UNIQUE,
+        pitcher_throws VARCHAR(10) DEFAULT NULL,
+        team TEXT DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS csv_imports (
+        id UUID PRIMARY KEY,
+        session_id UUID NOT NULL REFERENCES sessions(id),
+        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        pitch_count INT DEFAULT 0,
+        pitcher_count INT DEFAULT 0
+      );
+    `);
+
+    await pool.query(`
+      ALTER TABLE pitches ADD COLUMN IF NOT EXISTS pitcher_id UUID REFERENCES pitchers(id);
+    `);
+
+    await pool.query(`
+      ALTER TABLE pitches ADD COLUMN IF NOT EXISTS csv_import_id UUID REFERENCES csv_imports(id);
+    `);
+
+    await pool.query(`
+      ALTER TABLE pitches ADD COLUMN IF NOT EXISTS spin_rate INT;
+    `);
+
+    await pool.query(`
+      ALTER TABLE pitches ADD COLUMN IF NOT EXISTS ivb DECIMAL(5,2);
+    `);
+
+    await pool.query(`
+      ALTER TABLE pitches ADD COLUMN IF NOT EXISTS hb DECIMAL(5,2);
+    `);
+
+    await pool.query(`
+      ALTER TABLE pitches ADD COLUMN IF NOT EXISTS batter_handedness VARCHAR(3);
+    `);
+
+    await pool.query(`
+      ALTER TABLE pitches ADD COLUMN IF NOT EXISTS exit_velocity INT;
+    `);
+
+    await pool.query(`
+      ALTER TABLE pitches ADD COLUMN IF NOT EXISTS extension DECIMAL(5,2);
+    `);
+
+    await pool.query(`
+      ALTER TABLE pitches ADD COLUMN IF NOT EXISTS rel_height DECIMAL(5,2);
+    `);
+
+    await pool.query(`
+      ALTER TABLE pitches ADD COLUMN IF NOT EXISTS rel_side DECIMAL(5,2);
+    `);
+
+    await pool.query(`
+      ALTER TABLE pitches ADD COLUMN IF NOT EXISTS balls INT DEFAULT 0;
+    `);
+
+    await pool.query(`
+      ALTER TABLE pitches ADD COLUMN IF NOT EXISTS strikes INT DEFAULT 0;
+    `);
+
+    // Hitters table — mirrors pitchers, one row per batter identity
     await pool.query(`
       CREATE TABLE IF NOT EXISTS hitters (
         id UUID PRIMARY KEY,
