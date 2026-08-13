@@ -299,21 +299,26 @@ await pool.query(`
       );
     `);
 
-    await pool.query(`
-      INSERT INTO teams (raw_name, display_name)
-      SELECT DISTINCT team, team FROM pitchers
-      WHERE team IS NOT NULL AND team != ''
-      ON CONFLICT (raw_name) DO NOTHING;
-    `);
-
-    await pool.query(`
-      INSERT INTO teams (raw_name, display_name)
-      SELECT DISTINCT team, team FROM hitters
-      WHERE team IS NOT NULL AND team != ''
-      ON CONFLICT (raw_name) DO NOTHING;
-    `);
+        // Only seed teams from pitchers/hitters if those tables exist and have data
+    try {
+      await pool.query(`
+        INSERT INTO teams (raw_name, display_name)
+        SELECT DISTINCT team, team FROM pitchers
+        WHERE team IS NOT NULL AND team != ''
+        ON CONFLICT (raw_name) DO NOTHING;
+      `);
+      await pool.query(`
+        INSERT INTO teams (raw_name, display_name)
+        SELECT DISTINCT team, team FROM hitters
+        WHERE team IS NOT NULL AND team != ''
+        ON CONFLICT (raw_name) DO NOTHING;
+      `);
+    } catch (e) {
+      // Tables may not exist yet on first run — safe to ignore
+    }
 
     console.log("✅ Database initialized");
+
   } catch (err) {
     console.error("Database init error:", err);
   }
