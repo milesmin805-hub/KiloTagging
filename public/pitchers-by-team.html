@@ -6,268 +6,81 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-
-body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: #050816;
-  color: #e5e7eb;
-  min-height: 100vh;
-}
-
-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid rgba(148,163,184,0.3);
-  background: radial-gradient(circle at top left, rgba(56,189,248,0.15), transparent 55%);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
+body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f1f5f9; color: #111827; min-height: 100vh; }
+header { padding: 14px 20px; border-bottom: 1px solid #1e293b; background: #0f172a; display: flex; justify-content: space-between; align-items: center; }
 .brand { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-.brand-mark {
-  width: 28px; height: 28px; border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #22d3ee, #0f172a);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px; font-weight: 700;
-}
-.brand-text .title { font-size: 16px; font-weight: 600; }
-.brand-text .subtitle { font-size: 11px; color: #9ca3af; }
-
-.btn {
-  padding: 8px 14px;
-  border: 1px solid rgba(148,163,184,0.5);
-  background: rgba(15,23,42,0.9);
-  color: #e5e7eb;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.15s ease;
-}
-.btn:hover { border-color: rgba(56,189,248,0.9); box-shadow: 0 0 12px rgba(56,189,248,0.4); }
-
+.brand-mark { width: 28px; height: 28px; border-radius: 50%; background: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; }
+.brand-text .title { font-size: 16px; font-weight: 600; color: #f8fafc; }
+.brand-text .subtitle { font-size: 11px; color: #94a3b8; }
+.btn { padding: 7px 14px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.15s ease; }
+.btn:hover { border-color: #2563eb; background: #1e3a5f; }
 main { padding: 24px 20px; max-width: 1000px; margin: 0 auto; }
-
-.page-title {
-  font-size: 24px; font-weight: 700; color: #22d3ee;
-  margin-bottom: 24px;
-}
-
-.team-section {
-  margin-bottom: 24px;
-  border: 1px solid rgba(148,163,184,0.3);
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.team-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: rgba(15,23,42,0.9);
-  cursor: pointer;
-  user-select: none;
-  transition: background 0.15s ease;
-}
-.team-header:hover { background: rgba(34,211,238,0.08); }
-
-.team-name-display {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.team-name-text {
-  font-size: 16px;
-  font-weight: 600;
-  color: #22d3ee;
-}
-
-.team-count {
-  font-size: 12px;
-  color: #9ca3af;
-  background: rgba(148,163,184,0.15);
-  padding: 2px 8px;
-  border-radius: 10px;
-}
-
-.rename-btn {
-  background: none;
-  border: 1px solid rgba(148,163,184,0.4);
-  color: #9ca3af;
-  font-size: 11px;
-  padding: 3px 8px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-.rename-btn:hover { border-color: #22d3ee; color: #22d3ee; }
-
-.rename-form {
-  display: none;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  background: rgba(15,23,42,0.95);
-  border-top: 1px solid rgba(148,163,184,0.2);
-}
+.page-title { font-size: 24px; font-weight: 700; color: #111827; margin-bottom: 24px; }
+.team-section { margin-bottom: 16px; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.team-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: #ffffff; cursor: pointer; user-select: none; transition: background 0.15s ease; }
+.team-header:hover { background: #f8fafc; }
+.team-name-display { display: flex; align-items: center; gap: 12px; }
+.team-name-text { font-size: 16px; font-weight: 600; color: #2563eb; }
+.team-count { font-size: 12px; color: #6b7280; background: #f1f5f9; padding: 2px 8px; border-radius: 10px; }
+.rename-btn { background: none; border: 1px solid #e2e8f0; color: #6b7280; font-size: 11px; padding: 3px 8px; border-radius: 4px; cursor: pointer; transition: all 0.15s ease; }
+.rename-btn:hover { border-color: #2563eb; color: #2563eb; }
+.rename-form { display: none; align-items: center; gap: 8px; padding: 12px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; }
 .rename-form.open { display: flex; }
-.rename-input {
-  flex: 1;
-  background: rgba(15,23,42,0.9);
-  border: 1px solid rgba(148,163,184,0.4);
-  color: #e5e7eb;
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-size: 13px;
-}
-.rename-input:focus { outline: none; border-color: #22d3ee; }
-.rename-save {
-  background: rgba(34,211,238,0.2);
-  border: 1px solid rgba(34,211,238,0.5);
-  color: #22d3ee;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
-}
-.rename-cancel {
-  background: none;
-  border: 1px solid rgba(148,163,184,0.4);
-  color: #9ca3af;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 12px;
-}
-
-.team-body { display: none; padding: 16px 20px; background: rgba(5,8,22,0.8); }
+.rename-input { flex: 1; background: #ffffff; border: 1px solid #d1d5db; color: #111827; padding: 6px 10px; border-radius: 6px; font-size: 13px; }
+.rename-input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+.rename-save { background: #eff6ff; border: 1px solid #bfdbfe; color: #2563eb; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; }
+.rename-cancel { background: none; border: 1px solid #e2e8f0; color: #6b7280; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+.team-body { display: none; padding: 16px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; }
 .team-body.open { display: block; }
-
-.pitcher-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 12px;
-}
-
-.pitcher-card {
-  background: rgba(15,23,42,0.9);
-  border: 1px solid rgba(148,163,184,0.3);
-  border-radius: 10px;
-  padding: 14px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-.pitcher-card:hover {
-  border-color: rgba(34,211,238,0.6);
-  box-shadow: 0 0 16px rgba(34,211,238,0.2);
-  transform: translateY(-2px);
-}
-.pitcher-card-name { font-size: 14px; font-weight: 600; color: #e5e7eb; margin-bottom: 4px; }
-.pitcher-card-meta { font-size: 12px; color: #9ca3af; }
-
-.unknown-assign {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(148,163,184,0.2);
-}
-.assign-label { font-size: 12px; color: #9ca3af; }
-.assign-select {
-  background: rgba(15,23,42,0.9);
-  border: 1px solid rgba(148,163,184,0.4);
-  color: #e5e7eb;
-  padding: 5px 8px;
-  border-radius: 6px;
-  font-size: 12px;
-  cursor: pointer;
-}
-.assign-select:focus { outline: none; border-color: #22d3ee; }
-
-.loading { text-align: center; padding: 60px; color: #9ca3af; }
-
-.chevron { font-size: 12px; color: #9ca3af; transition: transform 0.2s ease; }
+.pitcher-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.pitcher-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; cursor: pointer; transition: all 0.15s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+.pitcher-card:hover { border-color: #2563eb; box-shadow: 0 4px 12px rgba(37,99,235,0.12); transform: translateY(-2px); }
+.pitcher-card-name { font-size: 14px; font-weight: 600; color: #111827; margin-bottom: 4px; }
+.pitcher-card-meta { font-size: 12px; color: #6b7280; }
+.assign-select { background: #ffffff; border: 1px solid #d1d5db; color: #111827; padding: 5px 8px; border-radius: 6px; font-size: 12px; cursor: pointer; margin-top: 8px; width: 100%; }
+.loading { text-align: center; padding: 60px; color: #6b7280; }
+.chevron { font-size: 12px; color: #6b7280; transition: transform 0.2s ease; }
 .chevron.open { transform: rotate(180deg); }
-
-.hamburger-btn {
-  background: none; border: none; color: #e5e7eb;
-  font-size: 20px; cursor: pointer; padding: 4px 8px; line-height: 1;
-}
-.side-menu-overlay {
-  display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,0.5); z-index: 998;
-}
+.hamburger-btn { background: none; border: none; color: #e2e8f0; font-size: 20px; cursor: pointer; padding: 4px 8px; line-height: 1; }
+.side-menu-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 998; }
 .side-menu-overlay.open { display: block; }
-.side-menu {
-  position: fixed; top: 0; left: -280px;
-  width: 280px; height: 100vh;
-  background: #0f172a;
-  border-right: 1px solid rgba(148,163,184,0.3);
-  z-index: 999; transition: left 0.25s ease;
-  display: flex; flex-direction: column;
-}
+.side-menu { position: fixed; top: 0; left: -280px; width: 280px; height: 100vh; background: #0f172a; border-right: 1px solid #1e293b; z-index: 999; transition: left 0.25s ease; display: flex; flex-direction: column; }
 .side-menu.open { left: 0; }
-.side-menu-header {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 20px 16px; border-bottom: 1px solid rgba(148,163,184,0.2);
-  font-weight: 600; color: #22d3ee;
-}
-.side-menu-close {
-  background: none; border: none; color: #9ca3af;
-  font-size: 18px; cursor: pointer; padding: 4px; width: auto;
-}
-.side-menu-item {
-  display: flex; align-items: center; gap: 12px;
-  padding: 16px; cursor: pointer; color: #e5e7eb; font-size: 14px;
-  border-bottom: 1px solid rgba(148,163,184,0.1);
-  transition: background 0.15s ease;
-}
-.side-menu-item:hover { background: rgba(56,189,248,0.1); }
-.side-menu-icon { font-size: 18px; }
+.side-menu-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 16px; border-bottom: 1px solid #1e293b; font-weight: 600; color: #f8fafc; }
+.side-menu-close { background: none; border: none; color: #94a3b8; font-size: 18px; cursor: pointer; padding: 4px; width: auto; }
+.side-menu-item { padding: 15px 16px; cursor: pointer; color: #e2e8f0; font-size: 14px; border-bottom: 1px solid #1e293b; transition: background 0.15s ease; }
+.side-menu-item:hover { background: #1e293b; color: #ffffff; }
 </style>
 </head>
 <body>
-
 <div id="sideMenuOverlay" class="side-menu-overlay" onclick="toggleMenu()"></div>
 <div id="sideMenu" class="side-menu">
-  <div class="side-menu-header">
-    <span>Menu</span>
-    <button class="side-menu-close" onclick="toggleMenu()">✕</button>
-  </div>
-   <div class="side-menu-item" onclick="window.location.href='/all-pitchers.html'">Pitchers</div>
+  <div class="side-menu-header"><span>Menu</span><button class="side-menu-close" onclick="toggleMenu()">✕</button></div>
+  <div class="side-menu-item" onclick="window.location.href='/all-pitchers.html'">Pitchers</div>
   <div class="side-menu-item" onclick="window.location.href='/all-hitters.html'">Hitters</div>
   <div class="side-menu-item" onclick="window.location.href='/pitchers-by-team.html'">Pitchers by Team</div>
   <div class="side-menu-item" onclick="window.location.href='/hitters-by-team.html'">Hitters by Team</div>
-  <div class="side-menu-item" onclick="window.location.href='/matchups.html'">Matchups</div></div>
+  <div class="side-menu-item" onclick="window.location.href='/matchups.html'">Matchups</div>
 </div>
-
 <header>
   <div style="display:flex; align-items:center; gap:12px;">
     <button class="hamburger-btn" onclick="toggleMenu()">☰</button>
     <div class="brand" onclick="window.location.href='/dashboard.html'">
       <div class="brand-mark">⚾</div>
-      <div class="brand-text">
-        <div class="title">Kilo</div>
-        <div class="subtitle">Baseball</div>
-      </div>
+      <div class="brand-text"><div class="title">Kilo</div><div class="subtitle">Baseball</div></div>
     </div>
   </div>
   <button class="btn" onclick="window.location.href='/dashboard.html'">← Home</button>
 </header>
-
 <main>
   <div class="page-title">Pitchers by Team</div>
   <div id="loading" class="loading">Loading...</div>
   <div id="teamsContainer"></div>
 </main>
-
 <script>
 let allPitchers = [];
-let teamsMap = {}; // raw_name -> display_name
-let teamsList = []; // [{raw_name, display_name}]
+let teamsMap = {};
+let teamsList = [];
 
 window.addEventListener("load", async () => {
   const token = localStorage.getItem("token");
@@ -284,17 +97,13 @@ async function loadData() {
     ]);
     const pitchersData = await pitchersRes.json();
     const teamsData = await teamsRes.json();
-
     if (!pitchersData.success) return;
-
     allPitchers = pitchersData.pitchers;
-
     if (teamsData.success) {
       teamsList = teamsData.teams;
       teamsMap = {};
       teamsData.teams.forEach(t => { teamsMap[t.raw_name] = t.display_name; });
     }
-
     renderTeams();
   } catch (err) {
     document.getElementById("loading").textContent = "Error loading data";
@@ -309,32 +118,26 @@ function getDisplayName(rawName) {
 function renderTeams() {
   document.getElementById("loading").style.display = "none";
   const container = document.getElementById("teamsContainer");
-
-  // Group pitchers by team
   const groups = {};
   allPitchers.forEach(p => {
     const key = p.team || "__unknown__";
     if (!groups[key]) groups[key] = [];
     groups[key].push(p);
   });
-
-  // Sort: known teams alphabetically, unknown last
   const sortedKeys = Object.keys(groups).sort((a, b) => {
     if (a === "__unknown__") return 1;
     if (b === "__unknown__") return -1;
     return getDisplayName(a).localeCompare(getDisplayName(b));
   });
-
   container.innerHTML = sortedKeys.map(rawTeam => {
     const pitchers = groups[rawTeam];
     const isUnknown = rawTeam === "__unknown__";
     const displayName = isUnknown ? "Unknown Team" : getDisplayName(rawTeam);
     const sectionId = `team-${rawTeam.replace(/[^a-zA-Z0-9]/g, "_")}`;
-
-const pitcherCards = pitchers.map(p => {
+    const pitcherCards = pitchers.map(p => {
       const isUnknownCard = !p.team;
       const assignDropdown = isUnknownCard ? `
-        <select class="assign-select" onchange="assignPitcher('${p.id}', this.value)" onclick="event.stopPropagation()" style="margin-top:8px; width:100%;">
+        <select class="assign-select" onchange="assignPitcher('${p.id}', this.value)" onclick="event.stopPropagation()">
           <option value="">Assign to team...</option>
           ${teamsList.map(t => `<option value="${t.raw_name}">${t.display_name}</option>`).join("")}
         </select>
@@ -347,20 +150,13 @@ const pitcherCards = pitchers.map(p => {
         </div>
       `;
     }).join("");
-
-const unknownAssignHtml = "";
-
     const renameHtml = !isUnknown ? `
       <div class="rename-form" id="rename-${sectionId}">
-        <input class="rename-input" id="rename-input-${sectionId}" 
-               placeholder="New team name..." 
-               value="${displayName}"
-               onclick="event.stopPropagation()" />
+        <input class="rename-input" id="rename-input-${sectionId}" placeholder="New team name..." value="${displayName}" onclick="event.stopPropagation()" />
         <button class="rename-save" onclick="event.stopPropagation(); saveRename('${rawTeam}', '${sectionId}')">Save</button>
         <button class="rename-cancel" onclick="event.stopPropagation(); closeRename('${sectionId}')">Cancel</button>
       </div>
     ` : "";
-
     return `
       <div class="team-section">
         <div class="team-header" onclick="toggleTeam('${sectionId}')">
@@ -374,7 +170,6 @@ const unknownAssignHtml = "";
         ${renameHtml}
         <div class="team-body" id="body-${sectionId}">
           <div class="pitcher-grid">${pitcherCards}</div>
-          ${unknownAssignHtml}
         </div>
       </div>
     `;
@@ -385,13 +180,8 @@ function toggleTeam(sectionId) {
   document.getElementById(`body-${sectionId}`).classList.toggle("open");
   document.getElementById(`chevron-${sectionId}`).classList.toggle("open");
 }
-
-function openRename(sectionId) {
-  document.getElementById(`rename-${sectionId}`).classList.add("open");
-}
-function closeRename(sectionId) {
-  document.getElementById(`rename-${sectionId}`).classList.remove("open");
-}
+function openRename(sectionId) { document.getElementById(`rename-${sectionId}`).classList.add("open"); }
+function closeRename(sectionId) { document.getElementById(`rename-${sectionId}`).classList.remove("open"); }
 
 async function saveRename(rawTeam, sectionId) {
   const newName = document.getElementById(`rename-input-${sectionId}`).value.trim();
@@ -399,21 +189,13 @@ async function saveRename(rawTeam, sectionId) {
   const token = localStorage.getItem("token");
   try {
     const res = await fetch("/team/rename", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token, rawName: rawTeam, displayName: newName })
     });
     const data = await res.json();
-    if (data.success) {
-      teamsMap[rawTeam] = newName;
-      document.getElementById(`label-${sectionId}`).textContent = newName;
-      closeRename(sectionId);
-    } else {
-      alert("Failed to rename: " + data.error);
-    }
-  } catch (err) {
-    alert("Error: " + err.message);
-  }
+    if (data.success) { teamsMap[rawTeam] = newName; document.getElementById(`label-${sectionId}`).textContent = newName; closeRename(sectionId); }
+    else alert("Failed to rename: " + data.error);
+  } catch (err) { alert("Error: " + err.message); }
 }
 
 async function assignPitcher(pitcherId, rawTeam) {
@@ -421,27 +203,19 @@ async function assignPitcher(pitcherId, rawTeam) {
   const token = localStorage.getItem("token");
   try {
     const res = await fetch(`/pitcher/${pitcherId}/team`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token, team: rawTeam })
     });
     const data = await res.json();
-    if (data.success) {
-      await loadData();
-    } else {
-      alert("Failed to assign: " + data.error);
-    }
-  } catch (err) {
-    alert("Error: " + err.message);
-  }
+    if (data.success) await loadData();
+    else alert("Failed to assign: " + data.error);
+  } catch (err) { alert("Error: " + err.message); }
 }
 
 function toggleMenu() {
   document.getElementById("sideMenu").classList.toggle("open");
   document.getElementById("sideMenuOverlay").classList.toggle("open");
 }
-function goToPitchers() { window.location.href = "/all-pitchers.html"; }
-function goToHitters() { window.location.href = "/all-hitters.html"; }
 </script>
 </body>
 </html>
