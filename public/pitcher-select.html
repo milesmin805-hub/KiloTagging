@@ -1,481 +1,168 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Kilo - Select Pitcher</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #050816;
-      color: #e5e7eb;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    header {
-      padding: 16px;
-      border-bottom: 1px solid rgba(148, 163, 184, 0.3);
-      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.15), transparent 55%);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-    }
-
-    .brand-mark {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 30% 30%, #22d3ee, #0f172a);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      font-weight: 700;
-    }
-
-    .brand-text .title {
-      font-size: 16px;
-      font-weight: 600;
-    }
-
-    .brand-text .subtitle {
-      font-size: 11px;
-      color: #9ca3af;
-    }
-
-    .header-right {
-      display: flex;
-      gap: 12px;
-    }
-
-    .back-btn {
-      padding: 8px 12px;
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      background: rgba(15, 23, 42, 0.9);
-      color: #e5e7eb;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 12px;
-      transition: all 0.15s ease;
-    }
-
-    .back-btn:hover {
-      border-color: rgba(56, 189, 248, 0.9);
-      box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
-    }
-
-    main {
-      flex: 1;
-      padding: 20px;
-      max-width: 900px;
-      margin: 0 auto;
-      width: 100%;
-    }
-
-    .page-header {
-      text-align: center;
-      margin-bottom: 40px;
-    }
-
-    .page-header h1 {
-      font-size: 28px;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-
-    .page-header p {
-      font-size: 14px;
-      color: #9ca3af;
-    }
-
-    .pitchers-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      margin-bottom: 20px;
-    }
-
-    .pitcher-card {
-      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), #020617);
-      border: 1px solid rgba(148, 163, 184, 0.35);
-      border-radius: 12px;
-      padding: 20px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      text-align: center;
-    }
-
-    .pitcher-card:hover {
-      border-color: rgba(56, 189, 248, 0.9);
-      box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
-      transform: translateY(-4px);
-    }
-
-    .pitcher-name {
-      font-size: 16px;
-      font-weight: 600;
-      color: #22d3ee;
-      margin-bottom: 8px;
-    }
-
-    .pitcher-team {
-      font-size: 12px;
-      color: #9ca3af;
-      margin-bottom: 12px;
-    }
-
-    .pitcher-action {
-      padding: 8px 12px;
-      background: radial-gradient(circle at top left, #22d3ee, #0f172a);
-      border: 1px solid rgba(56, 189, 248, 0.8);
-      color: #000;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 600;
-      transition: all 0.15s ease;
-      width: 100%;
-    }
-
-    .pitcher-action:hover {
-      box-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
-    }
-
-    .loading {
-      text-align: center;
-      padding: 40px;
-      color: #9ca3af;
-    }
-
-    .error {
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.5);
-      color: #fca5a5;
-      padding: 16px;
-      border-radius: 8px;
-      text-align: center;
-      margin-bottom: 20px;
-    }
-
-    .empty {
-      text-align: center;
-      color: #9ca3af;
-      padding: 40px;
-    }
-
-    @media (max-width: 600px) {
-      main {
-        padding: 12px;
-      }
-
-      .pitchers-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .page-header h1 {
-        font-size: 22px;
-      }
-    }
-    .delete-btn {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background: rgba(239, 68, 68, 0.2);
-      border: 1px solid rgba(239, 68, 68, 0.5);
-      color: #fca5a5;
-      cursor: pointer;
-      font-size: 20px;
-      line-height: 1;
-      transition: all 0.15s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0;
-    }
-
-    .delete-btn:hover {
-      background: rgba(239, 68, 68, 0.4);
-      box-shadow: 0 0 12px rgba(239, 68, 68, 0.6);
-    }
-    .hamburger-btn {
-  background: none;
-  border: none;
-  color: #e5e7eb;
-  font-size: 20px;
-  cursor: pointer;
-  padding: 4px 8px;
-  line-height: 1;
-}
-.side-menu-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  z-index: 998;
-}
+<meta charset="UTF-8" />
+<title>Kilo - Select Pitcher</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f1f5f9; color: #111827; min-height: 100vh; display: flex; flex-direction: column; }
+header { padding: 14px 20px; border-bottom: 1px solid #1e293b; background: #0f172a; display: flex; justify-content: space-between; align-items: center; }
+.brand { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.brand-mark { width: 28px; height: 28px; border-radius: 50%; background: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; }
+.brand-text .title { font-size: 16px; font-weight: 600; color: #f8fafc; }
+.brand-text .subtitle { font-size: 11px; color: #94a3b8; }
+.back-btn { padding: 7px 14px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.15s ease; }
+.back-btn:hover { border-color: #2563eb; background: #1e3a5f; }
+main { flex: 1; padding: 20px; max-width: 900px; margin: 0 auto; width: 100%; }
+.page-header { text-align: center; margin-bottom: 40px; }
+.page-header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; color: #111827; }
+.page-header p { font-size: 14px; color: #6b7280; }
+.pitchers-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
+.pitcher-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.15s ease; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.pitcher-card:hover { border-color: #2563eb; box-shadow: 0 4px 12px rgba(37,99,235,0.12); transform: translateY(-2px); }
+.pitcher-name { font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 8px; }
+.pitcher-team { font-size: 12px; color: #6b7280; margin-bottom: 12px; }
+.pitcher-action { padding: 8px 12px; background: #2563eb; border: none; color: #ffffff; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.15s ease; width: 100%; }
+.pitcher-action:hover { background: #1d4ed8; }
+.loading { text-align: center; padding: 40px; color: #6b7280; }
+.error { background: #fef2f2; border: 1px solid #fca5a5; color: #dc2626; padding: 16px; border-radius: 8px; text-align: center; margin-bottom: 20px; }
+.empty { text-align: center; color: #6b7280; padding: 40px; }
+.delete-btn { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border-radius: 50%; background: #fef2f2; border: 1px solid #fca5a5; color: #dc2626; cursor: pointer; font-size: 20px; line-height: 1; transition: all 0.15s ease; display: flex; align-items: center; justify-content: center; padding: 0; }
+.delete-btn:hover { background: #fee2e2; }
+@media (max-width: 600px) { main { padding: 12px; } .pitchers-grid { grid-template-columns: 1fr; } .page-header h1 { font-size: 22px; } }
+.hamburger-btn { background: none; border: none; color: #e2e8f0; font-size: 20px; cursor: pointer; padding: 4px 8px; line-height: 1; }
+.side-menu-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 998; }
 .side-menu-overlay.open { display: block; }
-.side-menu {
-  position: fixed;
-  top: 0;
-  left: -280px;
-  width: 280px;
-  height: 100vh;
-  background: #0f172a;
-  border-right: 1px solid rgba(148,163,184,0.3);
-  z-index: 999;
-  transition: left 0.25s ease;
-  display: flex;
-  flex-direction: column;
-}
+.side-menu { position: fixed; top: 0; left: -280px; width: 280px; height: 100vh; background: #0f172a; border-right: 1px solid #1e293b; z-index: 999; transition: left 0.25s ease; display: flex; flex-direction: column; }
 .side-menu.open { left: 0; }
-.side-menu-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 16px;
-  border-bottom: 1px solid rgba(148,163,184,0.2);
-  font-weight: 600;
-  color: #22d3ee;
-}
-.side-menu-close {
-  background: none;
-  border: none;
-  color: #9ca3af;
-  font-size: 18px;
-  cursor: pointer;
-  padding: 4px;
-  width: auto;
-}
-.side-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
-  cursor: pointer;
-  color: #e5e7eb;
-  font-size: 14px;
-  border-bottom: 1px solid rgba(148,163,184,0.1);
-  transition: background 0.15s ease;
-}
-.side-menu-item:hover { background: rgba(56,189,248,0.1); }
-.side-menu-icon { font-size: 18px; }
-  </style>
+.side-menu-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 16px; border-bottom: 1px solid #1e293b; font-weight: 600; color: #f8fafc; }
+.side-menu-close { background: none; border: none; color: #94a3b8; font-size: 18px; cursor: pointer; padding: 4px; width: auto; }
+.side-menu-item { padding: 15px 16px; cursor: pointer; color: #e2e8f0; font-size: 14px; border-bottom: 1px solid #1e293b; transition: background 0.15s ease; }
+.side-menu-item:hover { background: #1e293b; color: #ffffff; }
+</style>
 </head>
 <body>
-  <div id="sideMenuOverlay" class="side-menu-overlay" onclick="toggleMenu()"></div>
+<div id="sideMenuOverlay" class="side-menu-overlay" onclick="toggleMenu()"></div>
 <div id="sideMenu" class="side-menu">
-  <div class="side-menu-header">
-    <span>Menu</span>
-    <button class="side-menu-close" onclick="toggleMenu()">✕</button>
-  </div>
+  <div class="side-menu-header"><span>Menu</span><button class="side-menu-close" onclick="toggleMenu()">✕</button></div>
   <div class="side-menu-item" onclick="window.location.href='/all-pitchers.html'">Pitchers</div>
   <div class="side-menu-item" onclick="window.location.href='/all-hitters.html'">Hitters</div>
   <div class="side-menu-item" onclick="window.location.href='/pitchers-by-team.html'">Pitchers by Team</div>
   <div class="side-menu-item" onclick="window.location.href='/hitters-by-team.html'">Hitters by Team</div>
-  <div class="side-menu-item" onclick="window.location.href='/matchups.html'">Matchups</div></div>
+  <div class="side-menu-item" onclick="window.location.href='/matchups.html'">Matchups</div>
 </div>
-  <header>
-    <div class="brand" onclick="goHome()">
-      <div class="brand-mark">⚾</div>
-      <div class="brand-text">
-        <div class="title">Kilo</div>
-        <div class="subtitle">Baseball</div>
-      </div>
-    </div>
-    <div style="display:flex; gap:8px; align-items:center;">
+<header>
+  <div class="brand" onclick="goHome()">
+    <div class="brand-mark">⚾</div>
+    <div class="brand-text"><div class="title">Kilo</div><div class="subtitle">Baseball</div></div>
+  </div>
+  <div style="display:flex; gap:8px; align-items:center;">
     <button class="hamburger-btn" onclick="toggleMenu()">☰</button>
     <button class="back-btn" onclick="goBack()">← Back</button>
   </div>
-  </header>
+</header>
+<main>
+  <div class="page-header">
+    <h1>Select Pitcher</h1>
+    <p>Choose a pitcher to view their scouting report</p>
+  </div>
+  <div id="errorMsg" class="error" style="display:none;"></div>
+  <div id="loadingMsg" class="loading">Loading pitchers...</div>
+  <div id="pitchersContainer" class="pitchers-grid" style="display:none;"></div>
+  <div id="emptyMsg" class="empty" style="display:none;">No pitchers found in this session.</div>
+</main>
+<script>
+let currentSessionId = null;
 
-  <main>
-    <div class="page-header">
-      <h1>Select Pitcher</h1>
-      <p>Choose a pitcher to view their scouting report</p>
-    </div>
+window.addEventListener("load", () => {
+  const token = localStorage.getItem("token");
+  if (!token) { window.location.href = "/login.html"; return; }
+  const params = new URLSearchParams(window.location.search);
+  currentSessionId = params.get("sessionId");
+  if (!currentSessionId) { showError("No session found. Please upload a CSV first."); return; }
+  loadPitchers();
+});
 
-    <div id="errorMsg" class="error" style="display: none;"></div>
-
-    <div id="loadingMsg" class="loading">
-      Loading pitchers...
-    </div>
-
-    <div id="pitchersContainer" class="pitchers-grid" style="display: none;">
-    </div>
-
-    <div id="emptyMsg" class="empty" style="display: none;">
-      No pitchers found in this session.
-    </div>
-  </main>
-
-  <script>
-    let currentSessionId = null;
-
-    // Auth check
-    window.addEventListener("load", () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        window.location.href = "/login.html";
-        return;
+async function loadPitchers() {
+  const token = localStorage.getItem("token");
+  try {
+    const res = await fetch(`/session/${currentSessionId}?token=${token}`);
+    const data = await res.json();
+    if (!data.success) { showError("Failed to load session: " + data.error); return; }
+    const pitches = data.pitches || [];
+    const pitchersMap = new Map();
+    pitches.forEach(pitch => {
+      if (pitch.pitcher_id) {
+        if (!pitchersMap.has(pitch.pitcher_id)) {
+          pitchersMap.set(pitch.pitcher_id, { id: pitch.pitcher_id, name: pitch.pitcher_name || "Unknown", pitchCount: 0 });
+        }
+        pitchersMap.get(pitch.pitcher_id).pitchCount++;
       }
-
-      // Get session ID from URL
-      const params = new URLSearchParams(window.location.search);
-      currentSessionId = params.get("sessionId");
-
-      if (!currentSessionId) {
-        showError("No session found. Please upload a CSV first.");
-        return;
-      }
-
-      loadPitchers();
     });
-
-    async function loadPitchers() {
-      const token = localStorage.getItem("token");
-
-      try {
-        const res = await fetch(`/session/${currentSessionId}?token=${token}`);
-        const data = await res.json();
-
-        if (!data.success) {
-          showError("Failed to load session: " + data.error);
-          return;
-        }
-
-        const pitches = data.pitches || [];
-
-        // Extract unique pitchers
-        const pitchersMap = new Map();
-
-        pitches.forEach(pitch => {
-          if (pitch.pitcher_id) {
-            if (!pitchersMap.has(pitch.pitcher_id)) {
-              pitchersMap.set(pitch.pitcher_id, {
-                id: pitch.pitcher_id,
-                name: pitch.pitcher_name || "Unknown",
-                pitchCount: 0
-              });
-            }
-            pitchersMap.get(pitch.pitcher_id).pitchCount++;
-          }
-        });
-
-        const pitchers = Array.from(pitchersMap.values());
-
-        if (pitchers.length === 0) {
-          document.getElementById("loadingMsg").style.display = "none";
-          document.getElementById("emptyMsg").style.display = "block";
-          return;
-        }
-
-        displayPitchers(pitchers);
-
-      } catch (err) {
-        showError("Error loading pitchers: " + err.message);
-      }
+    const pitchers = Array.from(pitchersMap.values());
+    if (pitchers.length === 0) {
+      document.getElementById("loadingMsg").style.display = "none";
+      document.getElementById("emptyMsg").style.display = "block";
+      return;
     }
+    displayPitchers(pitchers);
+  } catch (err) {
+    showError("Error loading pitchers: " + err.message);
+  }
+}
 
 function displayPitchers(pitchers) {
-      const container = document.getElementById("pitchersContainer");
-      container.innerHTML = "";
+  const container = document.getElementById("pitchersContainer");
+  container.innerHTML = "";
+  pitchers.forEach(pitcher => {
+    const card = document.createElement("div");
+    card.className = "pitcher-card";
+    card.style.position = "relative";
+    card.innerHTML = `
+      <button class="delete-btn" onclick="deletePitcher('${pitcher.id}', '${pitcher.name}')">−</button>
+      <div class="pitcher-name">${pitcher.name}</div>
+      <div class="pitcher-team">${pitcher.pitchCount} pitches</div>
+      <button class="pitcher-action" onclick="viewPitcherReport('${pitcher.id}', '${pitcher.name}')">View Report</button>
+    `;
+    container.appendChild(card);
+  });
+  document.getElementById("loadingMsg").style.display = "none";
+  container.style.display = "grid";
+}
 
-      pitchers.forEach(pitcher => {
-        const card = document.createElement("div");
-        card.className = "pitcher-card";
-        card.style.position = "relative";
-        card.innerHTML = `
-          <button class="delete-btn" onclick="deletePitcher('${pitcher.id}', '${pitcher.name}')">−</button>
-          <div class="pitcher-name">${pitcher.name}</div>
-          <div class="pitcher-team">${pitcher.pitchCount} pitches</div>
-          <button class="pitcher-action" onclick="viewPitcherReport('${pitcher.id}', '${pitcher.name}')">
-            View Report
-          </button>
-        `;
-        container.appendChild(card);
-      });
+function viewPitcherReport(pitcherId, pitcherName) {
+  sessionStorage.setItem("pitcherId", pitcherId);
+  sessionStorage.setItem("pitcherName", pitcherName);
+  window.location.href = `/pitcher-report.html?sessionId=${currentSessionId}&pitcherId=${pitcherId}`;
+}
 
-      document.getElementById("loadingMsg").style.display = "none";
-      container.style.display = "grid";
-    }
+function showError(msg) {
+  const errorMsg = document.getElementById("errorMsg");
+  errorMsg.textContent = msg;
+  errorMsg.style.display = "block";
+  document.getElementById("loadingMsg").style.display = "none";
+}
 
-    function viewPitcherReport(pitcherId, pitcherName) {
-      // TODO: Redirect to pitcher report page
-      // For now, store in sessionStorage and redirect
-      sessionStorage.setItem("pitcherId", pitcherId);
-      sessionStorage.setItem("pitcherName", pitcherName);
-      window.location.href = `/pitcher-report.html?sessionId=${currentSessionId}&pitcherId=${pitcherId}`;
-    }
+function goHome() { window.location.href = "/dashboard.html"; }
+function goBack() { window.location.href = "/dashboard.html"; }
 
-    function showError(msg) {
-      const errorMsg = document.getElementById("errorMsg");
-      errorMsg.textContent = msg;
-      errorMsg.style.display = "block";
-      document.getElementById("loadingMsg").style.display = "none";
-    }
+async function deletePitcher(pitcherId, pitcherName) {
+  if (!window.confirm(`Delete ${pitcherName} and all their pitches from all sessions? This cannot be undone.`)) return;
+  const token = localStorage.getItem("token");
+  try {
+    const res = await fetch(`/pitcher/${pitcherId}?token=${token}`, { method: "DELETE" });
+    const data = await res.json();
+    if (!data.success) { alert("Failed to delete pitcher: " + data.error); return; }
+    alert(`${pitcherName} deleted!`);
+    loadPitchers();
+  } catch (err) { alert("Error: " + err.message); }
+}
 
-    function goHome() {
-      window.location.href = "/dashboard.html";
-    }
-
-    function goBack() {
-      window.location.href = "/dashboard.html";
-    }
-    async function deletePitcher(pitcherId, pitcherName) {
-      const confirm = window.confirm(`Delete ${pitcherName} and all their pitches from all sessions? This cannot be undone.`);
-      
-      if (!confirm) {
-        return;
-      }
-
-      const token = localStorage.getItem("token");
-
-      try {
-        const res = await fetch(
-          `/pitcher/${pitcherId}?token=${token}`,
-          { method: "DELETE" }
-        );
-
-        const data = await res.json();
-
-        if (!data.success) {
-          alert("Failed to delete pitcher: " + data.error);
-          return;
-        }
-
-        alert(`${pitcherName} deleted!`);
-        loadPitchers(); // Reload pitcher list
-
-      } catch (err) {
-        alert("Error: " + err.message);
-      }
-    }
-    function toggleMenu() {
+function toggleMenu() {
   document.getElementById("sideMenu").classList.toggle("open");
   document.getElementById("sideMenuOverlay").classList.toggle("open");
 }
-function goToPitchers() { window.location.href = "/all-pitchers.html"; }
-function goToPitchersByTeam() { window.location.href = "/pitchers-by-team.html"; }
-function goToHitters() { window.location.href = "/all-hitters.html"; }
-function goToHittersByTeam() { window.location.href = "/hitters-by-team.html"; }
-  </script>
+</script>
 </body>
 </html>
