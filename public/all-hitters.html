@@ -1,229 +1,166 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Kilo - Hitters</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+<meta charset="UTF-8" />
+<title>Kilo - Hitters</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #050816;
-      color: #e5e7eb;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    header {
-      padding: 16px;
-      border-bottom: 1px solid rgba(148, 163, 184, 0.3);
-      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.15), transparent 55%);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-    }
-
-    .brand-mark {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 30% 30%, #22d3ee, #0f172a);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      font-weight: 700;
-    }
-
-    .brand-text .title {
-      font-size: 16px;
-      font-weight: 600;
-    }
-
-    .brand-text .subtitle {
-      font-size: 11px;
-      color: #9ca3af;
-    }
-
-    .btn {
-      padding: 8px 12px;
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      background: rgba(15, 23, 42, 0.9);
-      color: #e5e7eb;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 12px;
-      transition: all 0.15s ease;
-    }
-
-    .btn:hover {
-      border-color: rgba(56, 189, 248, 0.9);
-      box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
-    }
-
-    main {
-      flex: 1;
-      padding: 20px;
-      max-width: 1000px;
-      margin: 0 auto;
-      width: 100%;
-    }
-
-    .page-header {
-      text-align: center;
-      margin-bottom: 30px;
-    }
-
-    .page-header h1 {
-      font-size: 28px;
-      color: #22d3ee;
-      margin-bottom: 6px;
-    }
-
-    .page-header p {
-      font-size: 13px;
-      color: #9ca3af;
-    }
-
-    .loading {
-      text-align: center;
-      padding: 40px;
-      color: #9ca3af;
-    }
-
-    .error {
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.5);
-      color: #fca5a5;
-      padding: 16px;
-      border-radius: 8px;
-      text-align: center;
-      margin-bottom: 20px;
-    }
-
-    .hitter-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 16px;
-    }
-
-    .hitter-card {
-      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), #020617);
-      border: 1px solid rgba(148, 163, 184, 0.35);
-      border-radius: 12px;
-      padding: 20px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .hitter-card:hover {
-      border-color: rgba(56, 189, 248, 0.9);
-      box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
-      transform: translateY(-4px);
-    }
-
-    .hitter-name {
-      font-size: 16px;
-      font-weight: 600;
-      color: #e5e7eb;
-      margin-bottom: 8px;
-    }
-
-    .hitter-meta {
-      font-size: 12px;
-      color: #9ca3af;
-      display: flex;
-      gap: 10px;
-    }
-
-    .hitter-meta span strong {
-      color: #22d3ee;
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: #9ca3af;
-    }
-    .hamburger-btn {
-  background: none;
-  border: none;
-  color: #e5e7eb;
-  font-size: 20px;
-  cursor: pointer;
-  padding: 4px 8px;
-  line-height: 1;
-}
-.side-menu-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  z-index: 998;
-}
-.side-menu-overlay.open { display: block; }
-.side-menu {
-  position: fixed;
-  top: 0;
-  left: -280px;
-  width: 280px;
-  height: 100vh;
-  background: #0f172a;
-  border-right: 1px solid rgba(148,163,184,0.3);
-  z-index: 999;
-  transition: left 0.25s ease;
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f1f5f9;
+  color: #111827;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
-.side-menu.open { left: 0; }
-.side-menu-header {
+
+header {
+  padding: 14px 20px;
+  background: #0f172a;
+  border-bottom: 1px solid #1e293b;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 16px;
-  border-bottom: 1px solid rgba(148,163,184,0.2);
+}
+
+.brand { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.brand-mark {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: #2563eb;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 700;
+}
+.brand-text .title { font-size: 16px; font-weight: 600; color: #f8fafc; }
+.brand-text .subtitle { font-size: 11px; color: #94a3b8; }
+
+.btn {
+  padding: 7px 14px;
+  border: 1px solid #334155;
+  background: #1e293b;
+  color: #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.15s ease;
+}
+.btn:hover { border-color: #2563eb; background: #1e3a5f; }
+
+main {
+  flex: 1;
+  padding: 28px 20px;
+  max-width: 1000px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.page-header {
+  margin-bottom: 28px;
+}
+.page-header h1 {
+  font-size: 26px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 4px;
+}
+.page-header p { font-size: 13px; color: #6b7280; }
+
+.loading { text-align: center; padding: 40px; color: #6b7280; }
+
+.error {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #dc2626;
+  padding: 14px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 13px;
+}
+
+.hitter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.hitter-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 18px 20px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.hitter-card:hover {
+  border-color: #2563eb;
+  box-shadow: 0 4px 12px rgba(37,99,235,0.12);
+  transform: translateY(-2px);
+}
+
+.hitter-name {
+  font-size: 15px;
   font-weight: 600;
-  color: #22d3ee;
+  color: #111827;
+  margin-bottom: 6px;
+}
+.hitter-meta {
+  font-size: 12px;
+  color: #6b7280;
+  display: flex;
+  gap: 10px;
+}
+.hitter-meta span strong { color: #2563eb; }
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* HAMBURGER */
+.hamburger-btn {
+  background: none; border: none; color: #e2e8f0;
+  font-size: 20px; cursor: pointer; padding: 4px 8px; line-height: 1;
+}
+.side-menu-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.4); z-index: 998;
+}
+.side-menu-overlay.open { display: block; }
+.side-menu {
+  position: fixed; top: 0; left: -280px;
+  width: 280px; height: 100vh;
+  background: #0f172a;
+  border-right: 1px solid #1e293b;
+  z-index: 999; transition: left 0.25s ease;
+  display: flex; flex-direction: column;
+}
+.side-menu.open { left: 0; }
+.side-menu-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 20px 16px;
+  border-bottom: 1px solid #1e293b;
+  font-weight: 600; color: #f8fafc;
 }
 .side-menu-close {
-  background: none;
-  border: none;
-  color: #9ca3af;
-  font-size: 18px;
-  cursor: pointer;
-  padding: 4px;
-  width: auto;
+  background: none; border: none; color: #94a3b8;
+  font-size: 18px; cursor: pointer; padding: 4px; width: auto;
 }
 .side-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
-  cursor: pointer;
-  color: #e5e7eb;
-  font-size: 14px;
-  border-bottom: 1px solid rgba(148,163,184,0.1);
+  padding: 15px 16px;
+  cursor: pointer; color: #e2e8f0; font-size: 14px;
+  border-bottom: 1px solid #1e293b;
   transition: background 0.15s ease;
 }
-.side-menu-item:hover { background: rgba(56,189,248,0.1); }
-.side-menu-icon { font-size: 18px; }
-  </style>
+.side-menu-item:hover { background: #1e293b; color: #ffffff; }
+</style>
 </head>
 <body>
-  <div id="sideMenuOverlay" class="side-menu-overlay" onclick="toggleMenu()"></div>
+
+<div id="sideMenuOverlay" class="side-menu-overlay" onclick="toggleMenu()"></div>
 <div id="sideMenu" class="side-menu">
   <div class="side-menu-header">
     <span>Menu</span>
@@ -233,8 +170,12 @@
   <div class="side-menu-item" onclick="window.location.href='/all-hitters.html'">Hitters</div>
   <div class="side-menu-item" onclick="window.location.href='/pitchers-by-team.html'">Pitchers by Team</div>
   <div class="side-menu-item" onclick="window.location.href='/hitters-by-team.html'">Hitters by Team</div>
-  <div class="side-menu-item" onclick="window.location.href='/matchups.html'">Matchups</div></div>
-  <header>
+  <div class="side-menu-item" onclick="window.location.href='/matchups.html'">Matchups</div>
+</div>
+
+<header>
+  <div style="display:flex; align-items:center; gap:12px;">
+    <button class="hamburger-btn" onclick="toggleMenu()">☰</button>
     <div class="brand" onclick="goHome()">
       <div class="brand-mark">⚾</div>
       <div class="brand-text">
@@ -242,94 +183,73 @@
         <div class="subtitle">Baseball</div>
       </div>
     </div>
-    <div style="display:flex; gap:8px; align-items:center;">
-      <button class="hamburger-btn" onclick="toggleMenu()">☰</button>
-      <button class="btn" onclick="goHome()">← Home</button>
-    </div>
-  </header>
+  </div>
+  <button class="btn" onclick="goHome()">← Home</button>
+</header>
 
-  <main>
-    <div class="page-header">
-      <h1>Hitters</h1>
-      <p>All hitters tracked across your sessions</p>
-    </div>
+<main>
+  <div class="page-header">
+    <h1>Hitters</h1>
+    <p>All hitters tracked across your sessions</p>
+  </div>
 
-    <div class="loading" id="loading">Loading hitters...</div>
-    <div id="errorMsg" class="error" style="display: none;"></div>
-    <div id="hitterGrid" class="hitter-grid" style="display: none;"></div>
-    <div id="emptyState" class="empty-state" style="display: none;">
-      No hitters tracked yet — upload a CSV with batter data to get started.
-    </div>
-  </main>
+  <div class="loading" id="loading">Loading hitters...</div>
+  <div id="errorMsg" class="error" style="display:none;"></div>
+  <div id="hitterGrid" class="hitter-grid" style="display:none;"></div>
+  <div id="emptyState" class="empty-state" style="display:none;">
+    No hitters tracked yet — upload a CSV with batter data to get started.
+  </div>
+</main>
 
-  <script>
-    window.addEventListener("load", () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        window.location.href = "/login.html";
-        return;
-      }
-      loadHitters();
-    });
+<script>
+window.addEventListener("load", () => {
+  const token = localStorage.getItem("token");
+  if (!token) { window.location.href = "/login.html"; return; }
+  loadHitters();
+});
 
-    async function loadHitters() {
-      const token = localStorage.getItem("token");
+async function loadHitters() {
+  const token = localStorage.getItem("token");
+  try {
+    const res = await fetch(`/all-hitters?token=${token}`);
+    const data = await res.json();
+    document.getElementById("loading").style.display = "none";
+    if (!data.success) { showError("Failed to load hitters: " + data.error); return; }
+    if (data.hitters.length === 0) { document.getElementById("emptyState").style.display = "block"; return; }
 
-      try {
-        const res = await fetch(`/all-hitters?token=${token}`);
-        const data = await res.json();
+    const grid = document.getElementById("hitterGrid");
+    grid.innerHTML = data.hitters.map(h => `
+      <div class="hitter-card" onclick="viewHitterReport('${h.id}')">
+        <div class="hitter-name">${h.name}</div>
+        <div class="hitter-meta">
+          <span>Bats: <strong>${h.bats || "—"}</strong></span>
+          <span>${h.team || ""}</span>
+        </div>
+      </div>
+    `).join("");
+    grid.style.display = "grid";
+  } catch (err) {
+    document.getElementById("loading").style.display = "none";
+    showError("Error: " + err.message);
+  }
+}
 
-        document.getElementById("loading").style.display = "none";
-
-        if (!data.success) {
-          showError("Failed to load hitters: " + data.error);
-          return;
-        }
-
-        if (data.hitters.length === 0) {
-          document.getElementById("emptyState").style.display = "block";
-          return;
-        }
-
-        const grid = document.getElementById("hitterGrid");
-        grid.innerHTML = data.hitters.map(h => `
-          <div class="hitter-card" onclick="viewHitterReport('${h.id}')">
-            <div class="hitter-name">${h.name}</div>
-            <div class="hitter-meta">
-              <span>Bats: <strong>${h.bats || "—"}</strong></span>
-              <span>${h.team || ""}</span>
-            </div>
-          </div>
-        `).join("");
-        grid.style.display = "grid";
-
-      } catch (err) {
-        document.getElementById("loading").style.display = "none";
-        showError("Error: " + err.message);
-      }
-    }
-
-    function showError(msg) {
-      const el = document.getElementById("errorMsg");
-      el.textContent = msg;
-      el.style.display = "block";
-    }
+function showError(msg) {
+  const el = document.getElementById("errorMsg");
+  el.textContent = msg;
+  el.style.display = "block";
+}
 
 function viewHitterReport(hitterId) {
   window.location.href = `/hitter-report.html?hitterId=${hitterId}`;
 }
 
-    function goHome() {
-      window.location.href = "/dashboard.html";
-    }
-    function toggleMenu() {
+function goHome() { window.location.href = "/dashboard.html"; }
+
+function toggleMenu() {
   document.getElementById("sideMenu").classList.toggle("open");
   document.getElementById("sideMenuOverlay").classList.toggle("open");
 }
-function goToPitchers() { window.location.href = "/all-pitchers.html"; }
-function goToPitchersByTeam() { window.location.href = "/pitchers-by-team.html"; }
-function goToHitters() { window.location.href = "/all-hitters.html"; }
-function goToHittersByTeam() { window.location.href = "/hitters-by-team.html"; }
-  </script>
+</script>
 </body>
 </html>
