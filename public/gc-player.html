@@ -6,55 +6,55 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #050816; color: #e5e7eb; min-height: 100vh; }
-header { padding: 16px 20px; border-bottom: 1px solid rgba(148,163,184,0.3); background: radial-gradient(circle at top left, rgba(56,189,248,0.15), transparent 55%); display: flex; justify-content: space-between; align-items: center; }
+body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f1f5f9; color: #111827; min-height: 100vh; }
+header { padding: 14px 20px; border-bottom: 1px solid #1e293b; background: #0f172a; display: flex; justify-content: space-between; align-items: center; }
 .brand { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-.brand-mark { width: 28px; height: 28px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #22d3ee, #0f172a); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; }
-.brand-text .title { font-size: 16px; font-weight: 600; }
-.brand-text .subtitle { font-size: 11px; color: #9ca3af; }
-.btn { padding: 8px 14px; border: 1px solid rgba(148,163,184,0.5); background: rgba(15,23,42,0.9); color: #e5e7eb; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.15s ease; }
-.btn:hover { border-color: rgba(56,189,248,0.9); }
+.brand-mark { width: 28px; height: 28px; border-radius: 50%; background: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; }
+.brand-text .title { font-size: 16px; font-weight: 600; color: #f8fafc; }
+.brand-text .subtitle { font-size: 11px; color: #94a3b8; }
+.btn { padding: 7px 14px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.15s ease; }
+.btn:hover { border-color: #2563eb; background: #1e3a5f; }
 main { padding: 24px 20px; max-width: 1100px; margin: 0 auto; }
-.player-header { background: rgba(15,23,42,0.9); border: 1px solid rgba(34,211,238,0.3); border-radius: 14px; padding: 20px 24px; margin-bottom: 24px; display: flex; align-items: center; gap: 20px; }
-.player-avatar { width: 56px; height: 56px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #22d3ee, #0f172a); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
-.player-name { font-size: 24px; font-weight: 700; color: #22d3ee; }
-.player-meta { font-size: 13px; color: #9ca3af; margin-top: 3px; }
+.player-header { background: #ffffff; border: 1px solid #bfdbfe; border-radius: 14px; padding: 20px 24px; margin-bottom: 24px; display: flex; align-items: center; gap: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.player-avatar { width: 56px; height: 56px; border-radius: 50%; background: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+.player-name { font-size: 24px; font-weight: 700; color: #111827; }
+.player-meta { font-size: 13px; color: #6b7280; margin-top: 3px; }
 .bubble-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
-.bubble { background: rgba(15,23,42,0.9); border: 1px solid rgba(148,163,184,0.25); border-radius: 12px; padding: 16px; text-align: center; }
-.bubble-value { font-size: 24px; font-weight: 700; color: #22d3ee; }
-.bubble-label { font-size: 10px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px; }
-.card { background: rgba(15,23,42,0.9); border: 1px solid rgba(148,163,184,0.25); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
-.card-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #9ca3af; margin-bottom: 14px; }
+.bubble { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.bubble-value { font-size: 24px; font-weight: 700; color: #2563eb; }
+.bubble-label { font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px; }
+.card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.card-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; margin-bottom: 14px; }
 .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
 table { width: 100%; border-collapse: collapse; font-size: 12px; }
-th { color: #9ca3af; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 10px; text-align: right; border-bottom: 1px solid rgba(148,163,184,0.2); white-space: nowrap; }
+th { color: #6b7280; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 10px; text-align: right; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
 th:first-child { text-align: left; }
-td { padding: 8px 10px; border-bottom: 1px solid rgba(148,163,184,0.08); color: #e5e7eb; text-align: right; }
+td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; color: #111827; text-align: right; }
 td:first-child { text-align: left; }
 tr:last-child td { border-bottom: none; }
-tr:hover td { background: rgba(56,189,248,0.04); }
-.game-link { cursor: pointer; color: #22d3ee; }
+tr:hover td { background: #f8fafc; }
+.game-link { cursor: pointer; color: #2563eb; }
 .game-link:hover { text-decoration: underline; }
 .tabs { display: flex; gap: 4px; margin-bottom: 20px; }
-.tab { padding: 8px 20px; border: 1px solid rgba(148,163,184,0.3); background: transparent; color: #9ca3af; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all 0.15s ease; }
-.tab.active { border-color: #22d3ee; color: #22d3ee; background: rgba(34,211,238,0.1); }
+.tab { padding: 8px 20px; border: 1px solid #e2e8f0; background: #ffffff; color: #6b7280; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all 0.15s ease; }
+.tab.active { border-color: #2563eb; color: #2563eb; background: #eff6ff; }
 .tab-content { display: none; }
 .tab-content.active { display: block; }
-.loading { text-align: center; padding: 60px; color: #9ca3af; }
-.bar-track { background: rgba(148,163,184,0.1); border-radius: 4px; height: 8px; flex: 1; }
+.loading { text-align: center; padding: 60px; color: #6b7280; }
+.bar-track { background: #e2e8f0; border-radius: 4px; height: 8px; flex: 1; }
 .bar-fill { height: 100%; border-radius: 4px; }
 .spray-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-.spray-label { font-size: 12px; color: #9ca3af; width: 30px; }
-.spray-pct { font-size: 12px; color: #e5e7eb; width: 40px; text-align: right; }
-.hamburger-btn { background: none; border: none; color: #e5e7eb; font-size: 20px; cursor: pointer; padding: 4px 8px; }
-.side-menu-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 998; }
+.spray-label { font-size: 12px; color: #6b7280; width: 30px; }
+.spray-pct { font-size: 12px; color: #111827; width: 40px; text-align: right; }
+.hamburger-btn { background: none; border: none; color: #e2e8f0; font-size: 20px; cursor: pointer; padding: 4px 8px; }
+.side-menu-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 998; }
 .side-menu-overlay.open { display: block; }
-.side-menu { position: fixed; top: 0; left: -280px; width: 280px; height: 100vh; background: #0f172a; border-right: 1px solid rgba(148,163,184,0.3); z-index: 999; transition: left 0.25s ease; display: flex; flex-direction: column; }
+.side-menu { position: fixed; top: 0; left: -280px; width: 280px; height: 100vh; background: #0f172a; border-right: 1px solid #1e293b; z-index: 999; transition: left 0.25s ease; display: flex; flex-direction: column; }
 .side-menu.open { left: 0; }
-.side-menu-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 16px; border-bottom: 1px solid rgba(148,163,184,0.2); font-weight: 600; color: #22d3ee; }
-.side-menu-close { background: none; border: none; color: #9ca3af; font-size: 18px; cursor: pointer; padding: 4px; width: auto; }
-.side-menu-item { display: flex; align-items: center; gap: 12px; padding: 16px; cursor: pointer; color: #e5e7eb; font-size: 14px; border-bottom: 1px solid rgba(148,163,184,0.1); transition: background 0.15s ease; }
-.side-menu-item:hover { background: rgba(56,189,248,0.1); }
+.side-menu-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 16px; border-bottom: 1px solid #1e293b; font-weight: 600; color: #f8fafc; }
+.side-menu-close { background: none; border: none; color: #94a3b8; font-size: 18px; cursor: pointer; padding: 4px; width: auto; }
+.side-menu-item { padding: 15px 16px; cursor: pointer; color: #e2e8f0; font-size: 14px; border-bottom: 1px solid #1e293b; transition: background 0.15s ease; }
+.side-menu-item:hover { background: #1e293b; color: #ffffff; }
 @media (max-width: 768px) { .bubble-row { grid-template-columns: repeat(3, 1fr); } .two-col { grid-template-columns: 1fr; } }
 </style>
 </head>
@@ -97,7 +97,6 @@ tr:hover td { background: rgba(56,189,248,0.04); }
     <!-- BATTING TAB -->
     <div id="tab-batting" class="tab-content active">
       <div class="bubble-row" id="battingBubbles"></div>
-
       <div class="two-col">
         <div class="card">
           <div class="card-title">Career Stat Line</div>
@@ -116,7 +115,6 @@ tr:hover td { background: rgba(56,189,248,0.04); }
           <div style="margin-top:16px;" id="sprayBars"></div>
         </div>
       </div>
-
       <div class="card">
         <div class="card-title">Game Log</div>
         <div style="overflow-x:auto;">
@@ -135,7 +133,6 @@ tr:hover td { background: rgba(56,189,248,0.04); }
     <!-- PITCHING TAB -->
     <div id="tab-pitching" class="tab-content">
       <div class="bubble-row" id="pitchingBubbles"></div>
-
       <div class="two-col">
         <div class="card">
           <div class="card-title">Career Pitching Line</div>
@@ -153,7 +150,6 @@ tr:hover td { background: rgba(56,189,248,0.04); }
           <div id="pitchingBBBars"></div>
         </div>
       </div>
-
       <div class="card">
         <div class="card-title">Game Log</div>
         <div style="overflow-x:auto;">
@@ -187,25 +183,17 @@ async function loadPlayer(name) {
     const res = await fetch(`/gc-player/${encodeURIComponent(name)}?token=${token}`);
     const data = await res.json();
     if (!data.success) { document.getElementById("loading").textContent = "Player not found"; return; }
-
     profileData = data;
     document.getElementById("loading").style.display = "none";
     document.getElementById("content").style.display = "block";
-
     document.getElementById("playerName").textContent = name;
     document.title = `${name} — Kilo GC Profile`;
-
     const games = data.batting.length;
     const team = data.batting[0]?.team_name || data.pitching[0]?.team_name || "";
     document.getElementById("playerMeta").textContent = `${team} · ${games} game${games !== 1 ? 's' : ''} in system`;
-
     renderBatting(data.batting);
     renderPitching(data.pitching);
-
-    // Hide pitching tab if no pitching data
-    if (data.pitching.length === 0) {
-      document.querySelectorAll('.tab')[1].style.display = 'none';
-    }
+    if (data.pitching.length === 0) document.querySelectorAll('.tab')[1].style.display = 'none';
   } catch (err) {
     document.getElementById("loading").textContent = "Error loading player";
   }
@@ -213,50 +201,28 @@ async function loadPlayer(name) {
 
 function renderBatting(games) {
   if (!games.length) return;
-
-  // Aggregate career totals
-  const totals = {
-    g: games.length, pa: 0, ab: 0, h: 0, singles: 0,
-    doubles: 0, triples: 0, hr: 0, bb: 0, ks: 0, ks_swing: 0, ks_look: 0,
-    hbp: 0, sb: 0, gb: 0, ld: 0, fb: 0, bip: 0,
-    sprayL: 0, sprayC: 0, sprayR: 0, sprayN: 0,
-  };
-
+  const totals = { g: games.length, pa: 0, ab: 0, h: 0, singles: 0, doubles: 0, triples: 0, hr: 0, bb: 0, ks: 0, ks_swing: 0, ks_look: 0, hbp: 0, sb: 0 };
   games.forEach(g => {
-    totals.pa += parseInt(g.pa)||0;
-    totals.ab += parseInt(g.ab)||0;
-    totals.h  += parseInt(g.h)||0;
-    totals.singles += parseInt(g.singles)||0;
-    totals.doubles += parseInt(g.doubles)||0;
-    totals.triples += parseInt(g.triples)||0;
-    totals.hr += parseInt(g.hr)||0;
-    totals.bb += parseInt(g.bb)||0;
-    totals.ks += parseInt(g.ks)||0;
-    totals.ks_swing += parseInt(g.ks_swing)||0;
-    totals.ks_look  += parseInt(g.ks_look)||0;
-    totals.hbp += parseInt(g.hbp)||0;
-    totals.sb  += parseInt(g.sb)||0;
+    totals.pa += parseInt(g.pa)||0; totals.ab += parseInt(g.ab)||0; totals.h += parseInt(g.h)||0;
+    totals.singles += parseInt(g.singles)||0; totals.doubles += parseInt(g.doubles)||0;
+    totals.triples += parseInt(g.triples)||0; totals.hr += parseInt(g.hr)||0;
+    totals.bb += parseInt(g.bb)||0; totals.ks += parseInt(g.ks)||0;
+    totals.ks_swing += parseInt(g.ks_swing)||0; totals.ks_look += parseInt(g.ks_look)||0;
+    totals.hbp += parseInt(g.hbp)||0; totals.sb += parseInt(g.sb)||0;
   });
-
-  const avg  = totals.ab > 0 ? (totals.h/totals.ab).toFixed(3) : ".000";
-  const obp  = (totals.ab+totals.bb+totals.hbp) > 0 ? ((totals.h+totals.bb+totals.hbp)/(totals.ab+totals.bb+totals.hbp)).toFixed(3) : ".000";
-  const slg  = totals.ab > 0 ? ((totals.singles+2*totals.doubles+3*totals.triples+4*totals.hr)/totals.ab).toFixed(3) : ".000";
-  const ops  = (parseFloat(obp)+parseFloat(slg)).toFixed(3);
-  const iso  = (parseFloat(slg)-parseFloat(avg)).toFixed(3);
+  const avg = totals.ab > 0 ? (totals.h/totals.ab).toFixed(3) : ".000";
+  const obp = (totals.ab+totals.bb+totals.hbp) > 0 ? ((totals.h+totals.bb+totals.hbp)/(totals.ab+totals.bb+totals.hbp)).toFixed(3) : ".000";
+  const slg = totals.ab > 0 ? ((totals.singles+2*totals.doubles+3*totals.triples+4*totals.hr)/totals.ab).toFixed(3) : ".000";
+  const ops = (parseFloat(obp)+parseFloat(slg)).toFixed(3);
+  const iso = (parseFloat(slg)-parseFloat(avg)).toFixed(3);
   const woba = (totals.ab+totals.bb+totals.hbp) > 0
-    ? ((0.69*totals.bb+0.888*totals.singles+1.271*totals.doubles+1.616*totals.triples+2.101*totals.hr)/(totals.ab+totals.bb+totals.hbp)).toFixed(3)
-    : ".000";
+    ? ((0.69*totals.bb+0.888*totals.singles+1.271*totals.doubles+1.616*totals.triples+2.101*totals.hr)/(totals.ab+totals.bb+totals.hbp)).toFixed(3) : ".000";
 
-  // Bubbles
   document.getElementById("battingBubbles").innerHTML = [
-    { label: "AVG", value: avg },
-    { label: "OBP", value: obp },
-    { label: "SLG", value: slg },
-    { label: "OPS", value: ops },
-    { label: "wOBA", value: woba },
+    { label: "AVG", value: avg }, { label: "OBP", value: obp },
+    { label: "SLG", value: slg }, { label: "OPS", value: ops }, { label: "wOBA", value: woba },
   ].map(b => `<div class="bubble"><div class="bubble-value">${b.value}</div><div class="bubble-label">${b.label}</div></div>`).join("");
 
-  // Career stat line
   document.getElementById("careerStatLine").innerHTML = `
     <td>${totals.g}</td><td>${totals.pa}</td><td>${totals.ab}</td><td>${totals.h}</td>
     <td>${totals.doubles}</td><td>${totals.triples}</td><td>${totals.hr}</td>
@@ -266,18 +232,13 @@ function renderBatting(games) {
     <td>${avg}</td><td>${obp}</td><td>${slg}</td><td>${ops}</td><td>${iso}</td><td>${woba}</td>
   `;
 
-  // Avg batted ball %
-  const avgGB = avg1(games, 'gb_pct');
-  const avgLD = avg1(games, 'ld_pct');
-  const avgFB = avg1(games, 'fb_pct');
-  const avgSL = avg1(games, 'spray_l');
-  const avgSC = avg1(games, 'spray_c');
-  const avgSR = avg1(games, 'spray_r');
+  const avgGB = avg1(games, 'gb_pct'), avgLD = avg1(games, 'ld_pct'), avgFB = avg1(games, 'fb_pct');
+  const avgSL = avg1(games, 'spray_l'), avgSC = avg1(games, 'spray_c'), avgSR = avg1(games, 'spray_r');
 
   document.getElementById("battedBallBars").innerHTML = [
-    { label: "GB", pct: avgGB, color: "#fbbf24" },
-    { label: "LD", pct: avgLD, color: "#86efac" },
-    { label: "FB", pct: avgFB, color: "#22d3ee" },
+    { label: "GB", pct: avgGB, color: "#d97706" },
+    { label: "LD", pct: avgLD, color: "#16a34a" },
+    { label: "FB", pct: avgFB, color: "#2563eb" },
   ].map(b => `
     <div class="spray-row">
       <span class="spray-label">${b.label}</span>
@@ -286,10 +247,10 @@ function renderBatting(games) {
     </div>
   `).join("");
 
-  document.getElementById("sprayBars").innerHTML = `<div style="font-size:11px; color:#9ca3af; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">Spray Direction</div>` + [
-    { label: "Left", pct: avgSL, color: "#a855f7" },
-    { label: "Ctr",  pct: avgSC, color: "#22d3ee" },
-    { label: "Right", pct: avgSR, color: "#f97316" },
+  document.getElementById("sprayBars").innerHTML = `<div style="font-size:11px; color:#6b7280; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">Spray Direction</div>` + [
+    { label: "Left", pct: avgSL, color: "#7c3aed" },
+    { label: "Ctr",  pct: avgSC, color: "#2563eb" },
+    { label: "Right", pct: avgSR, color: "#ea580c" },
   ].map(b => `
     <div class="spray-row">
       <span class="spray-label">${b.label}</span>
@@ -298,39 +259,28 @@ function renderBatting(games) {
     </div>
   `).join("");
 
-  // Game log
   document.getElementById("battingGameLog").innerHTML = games.map(g => `
     <tr>
       <td><span class="game-link" onclick="window.location.href='/gc-game.html?gameId=${g.gc_game_id}'">${formatDate(g.game_date)}</span></td>
-      <td>${g.opponent || '—'}</td>
-      <td>${g.home_away || '—'}</td>
+      <td>${g.opponent || '—'}</td><td>${g.home_away || '—'}</td>
       <td>${g.pa}</td><td>${g.ab}</td><td>${g.h}</td>
       <td>${g.doubles}</td><td>${g.triples}</td><td>${g.hr}</td>
       <td>${g.bb}</td><td>${g.ks}</td><td>${g.sb}</td>
-      <td>${parseFloat(g.avg).toFixed(3)}</td>
-      <td>${parseFloat(g.ops).toFixed(3)}</td>
+      <td>${parseFloat(g.avg).toFixed(3)}</td><td>${parseFloat(g.ops).toFixed(3)}</td>
     </tr>
   `).join("");
 }
 
 function renderPitching(games) {
   if (!games.length) return;
-
   const totals = { g: games.length, ip: 0, bf: 0, h: 0, bb: 0, ks: 0, ks_swing: 0, ks_look: 0, hbp: 0, hr: 0, wp: 0, totalPitches: 0 };
   games.forEach(g => {
-    totals.ip += parseInt(g.ip)||0;
-    totals.bf += parseInt(g.bf)||0;
-    totals.h  += parseInt(g.h)||0;
-    totals.bb += parseInt(g.bb)||0;
-    totals.ks += parseInt(g.ks)||0;
-    totals.ks_swing += parseInt(g.ks_swing)||0;
-    totals.ks_look  += parseInt(g.ks_look)||0;
-    totals.hbp += parseInt(g.hbp)||0;
-    totals.hr  += parseInt(g.hr)||0;
-    totals.wp  += parseInt(g.wp)||0;
-    totals.totalPitches += parseInt(g.total_pitches)||0;
+    totals.ip += parseInt(g.ip)||0; totals.bf += parseInt(g.bf)||0; totals.h += parseInt(g.h)||0;
+    totals.bb += parseInt(g.bb)||0; totals.ks += parseInt(g.ks)||0;
+    totals.ks_swing += parseInt(g.ks_swing)||0; totals.ks_look += parseInt(g.ks_look)||0;
+    totals.hbp += parseInt(g.hbp)||0; totals.hr += parseInt(g.hr)||0;
+    totals.wp += parseInt(g.wp)||0; totals.totalPitches += parseInt(g.total_pitches)||0;
   });
-
   const whip = totals.ip > 0 ? ((totals.h+totals.bb)/totals.ip).toFixed(3) : "—";
   const k9   = totals.ip > 0 ? (totals.ks/totals.ip*9).toFixed(2) : "—";
   const bb9  = totals.ip > 0 ? (totals.bb/totals.ip*9).toFixed(2) : "—";
@@ -340,11 +290,8 @@ function renderPitching(games) {
   const strPct = avg1(games, 'strike_pct').toFixed(1);
 
   document.getElementById("pitchingBubbles").innerHTML = [
-    { label: "WHIP", value: whip },
-    { label: "K/9", value: k9 },
-    { label: "BB/9", value: bb9 },
-    { label: "K%", value: kPct + "%" },
-    { label: "FPS%", value: fpsPct + "%" },
+    { label: "WHIP", value: whip }, { label: "K/9", value: k9 },
+    { label: "BB/9", value: bb9 }, { label: "K%", value: kPct + "%" }, { label: "FPS%", value: fpsPct + "%" },
   ].map(b => `<div class="bubble"><div class="bubble-value">${b.value}</div><div class="bubble-label">${b.label}</div></div>`).join("");
 
   document.getElementById("careerPitchLine").innerHTML = `
@@ -355,13 +302,11 @@ function renderPitching(games) {
     <td>${whip}</td><td>${k9}</td><td>${bb9}</td><td>${kPct}%</td><td>${bbPct}%</td><td>${fpsPct}%</td><td>${strPct}%</td>
   `;
 
-  const avgGB = avg1(games, 'gb_pct');
-  const avgLD = avg1(games, 'ld_pct');
-  const avgFB = avg1(games, 'fb_pct');
+  const avgGB = avg1(games,'gb_pct'), avgLD = avg1(games,'ld_pct'), avgFB = avg1(games,'fb_pct');
   document.getElementById("pitchingBBBars").innerHTML = [
-    { label: "GB", pct: avgGB, color: "#fbbf24" },
-    { label: "LD", pct: avgLD, color: "#86efac" },
-    { label: "FB", pct: avgFB, color: "#22d3ee" },
+    { label: "GB", pct: avgGB, color: "#d97706" },
+    { label: "LD", pct: avgLD, color: "#16a34a" },
+    { label: "FB", pct: avgFB, color: "#2563eb" },
   ].map(b => `
     <div class="spray-row">
       <span class="spray-label">${b.label}</span>
