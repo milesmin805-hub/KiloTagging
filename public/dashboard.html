@@ -5,371 +5,229 @@
 <title>Kilo - Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <style>
-* {
-margin: 0;
-padding: 0;
-box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
-font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-background: #050816;
-color: #e5e7eb;
-min-height: 100vh;
-display: flex;
-flex-direction: column;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f1f5f9;
+  color: #111827;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 header {
-padding: 16px;
-border-bottom: 1px solid rgba(148, 163, 184, 0.3);
-background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.15), transparent 55%);
-display: flex;
-justify-content: space-between;
-align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid #1e293b;
+  background: #0f172a;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.brand {
-display: flex;
-align-items: center;
-gap: 8px;
-}
+.brand { display: flex; align-items: center; gap: 8px; }
 
 .brand-mark {
-width: 28px;
-height: 28px;
-border-radius: 50%;
-background: radial-gradient(circle at 30% 30%, #22d3ee, #0f172a);
-display: flex;
-align-items: center;
-justify-content: center;
-font-size: 16px;
-font-weight: 700;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: #2563eb;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700;
 }
 
-.brand-text .title {
-font-size: 16px;
-font-weight: 600;
-}
-
-.brand-text .subtitle {
-font-size: 11px;
-color: #9ca3af;
-}
+.brand-text .title { font-size: 16px; font-weight: 600; color: #f8fafc; }
+.brand-text .subtitle { font-size: 11px; color: #94a3b8; }
 
 .logout-btn {
-padding: 8px 12px;
-border: 1px solid rgba(148, 163, 184, 0.5);
-background: rgba(15, 23, 42, 0.9);
-color: #e5e7eb;
-border-radius: 6px;
-cursor: pointer;
-font-size: 12px;
-transition: all 0.15s ease;
+  padding: 7px 14px;
+  border: 1px solid #334155;
+  background: #1e293b;
+  color: #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.15s ease;
 }
-
-.logout-btn:hover {
-border-color: rgba(56, 189, 248, 0.9);
-box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
-}
+.logout-btn:hover { border-color: #2563eb; background: #1e3a5f; }
 
 .hamburger-btn {
-background: transparent;
-border: 1px solid rgba(148, 163, 184, 0.5);
-color: #e5e7eb;
-font-size: 18px;
-padding: 6px 12px;
-border-radius: 6px;
-cursor: pointer;
-transition: all 0.15s ease;
-line-height: 1;
+  background: transparent;
+  border: 1px solid #334155;
+  color: #e2e8f0;
+  font-size: 18px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1;
 }
-
-.hamburger-btn:hover {
-border-color: rgba(56, 189, 248, 0.9);
-box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
-}
+.hamburger-btn:hover { border-color: #2563eb; background: #1e293b; }
 
 .side-menu {
-position: fixed;
-top: 0;
-left: -280px;
-width: 260px;
-height: 100vh;
-background: #0f172a;
-border-right: 1px solid rgba(148, 163, 184, 0.3);
-z-index: 1000;
-transition: left 0.25s ease;
-display: flex;
-flex-direction: column;
+  position: fixed; top: 0; left: -280px;
+  width: 260px; height: 100vh;
+  background: #0f172a;
+  border-right: 1px solid #1e293b;
+  z-index: 1000; transition: left 0.25s ease;
+  display: flex; flex-direction: column;
 }
-
-.side-menu.open {
-left: 0;
-}
+.side-menu.open { left: 0; }
 
 .side-menu-header {
-display: flex;
-justify-content: space-between;
-align-items: center;
-padding: 16px;
-border-bottom: 1px solid rgba(148, 163, 184, 0.2);
-font-weight: 600;
-color: #22d3ee;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px; border-bottom: 1px solid #1e293b;
+  font-weight: 600; color: #f8fafc;
 }
 
 .side-menu-close {
-background: transparent;
-border: none;
-color: #e5e7eb;
-font-size: 18px;
-cursor: pointer;
+  background: transparent; border: none;
+  color: #94a3b8; font-size: 18px; cursor: pointer;
 }
 
 .side-menu-item {
-display: flex;
-align-items: center;
-gap: 12px;
-padding: 16px;
-cursor: pointer;
-font-size: 15px;
-color: #e5e7eb;
-transition: background 0.15s ease;
+  padding: 15px 16px;
+  cursor: pointer; font-size: 14px; color: #e2e8f0;
+  border-bottom: 1px solid #1e293b;
+  transition: background 0.15s ease;
 }
-
-.side-menu-item:hover {
-background: rgba(56, 189, 248, 0.08);
-}
-
-.side-menu-icon {
-font-size: 20px;
-}
+.side-menu-item:hover { background: #1e293b; color: #ffffff; }
 
 .side-menu-overlay {
-position: fixed;
-top: 0;
-left: 0;
-right: 0;
-bottom: 0;
-background: rgba(0, 0, 0, 0.5);
-z-index: 999;
-display: none;
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4); z-index: 999; display: none;
 }
-
-.side-menu-overlay.open {
-display: block;
-}
+.side-menu-overlay.open { display: block; }
 
 main {
-flex: 1;
-padding: 40px 20px;
-display: flex;
-flex-direction: column;
-align-items: center;
-justify-content: center;
+  flex: 1; padding: 40px 20px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
 }
 
-.dashboard-header {
-text-align: center;
-margin-bottom: 60px;
-}
-
-.dashboard-header h1 {
-font-size: 36px;
-font-weight: 700;
-color: #22d3ee;
-margin-bottom: 8px;
-}
-
-.dashboard-header p {
-font-size: 14px;
-color: #9ca3af;
-}
+.dashboard-header { text-align: center; margin-bottom: 60px; }
+.dashboard-header h1 { font-size: 36px; font-weight: 700; color: #111827; margin-bottom: 8px; }
+.dashboard-header p { font-size: 14px; color: #6b7280; }
 
 .dashboard-grid {
-display: grid;
-grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-gap: 24px;
-max-width: 800px;
-width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 24px; max-width: 800px; width: 100%;
 }
 
 .dashboard-card {
-aspect-ratio: 1;
-border-radius: 16px;
-display: flex;
-flex-direction: column;
-align-items: center;
-justify-content: center;
-gap: 16px;
-cursor: pointer;
-transition: all 0.3s ease;
-border: 2px solid transparent;
-font-weight: 600;
-font-size: 18px;
+  aspect-ratio: 1; border-radius: 16px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 16px; cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+  font-weight: 600; font-size: 18px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
+.dashboard-card:hover { transform: translateY(-6px); box-shadow: 0 12px 24px rgba(0,0,0,0.12); }
 
-.dashboard-card:hover {
-transform: translateY(-8px);
-box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
-}
+.card-icon { font-size: 48px; }
+.card-label { text-align: center; }
 
-.card-icon {
-font-size: 48px;
-}
-
-.card-label {
-text-align: center;
-}
-
-/* Green - Reports */
 .card-reports {
-background: radial-gradient(circle at top left, rgba(134, 239, 172, 0.2), rgba(15, 23, 42, 0.9));
-border-color: rgba(134, 239, 172, 0.5);
-color: #86efac;
+  background: #ffffff;
+  border-color: #16a34a;
+  color: #15803d;
 }
+.card-reports:hover { border-color: #15803d; box-shadow: 0 12px 24px rgba(22,163,74,0.15); }
 
-.card-reports:hover {
-border-color: rgba(134, 239, 172, 0.9);
-box-shadow: 0 0 30px rgba(134, 239, 172, 0.4);
-}
-
-/* Blue - Tagging */
 .card-tagging {
-background: radial-gradient(circle at top left, rgba(34, 211, 238, 0.2), rgba(15, 23, 42, 0.9));
-border-color: rgba(34, 211, 238, 0.5);
-color: #22d3ee;
+  background: #ffffff;
+  border-color: #2563eb;
+  color: #1d4ed8;
 }
+.card-tagging:hover { border-color: #1d4ed8; box-shadow: 0 12px 24px rgba(37,99,235,0.15); }
 
-.card-tagging:hover {
-border-color: rgba(34, 211, 238, 0.9);
-box-shadow: 0 0 30px rgba(34, 211, 238, 0.4);
-}
-
-/* Red - Camera */
 .card-camera {
-background: radial-gradient(circle at top left, rgba(252, 165, 165, 0.2), rgba(15, 23, 42, 0.9));
-border-color: rgba(252, 165, 165, 0.5);
-color: #fca5a5;
+  background: #ffffff;
+  border-color: #dc2626;
+  color: #b91c1c;
 }
-
-.card-camera:hover {
-border-color: rgba(252, 165, 165, 0.9);
-box-shadow: 0 0 30px rgba(252, 165, 165, 0.4);
-}
+.card-camera:hover { border-color: #b91c1c; box-shadow: 0 12px 24px rgba(220,38,38,0.15); }
 
 @media (max-width: 600px) {
-main {
-padding: 20px;
-}
-
-.dashboard-header h1 {
-font-size: 28px;
-}
-
-.dashboard-grid {
-grid-template-columns: 1fr;
-gap: 16px;
-}
-
-.dashboard-card {
-aspect-ratio: auto;
-padding: 24px;
-}
+  main { padding: 20px; }
+  .dashboard-header h1 { font-size: 28px; }
+  .dashboard-grid { grid-template-columns: 1fr; gap: 16px; }
+  .dashboard-card { aspect-ratio: auto; padding: 24px; }
 }
 </style>
 </head>
 <body>
 <header>
-<div style="display: flex; align-items: center; gap: 12px;">
-<button class="hamburger-btn" onclick="toggleMenu()" aria-label="Menu">☰</button>
-<div class="brand">
-<div class="brand-mark">⚾</div>
-<div class="brand-text">
-<div class="title">Kilo</div>
-<div class="subtitle">Baseball</div>
-</div>
-</div>
-</div>
-<button class="logout-btn" onclick="logout()">Logout</button>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <button class="hamburger-btn" onclick="toggleMenu()" aria-label="Menu">☰</button>
+    <div class="brand">
+      <div class="brand-mark">⚾</div>
+      <div class="brand-text">
+        <div class="title">Kilo</div>
+        <div class="subtitle">Baseball</div>
+      </div>
+    </div>
+  </div>
+  <button class="logout-btn" onclick="logout()">Logout</button>
 </header>
 
 <div id="sideMenuOverlay" class="side-menu-overlay" onclick="toggleMenu()"></div>
 <div id="sideMenu" class="side-menu">
-<div class="side-menu-header">
-<span>Menu</span>
-<button class="side-menu-close" onclick="toggleMenu()" aria-label="Close menu">✕</button>
-</div>
-<div class="side-menu-item" onclick="window.location.href='/all-pitchers.html'">Pitchers</div>
-<div class="side-menu-item" onclick="window.location.href='/all-hitters.html'">Hitters</div>
-<div class="side-menu-item" onclick="window.location.href='/pitchers-by-team.html'">Pitchers by Team</div>
-<div class="side-menu-item" onclick="window.location.href='/hitters-by-team.html'">Hitters by Team</div>
-<div class="side-menu-item" onclick="window.location.href='/matchups.html'">Matchups</div>
+  <div class="side-menu-header">
+    <span>Menu</span>
+    <button class="side-menu-close" onclick="toggleMenu()" aria-label="Close menu">✕</button>
+  </div>
+  <div class="side-menu-item" onclick="window.location.href='/all-pitchers.html'">Pitchers</div>
+  <div class="side-menu-item" onclick="window.location.href='/all-hitters.html'">Hitters</div>
+  <div class="side-menu-item" onclick="window.location.href='/pitchers-by-team.html'">Pitchers by Team</div>
+  <div class="side-menu-item" onclick="window.location.href='/hitters-by-team.html'">Hitters by Team</div>
+  <div class="side-menu-item" onclick="window.location.href='/matchups.html'">Matchups</div>
 </div>
 
 <main>
-<div class="dashboard-header">
-<h1>Kilo Baseball</h1>
-<p>Pitch Tagging & Scouting Reports</p>
-</div>
+  <div class="dashboard-header">
+    <h1>Kilo Baseball</h1>
+    <p>Pitch Tagging & Scouting Reports</p>
+  </div>
 
-<div class="dashboard-grid">
-<!-- Generate Reports (Green) -->
-<div class="dashboard-card card-reports" onclick="goToReports()">
-<div class="card-icon">📊</div>
-<div class="card-label">Generate Reports</div>
-</div>
-
-<!-- Tagging (Blue) -->
-<div class="dashboard-card card-tagging" onclick="goToTagging()">
-<div class="card-icon">🎯</div>
-<div class="card-label">Tagging</div>
-</div>
-
-<!-- Camera (Red) -->
-<div class="dashboard-card card-camera" onclick="goToCamera()">
-<div class="card-icon">📹</div>
-<div class="card-label">Camera</div>
-</div>
-</div>
+  <div class="dashboard-grid">
+    <div class="dashboard-card card-reports" onclick="goToReports()">
+      <div class="card-icon">📊</div>
+      <div class="card-label">Generate Reports</div>
+    </div>
+    <div class="dashboard-card card-tagging" onclick="goToTagging()">
+      <div class="card-icon">🎯</div>
+      <div class="card-label">Tagging</div>
+    </div>
+    <div class="dashboard-card card-camera" onclick="goToCamera()">
+      <div class="card-icon">📹</div>
+      <div class="card-label">Camera</div>
+    </div>
+  </div>
 </main>
 
 <script>
 window.addEventListener("load", () => {
-const token = localStorage.getItem("token");
-if (!token) {
-window.location.href = "/login.html";
-}
+  const token = localStorage.getItem("token");
+  if (!token) window.location.href = "/login.html";
 });
 
-function goToReports() {
-window.location.href = "/session-select.html";
-}
-
-function goToTagging() {
-window.location.href = "/session-select.html";
-}
-
-function goToCamera() {
-window.location.href = "/session-select.html";
-}
+function goToReports() { window.location.href = "/session-select.html"; }
+function goToTagging() { window.location.href = "/session-select.html"; }
+function goToCamera() { window.location.href = "/session-select.html"; }
 
 function toggleMenu() {
-document.getElementById("sideMenu").classList.toggle("open");
-document.getElementById("sideMenuOverlay").classList.toggle("open");
+  document.getElementById("sideMenu").classList.toggle("open");
+  document.getElementById("sideMenuOverlay").classList.toggle("open");
 }
 
-function goToPitchers() {
-window.location.href = "/all-pitchers.html";
-}
-
-function goToHitters() {
-window.location.href = "/all-hitters.html";
-}
+function goToPitchers() { window.location.href = "/all-pitchers.html"; }
+function goToHitters() { window.location.href = "/all-hitters.html"; }
 
 function logout() {
-localStorage.removeItem("token");
-window.location.href = "/login.html";
+  localStorage.removeItem("token");
+  window.location.href = "/login.html";
 }
 </script>
 </body>
