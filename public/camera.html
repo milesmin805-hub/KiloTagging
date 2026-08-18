@@ -1,609 +1,450 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Kilo Camera</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
- 
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #050816;
-      color: #e5e7eb;
-      padding: 16px;
-      min-height: 100vh;
-    }
- 
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
-    }
- 
-    header {
-      padding: 12px 16px;
-      border-bottom: 1px solid rgba(148, 163, 184, 0.3);
-      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.15), transparent 55%);
-      border-radius: 8px;
-      margin-bottom: 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
- 
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
- 
-    .brand-mark {
-      width: 28px;
-      height: 28px;
-      border-radius: 999px;
-      background: radial-gradient(circle at 30% 30%, #22d3ee, #0f172a);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      font-weight: 700;
-    }
- 
-    .brand-text .title {
-      font-size: 16px;
-      font-weight: 600;
-    }
- 
-    .brand-text .subtitle {
-      font-size: 11px;
-      color: #9ca3af;
-    }
- 
-    .session-info {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      font-size: 12px;
-      color: #9ca3af;
-    }
- 
-    .debug-line {
-      font-size: 10px;
-      color: #9ca3af;
-    }
- 
-    h1 {
-      font-size: 24px;
-      margin-bottom: 20px;
-      text-align: center;
-    }
- 
-    .card {
-      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), #020617);
-      border: 1px solid rgba(148, 163, 184, 0.35);
-      border-radius: 16px;
-      padding: 16px;
-      margin-bottom: 16px;
-    }
- 
-    .card-title {
-      font-size: 13px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 12px;
-    }
- 
-    video {
-      width: 100%;
-      max-width: 600px;
-      height: auto;
-      border-radius: 12px;
-      background: #000;
-      margin-bottom: 12px;
-    }
- 
-    select,
-    button {
-      width: 100%;
-      padding: 12px;
-      margin-bottom: 8px;
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      background: rgba(15, 23, 42, 0.9);
-      color: #e5e7eb;
-      border-radius: 8px;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
- 
-    button:hover:not(:disabled) {
-      border-color: rgba(56, 189, 248, 0.9);
-      box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
-    }
- 
-    button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
- 
-    .btn-primary {
-      background: radial-gradient(circle at top left, #22d3ee, #0f172a);
-      border-color: rgba(56, 189, 248, 1);
-      font-weight: 600;
-      color: #000;
-    }
- 
-    .status {
-      padding: 12px;
-      border-radius: 8px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      text-align: center;
-      margin-bottom: 12px;
-      font-size: 12px;
-    }
- 
-    .status.connected {
-      border-color: #22c55e;
-      background: rgba(34, 197, 94, 0.1);
-      color: #22c55e;
-    }
- 
-    .status.disconnected {
-      border-color: #ef4444;
-      background: rgba(239, 68, 68, 0.1);
-      color: #ef4444;
-    }
- 
-    .status.recording {
-      border-color: #ef4444;
-      background: rgba(239, 68, 68, 0.15);
-      color: #ef4444;
-      animation: pulse 1s infinite;
-    }
- 
-    @keyframes pulse {
-      0%,
-      100% {
-        opacity: 1;
-      }
-      50% {
-        opacity: 0.7;
-      }
-    }
- 
-    .stats {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-top: 12px;
-    }
- 
-    .stat-box {
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      border-radius: 8px;
-      padding: 8px;
-      text-align: center;
-      font-size: 12px;
-    }
- 
-    .stat-label {
-      color: #9ca3af;
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
- 
-    .stat-value {
-      font-size: 18px;
-      font-weight: 700;
-      color: #22d3ee;
-      margin-top: 4px;
-    }
- 
-    .info-box {
-      background: rgba(34, 211, 238, 0.1);
-      border: 1px solid rgba(34, 211, 238, 0.5);
-      border-radius: 8px;
-      padding: 12px;
-      font-size: 12px;
-      color: #e5e7eb;
-      margin-bottom: 12px;
-      line-height: 1.5;
-    }
-  </style>
+<meta charset="UTF-8" />
+<title>Kilo Camera</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #f1f5f9;
+  color: #111827;
+  padding: 16px;
+  min-height: 100vh;
+}
+
+.container { max-width: 600px; margin: 0 auto; }
+
+header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #0f172a;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.brand { display: flex; align-items: center; gap: 8px; }
+
+.brand-mark {
+  width: 28px; height: 28px; border-radius: 999px;
+  background: #2563eb;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700;
+}
+
+.brand-text .title { font-size: 16px; font-weight: 600; color: #f8fafc; }
+.brand-text .subtitle { font-size: 11px; color: #94a3b8; }
+
+.session-info {
+  display: flex; flex-direction: column;
+  align-items: flex-end; font-size: 12px; color: #94a3b8;
+}
+
+.debug-line { font-size: 10px; color: #94a3b8; }
+
+h1 { font-size: 24px; margin-bottom: 20px; text-align: center; }
+
+.card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.card-title {
+  font-size: 13px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  margin-bottom: 12px; color: #374151;
+}
+
+video {
+  width: 100%; max-width: 600px; height: auto;
+  border-radius: 12px; background: #000; margin-bottom: 12px;
+}
+
+select, button {
+  width: 100%; padding: 12px; margin-bottom: 8px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #111827;
+  border-radius: 8px; font-size: 14px;
+  cursor: pointer; transition: all 0.15s ease;
+}
+
+button:hover:not(:disabled) {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+}
+
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-primary {
+  background: #2563eb;
+  border-color: #2563eb;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.status {
+  padding: 12px; border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  text-align: center; margin-bottom: 12px; font-size: 12px;
+  color: #6b7280;
+}
+
+.status.connected {
+  border-color: #16a34a;
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.status.disconnected {
+  border-color: #dc2626;
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.status.recording {
+  border-color: #dc2626;
+  background: #fef2f2;
+  color: #dc2626;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.stats {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px; margin-top: 12px;
+}
+
+.stat-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px; padding: 8px;
+  text-align: center; font-size: 12px;
+}
+
+.stat-label {
+  color: #6b7280; font-size: 10px;
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+
+.stat-value {
+  font-size: 18px; font-weight: 700;
+  color: #2563eb; margin-top: 4px;
+}
+
+.info-box {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px; padding: 12px;
+  font-size: 12px; color: #1e40af;
+  margin-bottom: 12px; line-height: 1.5;
+}
+</style>
 </head>
 <body>
-  <header>
-    <div class="brand" onclick="goHome()" style="cursor: pointer;">
-      <img src="/images/kilo-page.png" alt="Kilo Baseball" style="width: 40px; height: auto; border-radius: 4px;">
-      <div class="brand-text">
-        <div class="title">Kilo Camera</div>
-        <div class="subtitle">Baseball Pitch Recording</div>
-      </div>
-    </div>
-    <div class="session-info">
-      <div id="sessionInfo"></div>
-      <div class="debug-line" id="debugLine"></div>
-    </div>
-  </header>
- 
-  <div class="container">
-    <div id="statusIndicator" class="status disconnected">
-      WebSocket: Not Connected
-    </div>
- 
-    <div class="card">
-      <div class="card-title">Camera Selection</div>
-      <select id="cameraSelect"></select>
-      <button id="initCameraBtn" class="btn-primary">Enable Camera</button>
- 
-      <div class="info-box" style="margin-top: 12px;">
-        This device will automatically record video clips when the Tagger tags each pitch. Both devices must be
-        connected to the same session.
-      </div>
-    </div>
- 
-    <div class="card">
-      <div class="card-title">Live Preview</div>
-      <video id="preview" autoplay playsinline muted></video>
-    </div>
- 
-    <div class="card">
-      <div class="card-title">Recording Status</div>
-      <div id="recordingStatus" class="status disconnected">
-        ⏳ Waiting for tagger to tag a pitch...
-      </div>
- 
-      <div class="stats">
-        <div class="stat-box">
-          <div class="stat-label">Clips Recorded</div>
-          <div class="stat-value" id="clipCount">0</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-label">Last Clip</div>
-          <div class="stat-value" id="lastClipTime">—</div>
-        </div>
-      </div>
- 
-      <div class="info-box" style="margin-top: 12px;">
-        <strong>How it works:</strong><br />
-        1. Tagger selects result<br />
-        2. Camera automatically starts recording<br />
-        3. Records for 15 seconds<br />
-        4. Clip is uploaded and linked to pitch
-      </div>
+<header>
+  <div class="brand" onclick="goHome()" style="cursor: pointer;">
+    <img src="/images/kilo-page.png" alt="Kilo Baseball" style="width: 40px; height: auto; border-radius: 4px;">
+    <div class="brand-text">
+      <div class="title">Kilo Camera</div>
+      <div class="subtitle">Baseball Pitch Recording</div>
     </div>
   </div>
- 
-  <div id="countFooter" style="position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.4); color: #e5e7eb; padding: 6px 12px; font-size: 12px; text-align: center; font-family: monospace; border-top: 1px solid rgba(148, 163, 184, 0.3); z-index: 100;">
-    Waiting for count data...
+  <div class="session-info">
+    <div id="sessionInfo"></div>
+    <div class="debug-line" id="debugLine"></div>
   </div>
- 
-  <script>
-    let currentStream = null;
-    let mediaRecorder = null;
-    let recordedChunks = [];
-    let isRecording = false;
-    let currentPitchId = null;
-    let clipsRecorded = 0;
-    let ws = null;
- 
-    let token = null;
-    let userId = null;
-    let sessionId = null;
- 
-    const preview = document.getElementById("preview");
-    const cameraSelect = document.getElementById("cameraSelect");
-    const initCameraBtn = document.getElementById("initCameraBtn");
-    const statusIndicator = document.getElementById("statusIndicator");
-    const recordingStatus = document.getElementById("recordingStatus");
-    const clipCountEl = document.getElementById("clipCount");
-    const lastClipTimeEl = document.getElementById("lastClipTime");
-    const sessionInfo = document.getElementById("sessionInfo");
-    const debugLine = document.getElementById("debugLine");
- 
-    function goHome() {
-  window.location.href = "/session-select.html";
+</header>
+
+<div class="container">
+  <div id="statusIndicator" class="status disconnected">WebSocket: Not Connected</div>
+
+  <div class="card">
+    <div class="card-title">Camera Selection</div>
+    <select id="cameraSelect"></select>
+    <button id="initCameraBtn" class="btn-primary">Enable Camera</button>
+    <div class="info-box" style="margin-top: 12px;">
+      This device will automatically record video clips when the Tagger tags each pitch. Both devices must be connected to the same session.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Live Preview</div>
+    <video id="preview" autoplay playsinline muted></video>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Recording Status</div>
+    <div id="recordingStatus" class="status disconnected">⏳ Waiting for tagger to tag a pitch...</div>
+    <div class="stats">
+      <div class="stat-box">
+        <div class="stat-label">Clips Recorded</div>
+        <div class="stat-value" id="clipCount">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Last Clip</div>
+        <div class="stat-value" id="lastClipTime">—</div>
+      </div>
+    </div>
+    <div class="info-box" style="margin-top: 12px;">
+      <strong>How it works:</strong><br />
+      1. Tagger selects result<br />
+      2. Camera automatically starts recording<br />
+      3. Records for 15 seconds<br />
+      4. Clip is uploaded and linked to pitch
+    </div>
+  </div>
+</div>
+
+<div id="countFooter" style="position: fixed; bottom: 0; left: 0; right: 0; background: #0f172a; color: #e2e8f0; padding: 6px 12px; font-size: 12px; text-align: center; font-family: monospace; border-top: 1px solid #1e293b; z-index: 100;">
+  Waiting for count data...
+</div>
+
+<script>
+let currentStream = null;
+let mediaRecorder = null;
+let recordedChunks = [];
+let isRecording = false;
+let currentPitchId = null;
+let clipsRecorded = 0;
+let ws = null;
+
+let token = null;
+let userId = null;
+let sessionId = null;
+
+const preview = document.getElementById("preview");
+const cameraSelect = document.getElementById("cameraSelect");
+const initCameraBtn = document.getElementById("initCameraBtn");
+const statusIndicator = document.getElementById("statusIndicator");
+const recordingStatus = document.getElementById("recordingStatus");
+const clipCountEl = document.getElementById("clipCount");
+const lastClipTimeEl = document.getElementById("lastClipTime");
+const sessionInfo = document.getElementById("sessionInfo");
+const debugLine = document.getElementById("debugLine");
+
+function goHome() { window.location.href = "/session-select.html"; }
+
+window.addEventListener("load", async () => {
+  token = localStorage.getItem("token");
+  userId = localStorage.getItem("userId");
+  sessionId = localStorage.getItem("sessionId");
+
+  if (!token || !sessionId) { window.location.href = "/session-select.html"; return; }
+
+  sessionInfo.textContent = `Session: ${sessionId.slice(0, 8)}`;
+  debugLine.textContent = `Device: CAMERA`;
+
+  connectWebSocket();
+
+  const hasPermission = await requestCameraPermission();
+  if (hasPermission) {
+    await loadCameras();
+    initCameraBtn.style.display = "none";
+  }
+});
+
+function connectWebSocket() {
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  ws = new WebSocket(`${protocol}//${window.location.host}`);
+
+  ws.addEventListener("open", function() {
+    console.log("✅ WebSocket OPEN");
+    statusIndicator.textContent = "✅ WebSocket: Connected";
+    statusIndicator.classList.remove("disconnected");
+    statusIndicator.classList.add("connected");
+    debugLine.textContent = `Device: CAMERA | WS: ✅`;
+
+    ws.send(JSON.stringify({ type: "join-session", sessionId, userId, device: "camera" }));
+  });
+
+  ws.addEventListener("message", function(event) {
+    console.log("🔔 MESSAGE RECEIVED:", event.data);
+    const data = JSON.parse(event.data);
+    debugLine.textContent = `Device: CAMERA | WS: ✅`;
+
+    if (data.type === "start-recording") startRecording(data.pitchId);
+    if (data.type === "stop-recording") stopRecording(data.pitchId);
+    if (data.type === "count-update") updateCountFooter(data);
+  });
+
+  ws.addEventListener("error", function(err) {
+    console.error("❌ WebSocket ERROR:", err);
+    statusIndicator.textContent = "❌ WebSocket Error";
+  });
+
+  ws.addEventListener("close", function() {
+    console.log("❌ WebSocket CLOSED");
+    statusIndicator.textContent = "❌ WebSocket: Disconnected";
+    statusIndicator.classList.add("disconnected");
+    statusIndicator.classList.remove("connected");
+  });
 }
- 
-    window.addEventListener("load", async () => {
-      token = localStorage.getItem("token");
-      userId = localStorage.getItem("userId");
-      sessionId = localStorage.getItem("sessionId");
- 
-      if (!token || !sessionId) {
-        window.location.href = "/session-select.html";
-        return;
-      }
- 
-      sessionInfo.textContent = `Session: ${sessionId.slice(0, 8)}`;
-      debugLine.textContent = `Device: CAMERA`;
- 
-      connectWebSocket();
- 
-      const hasPermission = await requestCameraPermission();
-      if (hasPermission) {
-        await loadCameras();
-        initCameraBtn.style.display = "none";
-      }
+
+async function requestCameraPermission() {
+  try {
+    await navigator.mediaDevices.getUserMedia({ video: true });
+    return true;
+  } catch (err) {
+    alert("Camera permission denied. Please enable camera access in settings.");
+    console.error(err);
+    return false;
+  }
+}
+
+async function loadCameras() {
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cameras = devices.filter((d) => d.kind === "videoinput");
+    cameraSelect.innerHTML = "";
+    cameras.forEach((cam, index) => {
+      const option = document.createElement("option");
+      option.value = cam.deviceId;
+      option.textContent = cam.label || `Camera ${index + 1}`;
+      cameraSelect.appendChild(option);
     });
- 
-    function connectWebSocket() {
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      ws = new WebSocket(`${protocol}//${window.location.host}`);
- 
-      ws.addEventListener("open", function() {
-        console.log("✅ WebSocket OPEN");
-        statusIndicator.textContent = "✅ WebSocket: Connected";
-        statusIndicator.classList.remove("disconnected");
-        statusIndicator.classList.add("connected");
-        debugLine.textContent = `Device: CAMERA | WS: ✅`;
- 
-        ws.send(JSON.stringify({
-          type: "join-session",
-          sessionId,
-          userId,
-          device: "camera"
-        }));
-      });
- 
-ws.addEventListener("message", function(event) {
-        console.log("🔔 MESSAGE RECEIVED:", event.data);
-        const data = JSON.parse(event.data);
-        debugLine.textContent = `Device: CAMERA | WS: ✅`;
- 
-        if (data.type === "start-recording") {
-          startRecording(data.pitchId);
-        }
- 
-        if (data.type === "stop-recording") {
-          stopRecording(data.pitchId);
-        }
- 
-        if (data.type === "count-update") {
-          updateCountFooter(data);
-        }
-      });
- 
-      ws.addEventListener("error", function(err) {
-        console.error("❌ WebSocket ERROR:", err);
-        statusIndicator.textContent = "❌ WebSocket Error";
-      });
- 
-      ws.addEventListener("close", function() {
-        console.log("❌ WebSocket CLOSED");
-        statusIndicator.textContent = "❌ WebSocket: Disconnected";
-        statusIndicator.classList.add("disconnected");
-        statusIndicator.classList.remove("connected");
-      });
-    }
- 
-    async function requestCameraPermission() {
-      try {
-        await navigator.mediaDevices.getUserMedia({ video: true });
-        return true;
-      } catch (err) {
-        alert("Camera permission denied. Please enable camera access in settings.");
-        console.error(err);
-        return false;
-      }
-    }
- 
-    async function loadCameras() {
-      try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const cameras = devices.filter((d) => d.kind === "videoinput");
- 
-        cameraSelect.innerHTML = "";
- 
-        cameras.forEach((cam, index) => {
-          const option = document.createElement("option");
-          option.value = cam.deviceId;
-          option.textContent = cam.label || `Camera ${index + 1}`;
-          cameraSelect.appendChild(option);
-        });
- 
-        if (cameras.length > 0) {
-          await startCamera(cameraSelect.value);
-        }
-      } catch (err) {
-        console.error("Failed to load cameras:", err);
-      }
-    }
- 
-    async function startCamera(deviceId) {
-      try {
-        if (currentStream) {
-          currentStream.getTracks().forEach((t) => t.stop());
-        }
- 
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { 
-            deviceId: deviceId ? { exact: deviceId } : undefined,
-            facingMode: { ideal: "environment" }
-          },
-          audio: false
-        });
- 
-        currentStream = stream;
-        preview.srcObject = stream;
-        setupMediaRecorder();
-      } catch (err) {
-        console.error("Failed to start camera:", err);
-        alert("Could not access camera.");
-      }
-    }
- 
-    function setupMediaRecorder() {
-      if (!currentStream) return;
- 
-      mediaRecorder = new MediaRecorder(currentStream, {
-        mimeType: "video/webm;codecs=vp9"
-      });
- 
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          recordedChunks.push(event.data);
-        }
-      };
- 
-      mediaRecorder.onstop = () => {
-        // Small delay to ensure all data is flushed before upload
-        setTimeout(async () => {
-          const blob = new Blob(recordedChunks, { type: "video/webm" });
-          await uploadClip(blob, currentPitchId);
-          recordedChunks = [];
-        }, 50);
-      };
-    }
- 
-    function startRecording(pitchId) {
-      if (!mediaRecorder || mediaRecorder.state === "recording") {
-        console.warn("Already recording");
-        return;
-      }
- 
-      currentPitchId = pitchId;
+    if (cameras.length > 0) await startCamera(cameraSelect.value);
+  } catch (err) {
+    console.error("Failed to load cameras:", err);
+  }
+}
+
+async function startCamera(deviceId) {
+  try {
+    if (currentStream) currentStream.getTracks().forEach((t) => t.stop());
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { deviceId: deviceId ? { exact: deviceId } : undefined, facingMode: { ideal: "environment" } },
+      audio: false
+    });
+    currentStream = stream;
+    preview.srcObject = stream;
+    setupMediaRecorder();
+  } catch (err) {
+    console.error("Failed to start camera:", err);
+    alert("Could not access camera.");
+  }
+}
+
+function setupMediaRecorder() {
+  if (!currentStream) return;
+  mediaRecorder = new MediaRecorder(currentStream, { mimeType: "video/webm;codecs=vp9" });
+  mediaRecorder.ondataavailable = (event) => { if (event.data.size > 0) recordedChunks.push(event.data); };
+  mediaRecorder.onstop = () => {
+    setTimeout(async () => {
+      const blob = new Blob(recordedChunks, { type: "video/webm" });
+      await uploadClip(blob, currentPitchId);
       recordedChunks = [];
-      isRecording = true;
- 
-      mediaRecorder.start(100);
-      recordingStatus.textContent = `🔴 Recording...`;
-      recordingStatus.classList.remove("disconnected");
-      recordingStatus.classList.add("recording");
- 
-      console.log("🎥 Recording started for pitch:", pitchId);
-    }
- 
-    function stopRecording(pitchId) {
-      if (!mediaRecorder || !isRecording) {
-        console.warn("Not recording, cannot stop");
-        return;
-      }
- 
-      if (pitchId !== currentPitchId) {
-        console.warn("Pitch ID mismatch:", pitchId, currentPitchId);
-        return;
-      }
- 
-      isRecording = false;
-      mediaRecorder.stop();
- 
-      recordingStatus.textContent = "⏳ Uploading clip...";
-      recordingStatus.classList.remove("recording");
-      recordingStatus.classList.add("disconnected");
- 
-      console.log("✅ Recording stopped for pitch:", pitchId);
-    }
- 
-    async function uploadClip(blob, pitchId) {
-      try {
-        const formData = new FormData();
-        formData.append("clip", blob, `clip_${pitchId.slice(0, 8)}.webm`);
- 
-        console.log("📤 Uploading clip...");
- 
-        const response = await fetch("/uploadClip", {
-          method: "POST",
-          body: formData
-        });
- 
-        const data = await response.json();
-        console.log("Upload response:", data);
- 
-        if (!response.ok) {
-          console.error("Upload HTTP error:", response.status, data);
-          recordingStatus.textContent = "❌ Upload failed";
-          return;
+    }, 50);
+  };
+}
+
+function startRecording(pitchId) {
+  if (!mediaRecorder || mediaRecorder.state === "recording") { console.warn("Already recording"); return; }
+  currentPitchId = pitchId;
+  recordedChunks = [];
+  isRecording = true;
+  mediaRecorder.start(100);
+  recordingStatus.textContent = `🔴 Recording...`;
+  recordingStatus.classList.remove("disconnected");
+  recordingStatus.classList.add("recording");
+  console.log("🎥 Recording started for pitch:", pitchId);
+}
+
+function stopRecording(pitchId) {
+  if (!mediaRecorder || !isRecording) { console.warn("Not recording, cannot stop"); return; }
+  if (pitchId !== currentPitchId) { console.warn("Pitch ID mismatch:", pitchId, currentPitchId); return; }
+  isRecording = false;
+  mediaRecorder.stop();
+  recordingStatus.textContent = "⏳ Uploading clip...";
+  recordingStatus.classList.remove("recording");
+  recordingStatus.classList.add("disconnected");
+  console.log("✅ Recording stopped for pitch:", pitchId);
+}
+
+async function uploadClip(blob, pitchId) {
+  try {
+    const formData = new FormData();
+    formData.append("clip", blob, `clip_${pitchId.slice(0, 8)}.webm`);
+    console.log("📤 Uploading clip...");
+    const response = await fetch("/uploadClip", { method: "POST", body: formData });
+    const data = await response.json();
+    console.log("Upload response:", data);
+    if (!response.ok) { console.error("Upload HTTP error:", response.status, data); recordingStatus.textContent = "❌ Upload failed"; return; }
+    if (data.url) {
+      recordingStatus.textContent = "⏳ Linking clip...";
+      setTimeout(async () => {
+        try {
+          console.log("🔗 Linking clip to pitch:", pitchId);
+          const linkRes = await fetch(`/session/${sessionId}/link-clip`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token, pitchId, clipUrl: data.url })
+          });
+          const linkData = await linkRes.json();
+          console.log("Link response:", linkData);
+          if (!linkData.success) { console.error("Link failed:", linkData.error); recordingStatus.textContent = "❌ Link clip failed"; return; }
+          console.log("✅ Clip linked, sending via WebSocket...");
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: "clip", pitchId: pitchId, url: data.url, timestamp: Date.now() }));
+            console.log("📤 Clip message sent via WebSocket");
+          } else {
+            console.error("❌ WebSocket not open, state:", ws?.readyState);
+          }
+          clipsRecorded++;
+          clipCountEl.textContent = clipsRecorded;
+          lastClipTimeEl.textContent = new Date().toLocaleTimeString();
+          recordingStatus.textContent = "✅ Clip done!";
+          recordingStatus.classList.remove("disconnected");
+          recordingStatus.classList.add("connected");
+          setTimeout(() => {
+            recordingStatus.textContent = "⏳ Waiting for next pitch...";
+            recordingStatus.classList.remove("connected");
+            recordingStatus.classList.add("disconnected");
+          }, 3000);
+        } catch (err) {
+          console.error("❌ Link clip error:", err);
+          recordingStatus.textContent = "❌ Link failed";
         }
- 
-        if (data.url) {
-          recordingStatus.textContent = "⏳ Linking clip...";
- 
-          setTimeout(async () => {
-            try {
-              console.log("🔗 Linking clip to pitch:", pitchId);
- 
-              const linkRes = await fetch(`/session/${sessionId}/link-clip`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ token, pitchId, clipUrl: data.url })
-              });
- 
-              const linkData = await linkRes.json();
-              console.log("Link response:", linkData);
- 
-              if (!linkData.success) {
-                console.error("Link failed:", linkData.error);
-                recordingStatus.textContent = "❌ Link clip failed";
-                return;
-              }
- 
-              console.log("✅ Clip linked, sending via WebSocket...");
- 
-              if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                  type: "clip",
-                  pitchId: pitchId,
-                  url: data.url,
-                  timestamp: Date.now()
-                }));
-                console.log("📤 Clip message sent via WebSocket");
-              } else {
-                console.error("❌ WebSocket not open, state:", ws?.readyState);
-              }
- 
-              clipsRecorded++;
-              clipCountEl.textContent = clipsRecorded;
-              lastClipTimeEl.textContent = new Date().toLocaleTimeString();
- 
-              recordingStatus.textContent = "✅ Clip done!";
-              recordingStatus.classList.remove("disconnected");
-              recordingStatus.classList.add("connected");
- 
-              setTimeout(() => {
-                recordingStatus.textContent = "⏳ Waiting for next pitch...";
-                recordingStatus.classList.remove("connected");
-                recordingStatus.classList.add("disconnected");
-              }, 3000);
- 
-            } catch (err) {
-              console.error("❌ Link clip error:", err);
-              recordingStatus.textContent = "❌ Link failed";
-            }
-          }, 500);
-        }
-      } catch (err) {
-        console.error("❌ Upload error:", err);
-        recordingStatus.textContent = "❌ Upload failed";
-        recordingStatus.classList.add("disconnected");
-      }
+      }, 500);
     }
- 
-    initCameraBtn.addEventListener("click", async () => {
-      const hasPermission = await requestCameraPermission();
-      if (hasPermission) {
-        await loadCameras();
-        initCameraBtn.style.display = "none";
-      }
-    });
- 
-    cameraSelect.addEventListener("change", (e) => {
-      startCamera(e.target.value);
-    });
- 
-    function updateCountFooter(data) {
-      const footer = document.getElementById("countFooter");
-      const ip = data.innings ? data.innings.toFixed(1) : "0.0";
-      footer.textContent = `${data.balls}-${data.strikes} | ${data.outs} Out${data.outs === 1 ? '' : 's'} | IP: ${ip} | TP: ${data.totalPitches} | TB: ${data.totalBalls} | TS: ${data.totalStrikes}`;
-    }
-  </script>
+  } catch (err) {
+    console.error("❌ Upload error:", err);
+    recordingStatus.textContent = "❌ Upload failed";
+    recordingStatus.classList.add("disconnected");
+  }
+}
+
+initCameraBtn.addEventListener("click", async () => {
+  const hasPermission = await requestCameraPermission();
+  if (hasPermission) { await loadCameras(); initCameraBtn.style.display = "none"; }
+});
+
+cameraSelect.addEventListener("change", (e) => { startCamera(e.target.value); });
+
+function updateCountFooter(data) {
+  const footer = document.getElementById("countFooter");
+  const ip = data.innings ? data.innings.toFixed(1) : "0.0";
+  footer.textContent = `${data.balls}-${data.strikes} | ${data.outs} Out${data.outs === 1 ? '' : 's'} | IP: ${ip} | TP: ${data.totalPitches} | TB: ${data.totalBalls} | TS: ${data.totalStrikes}`;
+}
+</script>
 </body>
 </html>
