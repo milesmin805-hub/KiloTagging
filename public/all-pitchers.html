@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>All Pitcher Profiles</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>All Pitcher Profiles</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
 </head>
-<style> 
-  .hamburger-btn {
+<style>
+.hamburger-btn {
   background: none;
   border: none;
-  color: #e5e7eb;
+  color: #e2e8f0;
   font-size: 20px;
   cursor: pointer;
   padding: 4px 8px;
@@ -22,7 +22,7 @@
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0,0,0,0.4);
   z-index: 998;
 }
 .side-menu-overlay.open { display: block; }
@@ -33,7 +33,7 @@
   width: 280px;
   height: 100vh;
   background: #0f172a;
-  border-right: 1px solid rgba(148,163,184,0.3);
+  border-right: 1px solid #1e293b;
   z-index: 999;
   transition: left 0.25s ease;
   display: flex;
@@ -45,206 +45,183 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px 16px;
-  border-bottom: 1px solid rgba(148,163,184,0.2);
+  border-bottom: 1px solid #1e293b;
   font-weight: 600;
-  color: #22d3ee;
+  color: #f8fafc;
 }
 .side-menu-close {
   background: none;
   border: none;
-  color: #9ca3af;
+  color: #94a3b8;
   font-size: 18px;
   cursor: pointer;
   padding: 4px;
   width: auto;
 }
 .side-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
+  padding: 15px 16px;
   cursor: pointer;
-  color: #e5e7eb;
+  color: #e2e8f0;
   font-size: 14px;
-  border-bottom: 1px solid rgba(148,163,184,0.1);
+  border-bottom: 1px solid #1e293b;
   transition: background 0.15s ease;
 }
-.side-menu-item:hover { background: rgba(56,189,248,0.1); }
-.side-menu-icon { font-size: 18px; }
+.side-menu-item:hover { background: #1e293b; color: #ffffff; }
 </style>
-<body>
-  <div id="sideMenuOverlay" class="side-menu-overlay" onclick="toggleMenu()"></div>
+<body style="margin:0; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f1f5f9; color: #111827;">
+
+<div id="sideMenuOverlay" class="side-menu-overlay" onclick="toggleMenu()"></div>
 <div id="sideMenu" class="side-menu">
   <div class="side-menu-header">
     <span>Menu</span>
     <button class="side-menu-close" onclick="toggleMenu()">✕</button>
   </div>
-   <div class="side-menu-item" onclick="window.location.href='/all-pitchers.html'">Pitchers</div>
+  <div class="side-menu-item" onclick="window.location.href='/all-pitchers.html'">Pitchers</div>
   <div class="side-menu-item" onclick="window.location.href='/all-hitters.html'">Hitters</div>
   <div class="side-menu-item" onclick="window.location.href='/pitchers-by-team.html'">Pitchers by Team</div>
   <div class="side-menu-item" onclick="window.location.href='/hitters-by-team.html'">Hitters by Team</div>
-  <div class="side-menu-item" onclick="window.location.href='/matchups.html'">Matchups</div></div>
+  <div class="side-menu-item" onclick="window.location.href='/matchups.html'">Matchups</div>
 </div>
-  <!-- Header -->
- <div style="background: rgba(15, 23, 42, 0.95); padding: 20px; border-bottom: 1px solid rgba(148, 163, 184, 0.3); display: flex; justify-content: space-between; align-items: center;">
-<div style="display:flex; align-items:center; gap:12px;">
-  <button class="hamburger-btn" onclick="toggleMenu()">☰</button>
-  <h1 style="color: #22d3ee; margin: 0;">All Pitcher Profiles</h1>
+
+<!-- Header -->
+<div style="background: #0f172a; padding: 14px 20px; border-bottom: 1px solid #1e293b; display: flex; justify-content: space-between; align-items: center;">
+  <div style="display:flex; align-items:center; gap:12px;">
+    <button class="hamburger-btn" onclick="toggleMenu()">☰</button>
+    <h1 style="color: #f8fafc; margin: 0; font-size: 18px; font-weight: 600;">All Pitcher Profiles</h1>
+  </div>
+  <button onclick="window.location.href='/dashboard.html'" style="padding: 8px 14px; background: #1e293b; border: 1px solid #334155; color: #e2e8f0; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">← Back to Dashboard</button>
 </div>
-<button onclick="window.location.href='/dashboard.html'" style="padding: 10px 16px; background: rgba(34, 211, 238, 0.2); border: 1px solid rgba(34, 211, 238, 0.5); color: #22d3ee; border-radius: 6px; cursor: pointer; font-weight: 600;">      ← Back to Dashboard
-    </button>
+
+<!-- Loading -->
+<div id="loading" style="text-align: center; padding: 40px; color: #6b7280;">
+  Loading pitcher profiles...
+</div>
+
+<!-- Pitchers Grid -->
+<div id="pitchersContent" style="display: none; padding: 24px; background: #f1f5f9;">
+  <div id="pitchersGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px;">
   </div>
+</div>
 
-  <!-- Loading -->
-  <div id="loading" style="text-align: center; padding: 40px; color: #9ca3af;">
-    Loading pitcher profiles...
-  </div>
+<!-- Pitcher Profile Modal -->
+<div id="profileModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 2000; overflow-y: auto;">
+  <button onclick="closeModal()" style="position: fixed; top: 20px; right: 20px; background: #dc2626; border: none; padding: 10px 16px; color: white; border-radius: 6px; cursor: pointer; font-weight: 600; z-index: 2001;">✕ Close</button>
+  <div id="profileContent" style="max-width: 1400px; margin: 40px auto; padding: 0 16px;"></div>
+</div>
 
-  <!-- Pitchers Grid -->
-  <div id="pitchersContent" style="display: none; padding: 24px; background: rgba(15, 23, 42, 0.5);">
-    <div id="pitchersGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px;">
-      <!-- Populated by JavaScript -->
-    </div>
-  </div>
+<script>
+let allPitchers = [];
 
-  <!-- Pitcher Profile Modal -->
-  <div id="profileModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.8); z-index: 2000; overflow-y: auto;">
-    <button onclick="closeModal()" style="position: fixed; top: 20px; right: 20px; background: #ef4444; border: none; padding: 10px 16px; color: white; border-radius: 6px; cursor: pointer; font-weight: 600; z-index: 2001;">
-      ✕ Close
-    </button>
-    <div id="profileContent" style="max-width: 1400px; margin: 40px auto; padding: 0 16px;">
-      <!-- Full pitcher profile loaded here -->
-    </div>
-  </div>
+window.addEventListener('load', loadAllPitchers);
 
-  <script>
-    let allPitchers = [];
+async function loadAllPitchers() {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`/all-pitchers?token=${token}`);
+    const data = await response.json();
 
-    window.addEventListener('load', loadAllPitchers);
-
-    async function loadAllPitchers() {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`/all-pitchers?token=${token}`);
-        const data = await response.json();
-
-        if (!data.success) {
-          document.getElementById('loading').innerHTML = `<p style="color: #ef4444;">Error: ${data.error}</p>`;
-          return;
-        }
-
-        allPitchers = data.pitchers;
-        renderPitchersGrid();
-
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('pitchersContent').style.display = 'block';
-      } catch (err) {
-        console.error('Error loading pitchers:', err);
-        document.getElementById('loading').innerHTML = `<p style="color: #ef4444;">Error loading pitchers</p>`;
-      }
+    if (!data.success) {
+      document.getElementById('loading').innerHTML = `<p style="color: #dc2626;">Error: ${data.error}</p>`;
+      return;
     }
 
-    function renderPitchersGrid() {
-      const grid = document.getElementById('pitchersGrid');
-      grid.innerHTML = allPitchers.map(p => `
-        <div onclick="viewPitcherProfile('${p.id}')" style="
-          background: rgba(15, 23, 42, 0.9);
-          border: 1px solid rgba(148, 163, 184, 0.3);
-          border-radius: 12px;
-          padding: 20px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          text-align: center;
-        " onmouseover="this.style.borderColor='rgba(34, 211, 238, 0.5)'; this.style.background='rgba(15, 23, 42, 0.95)';" onmouseout="this.style.borderColor='rgba(148, 163, 184, 0.3)'; this.style.background='rgba(15, 23, 42, 0.9)';">
-          <div style="font-size: 16px; font-weight: 600; color: #22d3ee; margin-bottom: 8px;">
-            ${p.name}
-          </div>
-          <div style="font-size: 13px; color: #e5e7eb; margin-bottom: 4px;">
-            <strong>${p.pitcher_throws === 'Right' ? 'RHH' : 'LHH'}</strong>
-          </div>
-          <div style="font-size: 12px; color: #9ca3af;">
-            ${p.team || 'No Team'}
-          </div>
-        </div>
-      `).join('');
-    }
+    allPitchers = data.pitchers;
+    renderPitchersGrid();
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('pitchersContent').style.display = 'block';
+  } catch (err) {
+    console.error('Error loading pitchers:', err);
+    document.getElementById('loading').innerHTML = `<p style="color: #dc2626;">Error loading pitchers</p>`;
+  }
+}
+
+function renderPitchersGrid() {
+  const grid = document.getElementById('pitchersGrid');
+  grid.innerHTML = allPitchers.map(p => `
+    <div onclick="viewPitcherProfile('${p.id}')" style="
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    " onmouseover="this.style.borderColor='#2563eb'; this.style.boxShadow='0 4px 12px rgba(37,99,235,0.12)'; this.style.transform='translateY(-2px)';" onmouseout="this.style.borderColor='#e2e8f0'; this.style.boxShadow='0 1px 3px rgba(0,0,0,0.06)'; this.style.transform='translateY(0)';">
+      <div style="font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 8px;">
+        ${p.name}
+      </div>
+      <div style="font-size: 13px; color: #2563eb; margin-bottom: 4px; font-weight: 600;">
+        ${p.pitcher_throws === 'Right' ? 'RHP' : 'LHP'}
+      </div>
+      <div style="font-size: 12px; color: #6b7280;">
+        ${p.team || 'No Team'}
+      </div>
+    </div>
+  `).join('');
+}
 
 function viewPitcherProfile(pitcherId) {
   window.location.href = `/pitcher-report-aggregated.html?pitcherId=${pitcherId}`;
 }
-    async function loadPitcherProfileData(pitcherId) {
-      try {
-        const token = localStorage.getItem('token');
-        
-        // Fetch aggregated metrics for this pitcher across all sessions
-        const response = await fetch(`/pitcher-aggregated/${pitcherId}?token=${token}`);
-        const data = await response.json();
 
-        if (!data.success) {
-          alert('Error loading profile: ' + data.error);
-          return;
-        }
+async function loadPitcherProfileData(pitcherId) {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`/pitcher-aggregated/${pitcherId}?token=${token}`);
+    const data = await response.json();
+    if (!data.success) { alert('Error loading profile: ' + data.error); return; }
+    displayProfileModal(data.metrics);
+    document.getElementById('profileModal').style.display = 'block';
+  } catch (err) {
+    console.error('Error loading profile:', err);
+    alert('Error loading pitcher profile');
+  }
+}
 
-        // Display in modal
-        displayProfileModal(data.metrics);
-        document.getElementById('profileModal').style.display = 'block';
-      } catch (err) {
-        console.error('Error loading profile:', err);
-        alert('Error loading pitcher profile');
-      }
-    }
-
-    function displayProfileModal(metrics) {
-      const content = document.getElementById('profileContent');
-      
-      content.innerHTML = `
-        <div style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 12px; padding: 32px;">
-          <h1 style="color: #22d3ee; margin-top: 0;">${metrics.pitcherName}</h1>
-          
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 12px; margin-bottom: 24px;">
-            <div class="summary-box">
-              <div class="summary-label">Throws</div>
-              <div class="summary-value">${metrics.pitcherThrows === 'Right' ? 'RHH' : 'LHH'}</div>
-            </div>
-            <div class="summary-box">
-              <div class="summary-label">Total Pitches</div>
-              <div class="summary-value">${metrics.totalPitches}</div>
-            </div>
-            <div class="summary-box">
-              <div class="summary-label">Peak Velo</div>
-              <div class="summary-value">${metrics.peakVelo} mph</div>
-            </div>
-            <div class="summary-box">
-              <div class="summary-label">Strikeouts</div>
-              <div class="summary-value">${metrics.advancedStats?.strikeouts || 0}</div>
-            </div>
-          </div>
-
-          <div style="color: #9ca3af; font-size: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(148, 163, 184, 0.2);">
-            ✓ Profile aggregated across all sessions
-          </div>
+function displayProfileModal(metrics) {
+  const content = document.getElementById('profileContent');
+  content.innerHTML = `
+    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+      <h1 style="color: #111827; margin-top: 0;">${metrics.pitcherName}</h1>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 12px; margin-bottom: 24px;">
+        <div class="summary-box">
+          <div class="summary-label">Throws</div>
+          <div class="summary-value">${metrics.pitcherThrows === 'Right' ? 'RHP' : 'LHP'}</div>
         </div>
-      `;
-    }
+        <div class="summary-box">
+          <div class="summary-label">Total Pitches</div>
+          <div class="summary-value">${metrics.totalPitches}</div>
+        </div>
+        <div class="summary-box">
+          <div class="summary-label">Peak Velo</div>
+          <div class="summary-value">${metrics.peakVelo} mph</div>
+        </div>
+        <div class="summary-box">
+          <div class="summary-label">Strikeouts</div>
+          <div class="summary-value">${metrics.advancedStats?.strikeouts || 0}</div>
+        </div>
+      </div>
+      <div style="color: #6b7280; font-size: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+        ✓ Profile aggregated across all sessions
+      </div>
+    </div>
+  `;
+}
 
-    function closeModal() {
-      document.getElementById('profileModal').style.display = 'none';
-    }
+function closeModal() {
+  document.getElementById('profileModal').style.display = 'none';
+}
 
-    // Close modal on outside click
-    document.getElementById('profileModal').addEventListener('click', (e) => {
-      if (e.target.id === 'profileModal') {
-        closeModal();
-      }
-    });
-    function toggleMenu() {
+document.getElementById('profileModal').addEventListener('click', (e) => {
+  if (e.target.id === 'profileModal') closeModal();
+});
+
+function toggleMenu() {
   document.getElementById("sideMenu").classList.toggle("open");
   document.getElementById("sideMenuOverlay").classList.toggle("open");
 }
-function goToPitchers() { window.location.href = "/all-pitchers.html"; }
-function goToPitchersByTeam() { window.location.href = "/pitchers-by-team.html"; }
-function goToHitters() { window.location.href = "/all-hitters.html"; }
-function goToHittersByTeam() { window.location.href = "/hitters-by-team.html"; }
-  </script>
+</script>
 </body>
 </html>
