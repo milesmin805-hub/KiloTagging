@@ -44,8 +44,24 @@ tr:hover td { background: #f8fafc; }
 .bar-track { background: #e2e8f0; border-radius: 4px; height: 8px; flex: 1; }
 .bar-fill { height: 100%; border-radius: 4px; }
 .spray-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-.spray-label { font-size: 12px; color: #6b7280; width: 30px; }
+.spray-label { font-size: 12px; color: #6b7280; width: 40px; }
 .spray-pct { font-size: 12px; color: #111827; width: 40px; text-align: right; }
+
+/* Spray Chart */
+.spray-chart-wrapper { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.spray-filters { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.spray-filter-btn { padding: 5px 14px; border: 1px solid #d1d5db; background: #ffffff; color: #6b7280; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.15s ease; }
+.spray-filter-btn.active { background: #111827; border-color: #111827; color: #ffffff; }
+#sprayFieldCanvas { border-radius: 12px; max-width: 100%; }
+.spray-legend { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; }
+.spray-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #374151; }
+.spray-legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.spray-tendency-row { display: flex; gap: 20px; justify-content: center; margin-top: 4px; }
+.spray-tendency-box { text-align: center; padding: 8px 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; }
+.spray-tendency-val { font-size: 18px; font-weight: 700; color: #2563eb; }
+.spray-tendency-lbl { font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+.spray-note { font-size: 11px; color: #9ca3af; text-align: center; margin-top: 4px; }
+
 .hamburger-btn { background: none; border: none; color: #e2e8f0; font-size: 20px; cursor: pointer; padding: 4px 8px; }
 .side-menu-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 998; }
 .side-menu-overlay.open { display: block; }
@@ -110,11 +126,33 @@ tr:hover td { background: #f8fafc; }
           </table>
         </div>
         <div class="card">
-          <div class="card-title">Batted Ball & Spray</div>
+          <div class="card-title">Batted Ball Profile</div>
           <div id="battedBallBars"></div>
-          <div style="margin-top:16px;" id="sprayBars"></div>
         </div>
       </div>
+
+      <!-- SPRAY CHART CARD -->
+      <div class="card">
+        <div class="card-title">Spray Chart</div>
+        <div class="spray-chart-wrapper">
+          <div class="spray-filters">
+            <button class="spray-filter-btn active" onclick="setSprayFilter('all', this)">All</button>
+            <button class="spray-filter-btn" onclick="setSprayFilter('hit', this)">Hits</button>
+            <button class="spray-filter-btn" onclick="setSprayFilter('out', this)">Outs</button>
+            <button class="spray-filter-btn" onclick="setSprayFilter('GroundBall', this)">Ground Balls</button>
+            <button class="spray-filter-btn" onclick="setSprayFilter('LineDrive', this)">Line Drives</button>
+            <button class="spray-filter-btn" onclick="setSprayFilter('FlyBall', this)">Fly Balls</button>
+          </div>
+          <canvas id="sprayFieldCanvas" width="380" height="360"></canvas>
+          <div class="spray-legend">
+            <div class="spray-legend-item"><div class="spray-legend-dot" style="background:#16a34a;"></div>Hit</div>
+            <div class="spray-legend-item"><div class="spray-legend-dot" style="background:#dc2626;"></div>Out</div>
+          </div>
+          <div class="spray-tendency-row" id="sprayTendencies"></div>
+          <div class="spray-note" id="sprayNote"></div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-title">Game Log</div>
         <div style="overflow-x:auto;">
@@ -169,6 +207,9 @@ tr:hover td { background: #f8fafc; }
 <script>
 const token = localStorage.getItem("token");
 let profileData = null;
+let sprayData = [];
+let sprayFilter = 'all';
+let hasScorebookData = false;
 
 window.addEventListener("load", async () => {
   if (!token) { window.location.href = "/login.html"; return; }
@@ -176,6 +217,7 @@ window.addEventListener("load", async () => {
   const name = params.get("name");
   if (!name) { window.location.href = "/gc-games.html"; return; }
   await loadPlayer(name);
+  await loadSpray(name);
 });
 
 async function loadPlayer(name) {
@@ -199,15 +241,202 @@ async function loadPlayer(name) {
   }
 }
 
+async function loadSpray(name) {
+  try {
+    const res = await fetch(`/gc-player/${encodeURIComponent(name)}/spray?token=${token}`);
+    const data = await res.json();
+    if (!data.success) { drawEmptyField(); return; }
+    sprayData = data.sprayPoints || [];
+    hasScorebookData = data.hasScorebookData || false;
+    renderSprayTendencies(data.tendencies);
+    drawSprayChart();
+  } catch (err) {
+    drawEmptyField();
+  }
+}
+
+function setSprayFilter(filter, btn) {
+  sprayFilter = filter;
+  document.querySelectorAll('.spray-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  drawSprayChart();
+}
+
+function getFilteredPoints() {
+  if (sprayFilter === 'all') return sprayData;
+  if (sprayFilter === 'hit') return sprayData.filter(p => ['Single','Double','Triple','HR','SF'].includes(p.result));
+  if (sprayFilter === 'out') return sprayData.filter(p => ['Out','E','FC','SAC'].includes(p.result));
+  return sprayData.filter(p => p.hitType === sprayFilter);
+}
+
+function isHit(p) {
+  return ['Single','Double','Triple','HR','SF'].includes(p.result);
+}
+
+function drawSprayChart() {
+  const canvas = document.getElementById('sprayFieldCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  // White background
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+
+  // Field dimensions
+  const homeX = W / 2;
+  const homeY = H - 28;
+  const scale = 0.82;
+
+  // Foul lines — 45 degrees each side
+  const foulLen = 360 * scale;
+  const foulAngleL = Math.PI * 1.25; // 225 deg (left field line going up-left)
+  const foulAngleR = Math.PI * 1.75; // 315 deg (right field line going up-right)
+
+  // Outfield wall arc
+  ctx.beginPath();
+  const wallR = 300 * scale;
+  ctx.arc(homeX, homeY, wallR, Math.PI * 1.25, Math.PI * 1.75);
+  ctx.strokeStyle = '#d1d5db';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Foul lines
+  ctx.beginPath();
+  ctx.moveTo(homeX, homeY);
+  ctx.lineTo(homeX + Math.cos(foulAngleL) * foulLen, homeY + Math.sin(foulAngleL) * foulLen);
+  ctx.moveTo(homeX, homeY);
+  ctx.lineTo(homeX + Math.cos(foulAngleR) * foulLen, homeY + Math.sin(foulAngleR) * foulLen);
+  ctx.strokeStyle = '#d1d5db';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Infield dirt circle
+  ctx.beginPath();
+  ctx.arc(homeX, homeY - 95 * scale, 90 * scale, 0, Math.PI * 2);
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Infield diamond
+  const baseLen = 90 * scale * 0.68;
+  ctx.beginPath();
+  ctx.moveTo(homeX, homeY - 6);
+  ctx.lineTo(homeX + baseLen, homeY - baseLen);
+  ctx.lineTo(homeX, homeY - baseLen * 2);
+  ctx.lineTo(homeX - baseLen, homeY - baseLen);
+  ctx.closePath();
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+
+  // Bases as small diamonds
+  [[homeX, homeY - 6], [homeX + baseLen, homeY - baseLen], [homeX, homeY - baseLen * 2], [homeX - baseLen, homeY - baseLen]].forEach(([bx, by]) => {
+    ctx.beginPath();
+    ctx.moveTo(bx, by - 5);
+    ctx.lineTo(bx + 5, by);
+    ctx.lineTo(bx, by + 5);
+    ctx.lineTo(bx - 5, by);
+    ctx.closePath();
+    ctx.fillStyle = '#94a3b8';
+    ctx.fill();
+  });
+
+  // Pitcher's mound
+  ctx.beginPath();
+  ctx.arc(homeX, homeY - 95 * scale, 5, 0, Math.PI * 2);
+  ctx.fillStyle = '#cbd5e1';
+  ctx.fill();
+
+  // Home plate circle
+  ctx.beginPath();
+  ctx.arc(homeX, homeY, 14, 0, Math.PI * 2);
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Plot dots
+  const points = getFilteredPoints();
+  points.forEach(p => {
+    if (p.direction === null || p.direction === undefined) return;
+
+    // Convert spray direction to canvas coords
+    // direction: 0 = center, negative = left field, positive = right field
+    // We flip so positive angle goes to right side of screen
+    const dirRad = (p.direction * Math.PI / 180);
+    // Angle from center field (top of canvas): 0 = straight up
+    const canvasAngle = -Math.PI / 2 - dirRad; // -90 deg = straight up, then rotate by direction
+
+    const dist = Math.min(p.distance || 150, 380) * scale * 0.78;
+    const px = homeX + Math.cos(canvasAngle) * dist;
+    const py = homeY + Math.sin(canvasAngle) * dist;
+
+    const hit = isHit(p);
+    const color = hit ? '#16a34a' : '#dc2626';
+
+    ctx.beginPath();
+    ctx.arc(px, py, 5, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
+
+  // Note if no data
+  if (points.length === 0) {
+    ctx.fillStyle = '#9ca3af';
+    ctx.font = '13px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('No batted ball data for this filter', W / 2, H / 2);
+    ctx.font = '11px system-ui';
+    ctx.fillText('Import scorebook PDFs to populate', W / 2, H / 2 + 20);
+  }
+
+  // Update note
+  const noteEl = document.getElementById('sprayNote');
+  if (hasScorebookData) {
+    noteEl.textContent = `${points.length} batted ball${points.length !== 1 ? 's' : ''} plotted from scorebook data`;
+  } else if (sprayData.length > 0) {
+    noteEl.textContent = `${points.length} hit${points.length !== 1 ? 's' : ''} shown — approximate positions inferred from box score (re-import scorebook PDF for exact locations)`;
+  } else {
+    noteEl.textContent = 'Import a scorebook PDF to see spray chart data';
+  }
+}
+
+function drawEmptyField() {
+  const canvas = document.getElementById('sprayFieldCanvas');
+  if (!canvas) return;
+  sprayData = [];
+  drawSprayChart();
+}
+
+function renderSprayTendencies(tendencies) {
+  if (!tendencies) return;
+  document.getElementById('sprayTendencies').innerHTML = `
+    <div class="spray-tendency-box">
+      <div class="spray-tendency-val">${tendencies.leftPct}%</div>
+      <div class="spray-tendency-lbl">Left</div>
+    </div>
+    <div class="spray-tendency-box">
+      <div class="spray-tendency-val">${tendencies.centerPct}%</div>
+      <div class="spray-tendency-lbl">Center</div>
+    </div>
+    <div class="spray-tendency-box">
+      <div class="spray-tendency-val">${tendencies.rightPct}%</div>
+      <div class="spray-tendency-lbl">Right</div>
+    </div>
+  `;
+}
+
 function renderBatting(games) {
   if (!games.length) return;
-  const totals = { g: games.length, pa: 0, ab: 0, h: 0, singles: 0, doubles: 0, triples: 0, hr: 0, bb: 0, ks: 0, ks_swing: 0, ks_look: 0, hbp: 0, sb: 0 };
+  const totals = { g: games.length, pa: 0, ab: 0, h: 0, singles: 0, doubles: 0, triples: 0, hr: 0, bb: 0, ks: 0, hbp: 0, sb: 0 };
   games.forEach(g => {
     totals.pa += parseInt(g.pa)||0; totals.ab += parseInt(g.ab)||0; totals.h += parseInt(g.h)||0;
     totals.singles += parseInt(g.singles)||0; totals.doubles += parseInt(g.doubles)||0;
     totals.triples += parseInt(g.triples)||0; totals.hr += parseInt(g.hr)||0;
     totals.bb += parseInt(g.bb)||0; totals.ks += parseInt(g.ks)||0;
-    totals.ks_swing += parseInt(g.ks_swing)||0; totals.ks_look += parseInt(g.ks_look)||0;
     totals.hbp += parseInt(g.hbp)||0; totals.sb += parseInt(g.sb)||0;
   });
   const avg = totals.ab > 0 ? (totals.h/totals.ab).toFixed(3) : ".000";
@@ -233,24 +462,10 @@ function renderBatting(games) {
   `;
 
   const avgGB = avg1(games, 'gb_pct'), avgLD = avg1(games, 'ld_pct'), avgFB = avg1(games, 'fb_pct');
-  const avgSL = avg1(games, 'spray_l'), avgSC = avg1(games, 'spray_c'), avgSR = avg1(games, 'spray_r');
-
   document.getElementById("battedBallBars").innerHTML = [
     { label: "GB", pct: avgGB, color: "#d97706" },
     { label: "LD", pct: avgLD, color: "#16a34a" },
     { label: "FB", pct: avgFB, color: "#2563eb" },
-  ].map(b => `
-    <div class="spray-row">
-      <span class="spray-label">${b.label}</span>
-      <div class="bar-track"><div class="bar-fill" style="width:${b.pct}%; background:${b.color};"></div></div>
-      <span class="spray-pct">${b.pct.toFixed(1)}%</span>
-    </div>
-  `).join("");
-
-  document.getElementById("sprayBars").innerHTML = `<div style="font-size:11px; color:#6b7280; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">Spray Direction</div>` + [
-    { label: "Left", pct: avgSL, color: "#7c3aed" },
-    { label: "Ctr",  pct: avgSC, color: "#2563eb" },
-    { label: "Right", pct: avgSR, color: "#ea580c" },
   ].map(b => `
     <div class="spray-row">
       <span class="spray-label">${b.label}</span>
@@ -273,11 +488,10 @@ function renderBatting(games) {
 
 function renderPitching(games) {
   if (!games.length) return;
-  const totals = { g: games.length, ip: 0, bf: 0, h: 0, bb: 0, ks: 0, ks_swing: 0, ks_look: 0, hbp: 0, hr: 0, wp: 0, totalPitches: 0 };
+  const totals = { g: games.length, ip: 0, bf: 0, h: 0, bb: 0, ks: 0, hbp: 0, hr: 0, wp: 0, totalPitches: 0 };
   games.forEach(g => {
     totals.ip += parseInt(g.ip)||0; totals.bf += parseInt(g.bf)||0; totals.h += parseInt(g.h)||0;
     totals.bb += parseInt(g.bb)||0; totals.ks += parseInt(g.ks)||0;
-    totals.ks_swing += parseInt(g.ks_swing)||0; totals.ks_look += parseInt(g.ks_look)||0;
     totals.hbp += parseInt(g.hbp)||0; totals.hr += parseInt(g.hr)||0;
     totals.wp += parseInt(g.wp)||0; totals.totalPitches += parseInt(g.total_pitches)||0;
   });
