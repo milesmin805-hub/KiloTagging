@@ -333,6 +333,10 @@ await pool.query(`
     `);
 
     await pool.query(`
+  ALTER TABLE gc_batting ADD COLUMN IF NOT EXISTS raw_at_bats JSONB;
+`);
+
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS gc_pitching (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         gc_game_id UUID NOT NULL REFERENCES gc_games(id) ON DELETE CASCADE,
@@ -2220,6 +2224,104 @@ app.get("/gc-player/:playerName", async (req, res) => {
       pitching: pitching.rows
     });
   } catch (err) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// Get spray chart data for a GC player across all their imported games
+app.get("/gc-player/:playerName/spray", async (req, res) => {
+  const { playerName } = req.params;
+  const token = req.headers.authorization?.split(" ")[1] || req.query.token;
+  const user = await verifyToken(token);
+  if (!user) return res.json({ success: false, error: "Invalid token" });
+
+  try {
+    // Pull raw_at_bats from every game this player appears in for this user
+    const result = await pool.query(
+      `SELECT b.raw_at_bats, b.doubles, b.triples, b.hr, b.singles,
+              g.game_date, g.opponent
+       FROM gc_batting b
+       JOIN gc_games g ON b.gc_game_id = g.id
+       WHERE g.user_id = $1 AND LOWER(b.player_name) = LOWER($2)
+       ORDER BY g.game_date DESC`,
+      [user.id, playerName]
+    );
+
+    const sprayPoints = [];
+
+    for (const row of result.rows) {
+      const atBats = row.raw_at_bats;
+
+      // If the parser stored at-bat data, use it directly
+      if (Array.isArray(atBats) && atBats.length > 0) {
+        atBats.forEach(ab => {
+          if (ab && ab.direction !== null && ab.direction !== undefined) {
+            sprayPoints.push({
+              direction: parseFloat(ab.direction),
+              distance: parseFloat(ab.distance) || 150,
+              hitType: ab.hitType || null,
+              result: ab.result || null,
+              code: ab.code || null,
+              game_date: row.game_date,
+              opponent: row.opponent,
+            });
+          }
+        });
+      } else {
+        // Fallback: infer from counting stats using the parseAtBatCode helper
+        // This gives approximate spray for games imported before the scorebook parser update
+        const { parseAtBatCode } = require('./gc-parser');
+
+        // Build synthetic at-bat codes from known hit totals
+        const syntheticCodes = [];
+        for (let i = 0; i < (parseInt(row.singles) || 0); i++) syntheticCodes.push('1B');
+        for (let i = 0; i < (parseInt(row.doubles) || 0); i++) syntheticCodes.push('2B');
+        for (let i = 0; i < (parseInt(row.triples) || 0); i++) syntheticCodes.push('3B');
+        for (let i = 0; i < (parseInt(row.hr) || 0); i++) syntheticCodes.push('HR');
+
+        syntheticCodes.forEach(code => {
+          const parsed = parseAtBatCode(code);
+          if (parsed && parsed.direction !== null) {
+            sprayPoints.push({
+              direction: parseFloat(parsed.direction),
+              distance: parseFloat(parsed.distance) || 150,
+              hitType: parsed.hitType || null,
+              result: parsed.result || null,
+              code,
+              game_date: row.game_date,
+              opponent: row.opponent,
+              synthetic: true, // flag so UI can note it's inferred
+            });
+          }
+        });
+      }
+    }
+
+    // Compute spray tendencies (left/center/right percentages)
+    const ballsInPlay = sprayPoints.filter(p => p.result && !['K','BB','HBP'].includes(p.result));
+    const leftCount   = ballsInPlay.filter(p => p.direction < -15).length;
+    const centerCount = ballsInPlay.filter(p => p.direction >= -15 && p.direction <= 15).length;
+    const rightCount  = ballsInPlay.filter(p => p.direction > 15).length;
+    const total = ballsInPlay.length || 1;
+
+    res.json({
+      success: true,
+      playerName,
+      sprayPoints,
+      tendencies: {
+        pull:   parseFloat(((leftCount / total) * 100).toFixed(1)),   // NOTE: flips for RHH vs LHH
+        center: parseFloat(((centerCount / total) * 100).toFixed(1)),
+        oppo:   parseFloat(((rightCount / total) * 100).toFixed(1)),
+        leftPct:   parseFloat(((leftCount / total) * 100).toFixed(1)),
+        centerPct: parseFloat(((centerCount / total) * 100).toFixed(1)),
+        rightPct:  parseFloat(((rightCount / total) * 100).toFixed(1)),
+      },
+      totalPoints: sprayPoints.length,
+      hasScorebookData: sprayPoints.some(p => !p.synthetic),
+    });
+
+  } catch (err) {
+    console.error("GC spray error:", err);
     res.json({ success: false, error: err.message });
   }
 });
