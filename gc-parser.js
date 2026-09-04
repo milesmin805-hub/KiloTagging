@@ -1,9 +1,182 @@
 /**
  * GameChanger Box Score PDF Parser — Node.js
  * Handles pdf-parse output from GameChanger box score PDFs.
+ * Now also parses scorebook PDFs for per-at-bat result codes (spray chart data).
  */
 
 const pdfParse = require('pdf-parse');
+
+// ============================================================
+// FIELDER -> SPRAY ANGLE MAPPING
+// ============================================================
+// Degrees from center (0 = straight up center field)
+// Negative = left field side, Positive = right field side
+const FIELDER_ANGLE = {
+  '1': 0,    // pitcher (up the middle)
+  '2': 0,    // catcher (back to pitcher)
+  '3': 38,   // first base (right side)
+  '4': 15,   // second base (right-center)
+  '5': -38,  // third base (left side)
+  '6': -18,  // shortstop (left-center)
+  '7': -52,  // left field
+  '8': 0,    // center field
+  '9': 52,   // right field
+};
+
+// Approximate distance by hit type and fielder zone
+function estimateDistance(hitType, fielder) {
+  const f = parseInt(fielder) || 0;
+  if (hitType === 'G' || hitType === 'SAC') {
+    // Ground balls stay in infield
+    if ([1,2,3,4,5,6].includes(f)) return 80 + Math.random() * 40;
+    return 60 + Math.random() * 30;
+  }
+  if (hitType === 'L') {
+    // Line drives — short to medium
+    if ([3,4,5,6].includes(f)) return 90 + Math.random() * 50;
+    if ([7,8,9].includes(f)) return 180 + Math.random() * 60;
+    return 120 + Math.random() * 40;
+  }
+  if (hitType === 'F' || hitType === 'SF') {
+    // Fly balls — medium to deep
+    if ([3,4,5,6].includes(f)) return 100 + Math.random() * 60;
+    if ([7,8,9].includes(f)) return 220 + Math.random() * 80;
+    return 150 + Math.random() * 50;
+  }
+  if (hitType === 'HR') return 320 + Math.random() * 80;
+  return 120 + Math.random() * 60;
+}
+
+// ============================================================
+// PARSE AT-BAT RESULT CODE
+// ============================================================
+// Parses codes like: K, BB, HBP, G6-3, F8, L5, SF8, SAC2-3,
+// 1B, 2B, 3B, HR, E6, FC4, etc.
+function parseAtBatCode(code) {
+  if (!code) return null;
+  const c = code.trim().toUpperCase();
+
+  // Strikeout
+  if (c === 'K' || c === 'KL' || c === 'K-L') {
+    return { result: 'K', hitType: null, fielder: null, direction: null, distance: null };
+  }
+
+  // Walk / HBP
+  if (c === 'BB' || c === 'IBB') {
+    return { result: 'BB', hitType: null, fielder: null, direction: null, distance: null };
+  }
+  if (c === 'HBP') {
+    return { result: 'HBP', hitType: null, fielder: null, direction: null, distance: null };
+  }
+
+  // Home Run
+  if (c === 'HR') {
+    const dir = (Math.random() * 80) - 40; // random spray for now
+    return { result: 'HR', hitType: 'HR', fielder: null, direction: parseFloat(dir.toFixed(1)), distance: 350 + Math.random() * 80 };
+  }
+
+  // SAC bunt: SAC1-3, SAC2-3 etc
+  const sacMatch = c.match(/^SAC(\d)(?:-\d+)?$/);
+  if (sacMatch) {
+    const fielder = sacMatch[1];
+    const dir = FIELDER_ANGLE[fielder] ?? 0;
+    return { result: 'SAC', hitType: 'G', fielder, direction: dir + (Math.random() * 10 - 5), distance: estimateDistance('SAC', fielder) };
+  }
+
+  // Ground ball: G6-3, G1-3, G5-3 etc
+  const groundMatch = c.match(/^G(\d)(?:-\d+)?$/);
+  if (groundMatch) {
+    const fielder = groundMatch[1];
+    const dir = FIELDER_ANGLE[fielder] ?? 0;
+    return { result: 'Out', hitType: 'GroundBall', fielder, direction: parseFloat((dir + (Math.random() * 12 - 6)).toFixed(1)), distance: parseFloat(estimateDistance('G', fielder).toFixed(0)) };
+  }
+
+  // Fly ball: F7, F8, F9, F3 etc
+  const flyMatch = c.match(/^F(\d)$/);
+  if (flyMatch) {
+    const fielder = flyMatch[1];
+    const dir = FIELDER_ANGLE[fielder] ?? 0;
+    return { result: 'Out', hitType: 'FlyBall', fielder, direction: parseFloat((dir + (Math.random() * 14 - 7)).toFixed(1)), distance: parseFloat(estimateDistance('F', fielder).toFixed(0)) };
+  }
+
+  // Sac fly: SF8-3, SF7 etc
+  const sfMatch = c.match(/^SF(\d)(?:-\d+)?$/);
+  if (sfMatch) {
+    const fielder = sfMatch[1];
+    const dir = FIELDER_ANGLE[fielder] ?? 0;
+    return { result: 'SF', hitType: 'FlyBall', fielder, direction: parseFloat((dir + (Math.random() * 14 - 7)).toFixed(1)), distance: parseFloat(estimateDistance('SF', fielder).toFixed(0)) };
+  }
+
+  // Line drive: L5, L8 etc
+  const lineMatch = c.match(/^L(\d)$/);
+  if (lineMatch) {
+    const fielder = lineMatch[1];
+    const dir = FIELDER_ANGLE[fielder] ?? 0;
+    return { result: 'Out', hitType: 'LineDrive', fielder, direction: parseFloat((dir + (Math.random() * 10 - 5)).toFixed(1)), distance: parseFloat(estimateDistance('L', fielder).toFixed(0)) };
+  }
+
+  // Error: E6, E4 etc
+  const errorMatch = c.match(/^E(\d)$/);
+  if (errorMatch) {
+    const fielder = errorMatch[1];
+    const dir = FIELDER_ANGLE[fielder] ?? 0;
+    return { result: 'E', hitType: 'GroundBall', fielder, direction: parseFloat((dir + (Math.random() * 12 - 6)).toFixed(1)), distance: parseFloat(estimateDistance('G', fielder).toFixed(0)) };
+  }
+
+  // Fielder's choice: FC4, FC6 etc
+  const fcMatch = c.match(/^FC(\d)?$/);
+  if (fcMatch) {
+    const fielder = fcMatch[1] || '4';
+    const dir = FIELDER_ANGLE[fielder] ?? 0;
+    return { result: 'FC', hitType: 'GroundBall', fielder, direction: parseFloat((dir + (Math.random() * 12 - 6)).toFixed(1)), distance: parseFloat(estimateDistance('G', fielder).toFixed(0)) };
+  }
+
+  // Hits: 1B, 2B, 3B
+  if (c === '1B') {
+    // Singles spread across all zones
+    const dir = (Math.random() * 90) - 45;
+    const dist = 100 + Math.random() * 80;
+    return { result: 'Single', hitType: 'LineDrive', fielder: null, direction: parseFloat(dir.toFixed(1)), distance: parseFloat(dist.toFixed(0)) };
+  }
+  if (c === '2B') {
+    const dir = (Math.random() * 80) - 40;
+    const dist = 220 + Math.random() * 60;
+    return { result: 'Double', hitType: 'FlyBall', fielder: null, direction: parseFloat(dir.toFixed(1)), distance: parseFloat(dist.toFixed(0)) };
+  }
+  if (c === '3B') {
+    const dir = (Math.random() * 80) - 40;
+    const dist = 270 + Math.random() * 50;
+    return { result: 'Triple', hitType: 'FlyBall', fielder: null, direction: parseFloat(dir.toFixed(1)), distance: parseFloat(dist.toFixed(0)) };
+  }
+
+  // Fielded by specific player then base — like SF8-3: already handled above
+  // Fallthrough: unrecognized
+  return null;
+}
+
+// ============================================================
+// PARSE SCOREBOOK AT-BATS
+// ============================================================
+// The scorebook PDF has per-player, per-inning at-bat result cells.
+// Text extracted by pdf-parse runs all innings together in one blob per player.
+// This function pulls the result codes out of each player's raw text block.
+function parseAtBatsFromScorebook(playerText) {
+  if (!playerText) return [];
+
+  // Result codes we look for — order matters (longer matches first)
+  const CODE_RE = /\b(HR|HBP|IBB|BB|SAC\d(?:-\d+)?|SF\d(?:-\d+)?|G\d-\d+|G\d|F\d|L\d|E\d|FC\d?|K[L]?|1B|2B|3B)\b/g;
+
+  const codes = [];
+  let m;
+  while ((m = CODE_RE.exec(playerText)) !== null) {
+    codes.push(m[1]);
+  }
+
+  return codes.map(code => {
+    const parsed = parseAtBatCode(code);
+    return parsed ? { code, ...parsed } : null;
+  }).filter(Boolean);
+}
 
 // ============================================================
 // MAIN PARSER
@@ -38,8 +211,6 @@ async function parseGCScorebook(pdfBuffer) {
   }
 
   // ---- Find team names ----
-  // They appear before the score line "9 - 6" as fragments:
-  // "Royal Varsity ", "Highlanders", "Oxnard Varsity Yellow ", "Jackets"
   const scoreLineIdx = trimmed.findIndex(l => /^\d+\s*-\s*\d+$/.test(l));
   if (scoreLineIdx > 0) {
     const nameFragments = trimmed.slice(0, scoreLineIdx).filter(l =>
@@ -48,11 +219,9 @@ async function parseGCScorebook(pdfBuffer) {
       !l.includes('Date:') &&
       !['BATTING','PITCHING','Home','Away'].includes(l)
     );
-    // Should be 4 fragments: team1part1, team1part2, team2part1, team2part2
-    // Or 2 fragments if single-word team names
     if (nameFragments.length >= 4) {
       const mid = Math.floor(nameFragments.length / 2);
-            game.teams.push(nameFragments.slice(0, mid).join(' ').trim());
+      game.teams.push(nameFragments.slice(0, mid).join(' ').trim());
       game.teams.push(nameFragments.slice(mid).join(' ').trim());
     } else if (nameFragments.length === 2) {
       game.teams.push(nameFragments[0].trim());
@@ -75,50 +244,32 @@ async function parseGCScorebook(pdfBuffer) {
 
   const pitchingLines = pitchingIdx > -1 ? trimmed.slice(pitchingIdx + 1) : [];
 
-  // ---- Parse batting ----
-  // Header line: "Royal Varsity Hi...ABRHRBIBBSO"
-  // Player line: "E Hall #2 (RF)400101"  (6 digits jammed at end = AB R H RBI BB SO)
-  // Totals: "To t a l s2797738"
-  // Second team header: "Oxnard Varsity Y...ABRHRBIBBSO"
-  // Notes: "2B: I Tillman, R Talley..."
-
   game.teams.forEach(t => { game.batting[t] = {}; game.pitching[t] = {}; });
 
-  let currentTeamIdx = -1; // -1 = not in batting yet
+  let currentTeamIdx = -1;
   let inNotes = false;
 
-  // Player line: name (with optional jersey and position) followed by exactly 6 digits
-  // Examples:
-  //   "E Hall #2 (RF)400101"
-  //   "  Tabora #7 (3B)000000"
-  //   "R Talley (CF)301311"
-  //   "  N Guzman #35000000"
   const playerRe = /^\s*(.+?)\s*(\d)(\d)(\d)(\d)(\d)(\d)$/;
 
   for (const line of battingLines) {
-    // Notes section
     if (/^(2B:|TB:|SAC:|SF:|HBP:|SB:|LOB:|WP:|E:)/.test(line)) {
       inNotes = true;
     }
 
     if (inNotes) {
-      // Parse notes for current and next team
       parseNoteLine(line, game.batting, game.teams);
       continue;
     }
 
-    // Team header line e.g. "Royal Varsity Hi...ABRHRBIBBSO"
     if (/ABRHRBIBBSO$/.test(line)) {
       currentTeamIdx++;
       continue;
     }
 
-    // Totals line
     if (/^To\s*t\s*a\s*l\s*s/.test(line)) continue;
 
     if (currentTeamIdx < 0 || currentTeamIdx >= game.teams.length) continue;
 
-    // Player line
     const m = line.match(playerRe);
     if (!m) continue;
 
@@ -130,7 +281,6 @@ async function parseGCScorebook(pdfBuffer) {
     const bb  = parseInt(m[6]);
     const so  = parseInt(m[7]);
 
-    // Skip if name looks like a header or totals
     if (!nameStr || /^(Royal|Oxnard|BATTING|PITCHING)/.test(nameStr)) continue;
 
     const player = buildPlayer(nameStr, ab, r, h, rbi, bb, so);
@@ -139,10 +289,6 @@ async function parseGCScorebook(pdfBuffer) {
   }
 
   // ---- Parse pitching ----
-  // Header: "Royal Varsi… IP H R ER BB SO HR"  (spaces preserved here)
-  // Player: "D Bark… #10 4.1 6 5 5 3 9 0"
-  // Notes: "P-S: D Barkman 92-58..."
-
   let pitchTeamIdx = -1;
   let inPitchNotes = false;
   const pitcherRe = /^\s*(.+?#\d+)\s+([\d.]+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/;
@@ -157,7 +303,6 @@ async function parseGCScorebook(pdfBuffer) {
       continue;
     }
 
-    // Team header
     if (/IP\s+H\s+R\s+ER\s+BB\s+SO\s+HR/.test(line)) {
       pitchTeamIdx++;
       continue;
@@ -174,8 +319,68 @@ async function parseGCScorebook(pdfBuffer) {
     game.pitching[team][pitcher.name] = pitcher;
   }
 
-  // Apply pitch notes
   parsePitchNotes(pitchNotes.join(' '), game.pitching, game.teams);
+
+  // ---- Parse scorebook at-bats for spray chart data ----
+  // The scorebook PDF text includes per-inning result codes mixed into each
+  // player's block. We do a second pass over the full raw text, looking for
+  // each player's name and grabbing the result codes that follow them.
+  try {
+    const pages = rawText.split('\f');
+    for (const page of pages) {
+      const pageLines = page.split('\n').map(l => l.trim()).filter(Boolean);
+      let currentPlayer = null;
+      let currentTeam = null;
+      let atBatBuffer = [];
+
+      for (let i = 0; i < pageLines.length; i++) {
+        const line = pageLines[i];
+
+        // Check if this line is a player name we already parsed
+        for (const team of game.teams) {
+          for (const [playerName, playerData] of Object.entries(game.batting[team] || {})) {
+            // Match on last name since first initial + last is common
+            const lastName = playerName.split(' ').pop().toLowerCase();
+            const lineLower = line.toLowerCase();
+            if (lineLower.includes(lastName) && lineLower.length < 40) {
+              // Flush previous player's buffer
+              if (currentPlayer && currentTeam) {
+                const atBats = parseAtBatsFromScorebook(atBatBuffer.join(' '));
+                if (atBats.length > 0) {
+                  game.batting[currentTeam][currentPlayer].atBats = atBats;
+                }
+              }
+              currentPlayer = playerName;
+              currentTeam = team;
+              atBatBuffer = [line];
+              break;
+            }
+          }
+        }
+
+        // Accumulate lines that look like they contain at-bat codes
+        if (currentPlayer && line !== pageLines[i]) {
+          // Already set above
+        } else if (currentPlayer) {
+          // Look for lines with result codes
+          if (/\b(HR|HBP|BB|SAC|SF|[GLF]\d|E\d|FC|1B|2B|3B|K)\b/.test(line)) {
+            atBatBuffer.push(line);
+          }
+        }
+      }
+
+      // Flush last player
+      if (currentPlayer && currentTeam && atBatBuffer.length > 0) {
+        const atBats = parseAtBatsFromScorebook(atBatBuffer.join(' '));
+        if (atBats.length > 0 && !game.batting[currentTeam][currentPlayer].atBats) {
+          game.batting[currentTeam][currentPlayer].atBats = atBats;
+        }
+      }
+    }
+  } catch (err) {
+    // Scorebook parsing is best-effort — never fail the whole upload
+    console.warn('Scorebook at-bat parse error (non-fatal):', err.message);
+  }
 
   // Recalculate batting rate stats after notes enrichment
   for (const team of game.teams) {
@@ -208,6 +413,7 @@ function buildPlayer(nameStr, ab, r, h, rbi, bb, so) {
     obp: (ab+bb) > 0 ? +((h+bb)/(ab+bb)).toFixed(3) : 0,
     slg: ab > 0 ? +(h/ab).toFixed(3) : 0,
     ops: 0, iso: 0, woba: 0,
+    atBats: [], // populated by scorebook parser
   };
 }
 
@@ -254,9 +460,6 @@ function buildPitcher(nameStr, ip, h, r, er, bb, so, hr) {
 }
 
 function parseNoteLine(line, batting, teams) {
-  // Notes lines appear after all player rows
-  // They alternate: team1 notes line, team2 notes line
-  // But pdf-parse may split them differently — apply to all teams
   for (const team of teams) {
     if (!batting[team]) continue;
     applyNotes(line, batting[team]);
@@ -297,7 +500,6 @@ function findPlayer(teamBatting, noteName) {
 }
 
 function parsePitchNotes(notesText, pitching, teams) {
-  // P-S: D Barkman 92-58, D Dunwoody 17-14
   const psRe = /P-S:\s*(.+?)(?=\s*BF:|$)/;
   const psM = notesText.match(psRe);
   if (psM) {
@@ -314,7 +516,6 @@ function parsePitchNotes(notesText, pitching, teams) {
     });
   }
 
-  // BF: D Barkman 22, D Dunwoody 5
   const bfRe = /BF:\s*(.+?)(?=\s*WP:|HBP:|E:|$)/;
   const bfM = notesText.match(bfRe);
   if (bfM) {
@@ -332,7 +533,6 @@ function parsePitchNotes(notesText, pitching, teams) {
     });
   }
 
-  // WP
   const wpRe = /WP:\s*(.+?)(?=\s*HBP:|E:|$)/;
   const wpM = notesText.match(wpRe);
   if (wpM) {
@@ -342,7 +542,6 @@ function parsePitchNotes(notesText, pitching, teams) {
     });
   }
 
-  // HBP
   const hbpRe = /HBP:\s*(.+?)(?=\s*BF:|E:|$)/;
   const hbpM = notesText.match(hbpRe);
   if (hbpM) {
@@ -399,6 +598,7 @@ function computeBattingLine(player) {
     gbPct: 0, ldPct: 0, fbPct: 0, gbFb: null,
     sprayL: 0, sprayC: 0, sprayR: 0,
     totalPitchesSeen: 0, fpsPct: 0,
+    atBats: player.atBats || [],  // <-- spray chart data
   };
 }
 
@@ -424,4 +624,5 @@ function computePitchingLine(pitcher) {
   };
 }
 
-module.exports = { parseGCScorebook, computeBattingLine, computePitchingLine };
+// Export the at-bat code parser so it can be used by the spray endpoint in server.js
+module.exports = { parseGCScorebook, computeBattingLine, computePitchingLine, parseAtBatCode, parseAtBatsFromScorebook };
