@@ -116,7 +116,7 @@ tr:hover { background: #f8fafc; }
       </div>
 
       <div class="card" style="margin-top:20px;">
-        <div class="card-title">Arsenal Summary</div>
+        <div class="card-title">Pitch Summary</div>
         <div style="overflow-x: auto;">
           <table style="table-layout: fixed; width: 100%;">
             <thead><tr>
@@ -164,7 +164,7 @@ tr:hover { background: #f8fafc; }
       </div>
 
       <div class="card" style="margin-top:20px;">
-        <div class="card-title">First Pitch Tendencies (0-0 Counts)</div>
+        <div class="card-title">First Pitch (0-0 Counts)</div>
         <p style="font-size:13px;color:#6b7280;margin-bottom:12px;"><strong id="firstPitchPrimaryType" style="color:#2563eb;">—</strong> is thrown <strong id="firstPitchPrimaryPct">0</strong>% of the time on 0-0 (<span id="firstPitchTotal">0</span> pitches tracked)</p>
         <div style="overflow-x:auto;"><table><thead><tr>
           <th onclick="sortFirstPitch('pitch')" style="cursor:pointer;">Pitch <span id="firstPitchSort-pitch"></span></th>
@@ -175,7 +175,7 @@ tr:hover { background: #f8fafc; }
       </div>
 
       <div class="card" style="margin-top:20px;">
-        <div class="card-title">Two-Strike Intel</div>
+        <div class="card-title">Two-Strikes</div>
         <p style="font-size:13px;color:#6b7280;margin-bottom:12px;"><strong id="twoStrikePrimaryType" style="color:#2563eb;">—</strong> is the primary two-strike pitch, thrown <strong id="twoStrikePrimaryPct">0</strong>% of the time (<span id="twoStrikeTotal">0</span> pitches tracked)</p>
         <div style="overflow-x:auto;"><table><thead><tr>
           <th onclick="sortTwoStrike('pitch')" style="cursor:pointer;">Pitch <span id="twoStrikeSort-pitch"></span></th>
@@ -187,7 +187,7 @@ tr:hover { background: #f8fafc; }
       </div>
 
       <div class="card" style="margin-top:20px;">
-        <div class="card-title">Put-Away Pitch &amp; Weak Point</div>
+        <div class="card-title">Out Pitch &amp; Weak Point</div>
         <div class="two-column">
           <div>
             <div class="intel-box"><div class="intel-label">Primary Out Pitch</div><div id="primaryOutPitch" style="font-size:20px;color:#2563eb;font-weight:600;">—</div><div id="primaryOutPitchDetail" style="font-size:12px;color:#6b7280;margin-top:4px;"></div></div>
@@ -210,7 +210,7 @@ tr:hover { background: #f8fafc; }
           <div style="position:relative;height:400px;margin-bottom:80px;"><canvas id="releasePointChart"></canvas></div>
         </div>
         <div class="card">
-          <div class="card-title">OOZ Tendency — What Not To Chase</div>
+          <div class="card-title">OOZ Tendency — Do Not Chase</div>
           <div style="overflow-x:auto;"><table><thead><tr>
             <th onclick="sortOOZ('pitch')" style="cursor:pointer;">Pitch <span id="oozSort-pitch"></span></th>
             <th onclick="sortOOZ('total')" style="cursor:pointer;">Total <span id="oozSort-total"></span></th>
@@ -220,7 +220,7 @@ tr:hover { background: #f8fafc; }
           </tr></thead><tbody id="oozTable"></tbody></table></div>
         </div>
         <div class="card">
-          <div class="card-title">Contact Quality Against — Where To Do Damage</div>
+          <div class="card-title">Contact Quality Against — Hardest Hit Balls</div>
           <div style="overflow-x:auto;"><table><thead><tr>
             <th onclick="sortContactQuality('pitch')" style="cursor:pointer;">Pitch <span id="contactSort-pitch"></span></th>
             <th onclick="sortContactQuality('bip')" style="cursor:pointer;">BIP <span id="contactSort-bip"></span></th>
@@ -248,7 +248,7 @@ tr:hover { background: #f8fafc; }
           <div class="intel-box"><div class="intel-label">Summary &amp; Focus Areas</div><div id="aiReportSummary" style="font-size:13px;"></div></div>
         </div>
         <div class="card">
-          <div class="card-title">Count Sequencing — What To Expect By Count</div>
+          <div class="card-title">Count Sequencing — Pitch Selection By Count</div>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:32px;">
             <div class="count-bubble" onclick="selectCount(0,0,event)" style="cursor:pointer;"><div style="font-size:18px;font-weight:700;">0-0</div><div style="font-size:11px;color:#6b7280;margin-top:4px;" id="pitch-0-0">—</div></div>
             <div class="count-bubble" onclick="selectCount(0,1,event)" style="cursor:pointer;"><div style="font-size:18px;font-weight:700;">0-1</div><div style="font-size:11px;color:#6b7280;margin-top:4px;" id="pitch-0-1">—</div></div>
